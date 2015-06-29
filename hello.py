@@ -19,8 +19,11 @@ class Game:
         self.field[xy[0]][xy[1]] = 1 if val == 'X' else 2
 
     def get(self, xy):
-        val = self.field[xy[0]][xy[1]]
-        return 'X' if val == 1 else 'O' if val == 2 else ' '
+        x, y = xy
+        if 0 <= x <= 6 and 0 <= y <= 6:
+           val = self.field[x][y]
+           return 'X' if val == 1 else 'O' if val == 2 else ' '
+        return ' '
 
     def available(self):
         return [(y, x) for y, row in enumerate(self.field) for x, v in enumerate(row) if v == 0]
@@ -103,20 +106,11 @@ def competition():
 
 
 # ---------------------------------------------------------------------
-#tictactoe.play([ HumanPlayer('X'), RandomPlayer('O') ] )
 
-results = {'X': 0, 'O': 0, ' ': 0}
-i = 0
-while i < 100:
-   i+=1
-   tictactoe = Game()
-   winner = tictactoe.play([ RandomPlayer('X'), RandomPlayer('O') ], False)
-   if winner is None:
-       results[' '] = results[' '] + 1
-   else:
-       results[winner.role] = results[winner.role] + 1
+# competition()
 
-print 'X: ', results['X']
-print 'O: ', results['O']
-print ' : ', results[' ']
+tictactoe = Game()
+winner = tictactoe.play([ RandomPlayer('X'), HumanPlayer('O') ], True)
+
+print 'Winner: ', winner.role
 
