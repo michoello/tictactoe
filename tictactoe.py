@@ -72,10 +72,11 @@ class Game:
         
         if winner != None:
            y0 = 1 if winner.role == 'X' else 0
-           print 'TRAINING! Winner is ', winner.role, '. Goal is ', y0
+           print 'TRAINING! Winner is ', winner.role, '. Game length is ', len(history)
 
            for idx, position in enumerate(reversed(history)):
-               net.train(position, [y0, 1.0/(idx+1)], 0.2, 10/(idx+1))
+               #net.train(position, [y0, 1.0/(idx+1)], 0.9, 20/(idx+1)) # brings learned helplessness
+               net.train(position, [y0, 1.0/(idx+1)], 0.3, 20/(idx+1))
                # print
                # print 'Position:', idx + 1, ' -> ', position
                # print 'Predict: ', net.predict(position)
@@ -129,11 +130,11 @@ class NeuralPlayer(Player):
             #if self.role == 'O':
             #    rate = -rate
 
-            print xy, ' -> ', rate, dist
-            if (rate < minrate) or (rate == minrate and dist > maxdist):
+            # print xy, ' -> ', rate, dist
+            if (rate < minrate) or (rate == minrate and dist > maxdist):  # TODO: if we are going to win, then the less dist the better
                 bestchoice, minrate, maxdist = xy, rate, dist
 
-        print 'Best choice is ', bestchoice, ' its rate is ', minrate, ' dist is ', maxdist
+        # print 'Best choice is ', bestchoice, ' its rate is ', minrate, ' dist is ', maxdist
         return bestchoice 
 
 # ---------------------------------------------------------------------
@@ -158,8 +159,8 @@ def competition(show = False, rounds = 100):
     results = {'X': 0, 'O': 0, ' ': 0}
     i = 0
     while i < rounds:
-        print '========================================='
-        print 'Round', i
+        #print '========================================='
+        #print 'Round', i
         #playerX, playerO = NeuralPlayer('X'), StubbornPlayer('O')
         playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O')
         #playerX, playerO = RandomPlayer('X'), StubbornPlayer('O')
@@ -186,7 +187,8 @@ def playwithme(roboPlayer = RandomPlayer('X')):
 # ---------------------------------------------------------------------
 #playwithme(StubbornPlayer('X'))
 
-competition(show=True, rounds = 1000)
+for i in range(10):    
+    competition(show=False, rounds = 100)
 
 
 
