@@ -2,7 +2,8 @@ import random
 import network
 import copy
 
-net = network.Network([72, 36, 16, 2])
+# net = network.Network([72, 36, 16, 2])
+net = network.Network([72, 36, 2])
 
 # ---------------------------------------------------------------------
 class Game:
@@ -70,16 +71,15 @@ class Game:
                    gameOver = True
                    break
         
-        if winner != None:
-           y0 = 1 if winner.role == 'X' else 0
-           print 'TRAINING! Winner is ', winner.role, '. Game length is ', len(history)
+#        if winner != None:
+        y0 = 0.5 if winner == None else 1 if winner.role == 'X' else 0 
+        print 'TRAINING! Winner is ', y0, '. Game length is ', len(history)
 
-           for idx, position in enumerate(reversed(history)):
-               #net.train(position, [y0, 1.0/(idx+1)], 0.9, 20/(idx+1)) # brings learned helplessness
-               net.train(position, [y0, 1.0/(idx+1)], 0.3, 20/(idx+1))
-               # print
-               # print 'Position:', idx + 1, ' -> ', position
-               # print 'Predict: ', net.predict(position)
+        for idx, position in enumerate(reversed(history)):
+            net.train(position, [y0, 1.0/(idx+1)], 0.02, 20)
+            # print
+            # print 'Position:', idx + 1, ' -> ', position
+            # print 'Predict: ', net.predict(position)
 
         return winner
 
@@ -116,8 +116,13 @@ class RandomPlayer(Player):
 # ---------------------------------------------------------------------
 class NeuralPlayer(Player):
     def ply(self, game):
-        minrate = 10
-        maxdist = -10
+
+        if random.random() > 0.8:
+            print "Random!"
+            return random.choice(game.available())
+
+        bestrate = 10
+        bestdist = -10
         bestchoice = None
         for xy in game.available():
             field = copy.deepcopy(game.field)
@@ -131,10 +136,16 @@ class NeuralPlayer(Player):
             #    rate = -rate
 
             # print xy, ' -> ', rate, dist
-            if (rate < minrate) or (rate == minrate and dist > maxdist):  # TODO: if we are going to win, then the less dist the better
-                bestchoice, minrate, maxdist = xy, rate, dist
+            if rate < bestrate:  
+                bestchoice, bestrate, bestdist = xy, rate, dist
 
-        # print 'Best choice is ', bestchoice, ' its rate is ', minrate, ' dist is ', maxdist
+#            if bestrate < 0.5 and dist < bestdist:              # this is for O player, must be > 0.5 for X player
+#                bestchoice, bestrate, bestdist = xy, rate, dist
+
+#            if bestrate > 0.5 and dist > bestdist:              # this is for O player, must be > 0.5 for X player
+#               bestchoice, bestrate, bestdist = xy, rate, dist
+
+        # print 'Best choice is ', bestchoice, ' its rate is ', bestrate, ' dist is ', bestdist
         return bestchoice 
 
 # ---------------------------------------------------------------------
