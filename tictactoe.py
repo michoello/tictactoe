@@ -1,5 +1,6 @@
 import random
 import network
+import copy
 
 net = network.Network([72, 36, 16, 2])
 
@@ -16,8 +17,9 @@ class Game:
             print idx,  '| ' + ' | '.join(line) + ' |'
             print '  -------------------------'
 
-    def set(self, xy, val):
-        self.field[xy[0]][xy[1]] = val
+    def set(self, xy, val, field = None):
+        if field == None: field = self.field 
+        field[xy[0]][xy[1]] = val
 
     def get(self, xy):
         x, y = xy
@@ -70,16 +72,19 @@ class Game:
         
         if winner != None:
            y0 = 1 if winner.role == 'X' else 0
+           print 'TRAINING! Winner is ', winner.role, '. Goal is ', y0
+
            for idx, position in enumerate(reversed(history)):
-               net.train(position, [y0, 1.0/(idx+1)], 0.5, 10/(idx+1))
+               net.train(position, [y0, 1.0/(idx+1)], 0.2, 10/(idx+1))
                # print
                # print 'Position:', idx + 1, ' -> ', position
                # print 'Predict: ', net.predict(position)
 
         return winner
 
-    def plainarray(self):
-        return sum( map( lambda c : [int(c == 'X'), int(c == 'O')], [ c for row in self.field for c in row ]), [])
+    def plainarray(self, field = None):
+        if field == None: field = self.field 
+        return sum( map( lambda c : [int(c == 'X'), int(c == 'O')], [ c for row in field for c in row ]), [])
 
 # ---------------------------------------------------------------------
 class Player:
@@ -108,6 +113,30 @@ class RandomPlayer(Player):
         return random.choice(game.available())
 
 # ---------------------------------------------------------------------
+class NeuralPlayer(Player):
+    def ply(self, game):
+        minrate = 10
+        maxdist = -10
+        bestchoice = None
+        for xy in game.available():
+            field = copy.deepcopy(game.field)
+            game.set(xy, self.role, field = field)
+            (rate, dist) = net.predict(game.plainarray(field))
+
+            rate = round(rate, 2)
+            dist = int(1.0/dist)
+
+            #if self.role == 'O':
+            #    rate = -rate
+
+            print xy, ' -> ', rate, dist
+            if (rate < minrate) or (rate == minrate and dist > maxdist):
+                bestchoice, minrate, maxdist = xy, rate, dist
+
+        print 'Best choice is ', bestchoice, ' its rate is ', minrate, ' dist is ', maxdist
+        return bestchoice 
+
+# ---------------------------------------------------------------------
 class StubbornPlayer(Player):
     def __init__(self, role):
         Player.__init__(self, role)
@@ -129,7 +158,10 @@ def competition(show = False, rounds = 100):
     results = {'X': 0, 'O': 0, ' ': 0}
     i = 0
     while i < rounds:
-        playerX, playerO = StubbornPlayer('X'), RandomPlayer('O')
+        print '========================================='
+        print 'Round', i
+        #playerX, playerO = NeuralPlayer('X'), StubbornPlayer('O')
+        playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O')
         #playerX, playerO = RandomPlayer('X'), StubbornPlayer('O')
 
         i+=1
@@ -154,7 +186,7 @@ def playwithme(roboPlayer = RandomPlayer('X')):
 # ---------------------------------------------------------------------
 #playwithme(StubbornPlayer('X'))
 
-competition(show=True, rounds = 1)
+competition(show=True, rounds = 1000)
 
 
 
