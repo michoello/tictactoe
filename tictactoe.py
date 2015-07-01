@@ -1,9 +1,16 @@
 import random
 import network
 import copy
+import sys
+import os.path
 
-# net = network.Network([72, 36, 16, 2])
-net = network.Network([72, 36, 2])
+filename = sys.argv[1] if len(sys.argv) > 1 else 'network.json'
+print 'filename: ', filename
+
+net = network.Network([72, 36, 16, 2])
+    
+if os.path.isfile(filename):
+    net = net.load(filename)
 
 # ---------------------------------------------------------------------
 class Game:
@@ -12,7 +19,7 @@ class Game:
         self.history = []
 
     def show(self):
-        print '   ' + ' '.join([' '+str(x)+' ' for x in range(0,6)])
+        print '   ' + ' '.join([' '+netstr(x)+' ' for x in range(0,6)])
         print '  -------------------------'
         for idx, line in enumerate(self.field):
             print idx,  '| ' + ' | '.join(line) + ' |'
@@ -31,7 +38,7 @@ class Game:
 
     def winner(self, player):
         n = 4
-        str = player.role * n
+        netstr = player.role * n
         for x in range(6):
             for y in range(6):
                 hor = [(x, y + i) for i in range(n)]
@@ -41,7 +48,7 @@ class Game:
 
                 hvd = [ ''.join([ self.get(xy) for xy in four ]) for four in [hor, ver, dia1, dia2] ]
 
-                if str in hvd:
+                if netstr in hvd:
                     return True
         return False
 
@@ -70,18 +77,16 @@ class Game:
                if self.draw():
                    gameOver = True
                    break
-        
-#        if winner != None:
+  
+        # game result to [0,1]
         y0 = 0.5 if winner == None else 1 if winner.role == 'X' else 0 
-        print 'TRAINING! Winner is ', y0, '. Game length is ', len(history)
+        sys.stdout.write(str(y0))
+        sys.stdout.flush()
 
         for idx, position in enumerate(reversed(history)):
             net.train(position, [y0, 1.0/(idx+1)], 0.02, 20)
-            # print
-            # print 'Position:', idx + 1, ' -> ', position
-            # print 'Predict: ', net.predict(position)
 
-        return winner
+        return (winner, len(history))
 
     def plainarray(self, field = None):
         if field == None: field = self.field 
@@ -117,8 +122,7 @@ class RandomPlayer(Player):
 class NeuralPlayer(Player):
     def ply(self, game):
 
-        if random.random() > 0.8:
-            print "Random!"
+        if random.random() > 0.8: # TODO: make it constructor parameter
             return random.choice(game.available())
 
         bestrate = 10
@@ -129,23 +133,18 @@ class NeuralPlayer(Player):
             game.set(xy, self.role, field = field)
             (rate, dist) = net.predict(game.plainarray(field))
 
-            rate = round(rate, 2)
+            rate = round(rate, 1)
             dist = int(1.0/dist)
 
-            #if self.role == 'O':
-            #    rate = -rate
-
-            # print xy, ' -> ', rate, dist
             if rate < bestrate:  
                 bestchoice, bestrate, bestdist = xy, rate, dist
 
-#            if bestrate < 0.5 and dist < bestdist:              # this is for O player, must be > 0.5 for X player
-#                bestchoice, bestrate, bestdist = xy, rate, dist
+            #if rate == bestrate and rate < 0.5 and dist < bestdist:
+            #    bestchoice, bestrate, bestdist = xy, rate, dist
 
-#            if bestrate > 0.5 and dist > bestdist:              # this is for O player, must be > 0.5 for X player
-#               bestchoice, bestrate, bestdist = xy, rate, dist
+            #if rate == bestrate and rate > 0.5 and dist > bestdist:
+            #    bestchoice, bestrate, bestdist = xy, rate, dist
 
-        # print 'Best choice is ', bestchoice, ' its rate is ', bestrate, ' dist is ', bestdist
         return bestchoice 
 
 # ---------------------------------------------------------------------
@@ -166,27 +165,25 @@ class StubbornPlayer(Player):
 
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-def competition(show = False, rounds = 100):
-    results = {'X': 0, 'O': 0, ' ': 0}
+def competition(show = False, rounds):
+    results = {'X': [0, 0], 'O': [0, 0], ' ': [0, 0]}
     i = 0
     while i < rounds:
-        #print '========================================='
-        #print 'Round', i
         #playerX, playerO = NeuralPlayer('X'), StubbornPlayer('O')
-        playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O')
         #playerX, playerO = RandomPlayer('X'), StubbornPlayer('O')
+        playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O')
 
         i+=1
         tictactoe = Game()
-        winner = tictactoe.play([ playerX, playerO ], show)
-        if winner is None:
-            results[' '] = results[' '] + 1
-        else:
-            results[winner.role] = results[winner.role] + 1
+        (winner, length) = tictactoe.play([ playerX, playerO ], show)
 
-    print 'X: ', results['X']
-    print 'O: ', results['O']
-    print ' : ', results[' ']
+        role = ' ' if winner is None else winner.role
+        results[role] = (results[role][0] + 1, results[role][1] + length)
+
+    print
+    for role in results:
+        print role, ': ', results[role][0], " avg ", results[role][1]/(1 if results[role][0] == 0 else results[role][0])
+    print
 
 # ---------------------------------------------------------------------
 def playwithme(roboPlayer = RandomPlayer('X')):    
@@ -198,8 +195,9 @@ def playwithme(roboPlayer = RandomPlayer('X')):
 # ---------------------------------------------------------------------
 #playwithme(StubbornPlayer('X'))
 
-for i in range(10):    
-    competition(show=False, rounds = 100)
+for i in range(100):
+    competition(show=False, rounds = 50)
+    net.save(filename + '.' + str(i))
 
 
 

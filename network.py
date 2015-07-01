@@ -16,6 +16,9 @@ import random
 # Third-party libraries
 import numpy as np
 
+
+import json
+
 class Network():
 
     def __init__(self, sizes):
@@ -29,7 +32,6 @@ class Network():
         layer is assumed to be an input layer, and by convention we
         won't set any biases for those neurons, since biases are only
         ever used in computing the outputs from later layers."""
-        self.num_layers = len(sizes)
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
         self.weights = [np.random.randn(y, x) 
@@ -109,7 +111,7 @@ class Network():
         # second-last layer, and so on.  It's a renumbering of the
         # scheme in the book, used here to take advantage of the fact
         # that Python can use negative indices in lists.
-        for l in xrange(2, self.num_layers):
+        for l in xrange(2, len(self.sizes)):
             z = zs[-l]
             spv = sigmoid_prime_vec(z)
             delta = np.dot(self.weights[-l+1].transpose(), delta) * spv
@@ -153,6 +155,30 @@ class Network():
 
             self.weights = [w-eta*nw for w, nw in zip(self.weights, nabla_w)]
             self.biases = [b-eta*nb for b, nb in zip(self.biases, nabla_b)]
+
+    def tojson(self):
+        return json.dumps({
+            's': self.sizes,
+            'b': [b.tolist() for b in self.biases ],
+            'w': [w.tolist() for w in self.weights ]
+        })
+
+    def fromjson(self, netstr):
+        n = json.loads(netstr)
+        self.sizes = n['s']
+        self.biases = [ np.array(b) for b in n['b'] ]
+        self.weights =[ np.array(w) for w in n['w'] ]
+        return self
+
+    def save(net, fileName):
+        with open(fileName, "w") as fh:
+            fh.write(net.tojson())
+
+    def load(fileName):
+        with open(fileName, "r") as fh:
+            return network.Network([]).fromjson(''.join(fh.read()))
+
+
 
 
 #### Miscellaneous functions
