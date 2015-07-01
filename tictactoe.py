@@ -165,7 +165,7 @@ class StubbornPlayer(Player):
 
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
-def competition(show = False, rounds):
+def competition(show = False, rounds = 100):
     results = {'X': [0, 0], 'O': [0, 0], ' ': [0, 0]}
     i = 0
     while i < rounds:
