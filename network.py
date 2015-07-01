@@ -170,13 +170,13 @@ class Network():
         self.weights =[ np.array(w) for w in n['w'] ]
         return self
 
-    def save(net, fileName):
+    def save(self, fileName):
         with open(fileName, "w") as fh:
-            fh.write(net.tojson())
+            fh.write(self.tojson())
 
-    def load(fileName):
+    def load(self, fileName):
         with open(fileName, "r") as fh:
-            return network.Network([]).fromjson(''.join(fh.read()))
+            return Network([]).fromjson(''.join(fh.read()))
 
 
 

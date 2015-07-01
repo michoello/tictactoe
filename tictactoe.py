@@ -4,7 +4,10 @@ import copy
 import sys
 import os.path
 
-filename = sys.argv[1] if len(sys.argv) > 1 else 'network.json'
+
+mode = sys.argv[1] if len(sys.argv) > 1 else 'play'
+filename = sys.argv[2] if len(sys.argv) > 2 else 'network.json'
+print 'mode: ', mode
 print 'filename: ', filename
 
 net = network.Network([72, 36, 16, 2])
@@ -19,11 +22,15 @@ class Game:
         self.history = []
 
     def show(self):
-        print '   ' + ' '.join([' '+netstr(x)+' ' for x in range(0,6)])
+        print '   ' + ' '.join([' '+ str(x) + ' ' for x in range(0,6)])
         print '  -------------------------'
         for idx, line in enumerate(self.field):
             print idx,  '| ' + ' | '.join(line) + ' |'
             print '  -------------------------'
+
+        (rate, dist) = net.predict(self.plainarray())
+        print 'Network opinion: ', rate, dist
+            
 
     def set(self, xy, val, field = None):
         if field == None: field = self.field 
@@ -77,6 +84,8 @@ class Game:
                if self.draw():
                    gameOver = True
                    break
+
+                   
   
         # game result to [0,1]
         y0 = 0.5 if winner == None else 1 if winner.role == 'X' else 0 
@@ -186,18 +195,23 @@ def competition(show = False, rounds = 100):
     print
 
 # ---------------------------------------------------------------------
-def playwithme(roboPlayer = RandomPlayer('X')):    
+def playagame(playerX, playerO):    
     tictactoe = Game()
-    winner = tictactoe.play([ roboPlayer, HumanPlayer('O') ], True)
+    #winner = tictactoe.play([ RandomPlayer('X'), HumanPlayer('O') ], True)
+    winner, _ = tictactoe.play([ playerX, playerO ], True)
     print 'Winner: ', winner.role
 
 
 # ---------------------------------------------------------------------
-#playwithme(StubbornPlayer('X'))
+if mode == 'play':    
+    #playagame(RandomPlayer('X'), HumanPlayer('O'))
+    #playagame(HumanPlayer('X'), NeuralPlayer('O'))
+    playagame(HumanPlayer('X'), HumanPlayer('O'))
 
-for i in range(100):
-    competition(show=False, rounds = 50)
-    net.save(filename + '.' + str(i))
+else:   
+    for i in range(100):
+        competition(show=False, rounds = 50)
+        net.save(filename + '.' + str(i))
 
 
 
