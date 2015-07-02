@@ -34,8 +34,11 @@ class Network():
         ever used in computing the outputs from later layers."""
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        self.weights = [np.random.randn(y, x) 
-                        for x, y in zip(sizes[:-1], sizes[1:])]
+        self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])] 
+
+        # temporary, for easier debugging
+        self.biases = [0.1 * np.random.randn(y, 1) for y in sizes[1:]]
+        self.weights = [0.1 * np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])] 
 
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""

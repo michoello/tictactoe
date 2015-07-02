@@ -22,21 +22,29 @@ class Game:
         self.field = [[' '] * 6 for x in range(6)]
         self.history = []
 
+    def showScores(self, role):
+        print '  -------------------------'
+        for r in range(6):
+            print r,  '|' + \
+                '|'.join([ '{:3.0f}'.format(self.predictPly(role, (r,c)) * 1000) for c in range(6)]) + '|' 
+#print '  -------------------------'
+
+
+
     def show(self):
         print '   ' + ' '.join([' '+ str(x) + ' ' for x in range(0,6)])
         print '  -------------------------'
         for idx, line in enumerate(self.field):
             print idx,  '| ' + ' | '.join(line) + ' |'
-            print '  -------------------------'
 
-
-        print '  -------------------------'
-        for r in range(6):
-            print r,  '| ' + \
-                ' | '.join([ str(int(self.predictPly('X', (r,c)) * 1000)) for c in range(6)]) + ' |' 
-            print '  -------------------------'
-
+#print '  -------------------------'
         print 'Network opinion: ', self.predictPly()
+
+        print 'Scores for O'
+        self.showScores('O')
+
+        print 'Scores for X'
+        self.showScores('X')
             
 
     def set(self, xy, val, field = None):
@@ -100,8 +108,7 @@ class Game:
         goalDelta = 0.025 * (0 if role == ' ' else -1 if role == 'X' else 1)
 
         for stepsToFinish, position in enumerate(reversed(history)):
-            net.train(position, [goal + goalDelta * stepsToFinish], 0.1, 20)
-
+           net.train(position, [goal + goalDelta * stepsToFinish], 0.02, 10)
 
     def predictPly(self, role = ' ', xy = None):
         field = self.field
@@ -141,7 +148,7 @@ class RandomPlayer(Player):
 # ---------------------------------------------------------------------
 class NeuralPlayer(Player):
 
-    def __init__(self, role, randomRate):
+    def __init__(self, role, randomRate = 0.0):
         Player.__init__(self, role)
         self.randomRate = randomRate
 
@@ -162,8 +169,14 @@ class NeuralPlayer(Player):
         # esli vsyo ploho, pytaemsya navredit'
         if self.role == 'O' and bestrate > 0.5:
             for xy in game.available():
-                rate = game.predictPly(self.role, xy)
+                rate = game.predictPly('X', xy)
                 if rate > bestrate:
+                    bestchoice, bestrate = xy, rate
+
+        if self.role == 'X' and bestrate < 0.5:
+            for xy in game.available():
+                rate = game.predictPly('O', xy)
+                if rate < bestrate:
                     bestchoice, bestrate = xy, rate
 
         return bestchoice 
@@ -239,7 +252,8 @@ def playagame(playerX, playerO):
 # ---------------------------------------------------------------------
 if mode == 'play':    
     while True:
-        playagame(HumanPlayer('X'), NeuralPlayer('O', 0.0))
+        playagame(NeuralPlayer('X'), HumanPlayer('O'))
+        #playagame(HumanPlayer('X'), NeuralPlayer('O', 0.0))
 
 else:   
     for i in range(100):
