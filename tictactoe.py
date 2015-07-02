@@ -10,7 +10,8 @@ filename = sys.argv[2] if len(sys.argv) > 2 else 'network.json'
 print 'mode: ', mode
 print 'filename: ', filename
 
-net = network.Network([72, 36, 16, 2])
+#net = network.Network([72, 36, 16, 2])
+net = network.Network([72, 36, 1])
     
 if os.path.isfile(filename):
     net = net.load(filename)
@@ -28,8 +29,14 @@ class Game:
             print idx,  '| ' + ' | '.join(line) + ' |'
             print '  -------------------------'
 
-        (rate, dist) = net.predict(self.plainarray())
-        print 'Network opinion: ', rate, dist
+
+        print '  -------------------------'
+        for r in range(6):
+            print r,  '| ' + \
+                ' | '.join([ str(int(self.predictPly('X', (r,c)) * 1000)) for c in range(6)]) + ' |' 
+            print '  -------------------------'
+
+        print 'Network opinion: ', self.predictPly()
             
 
     def set(self, xy, val, field = None):
@@ -63,12 +70,9 @@ class Game:
         return not self.available()
 
     def play(self, players, show):
-        winner = None 
         history = []
-        gameOver = False
-        while not gameOver: 
+        while True: 
            for player in players:
-
                xy = player.ply(self)
                self.set(xy, player.role)
               
@@ -78,28 +82,35 @@ class Game:
                    self.show()
 
                if self.winner(player): 
-                   gameOver, winner = True, player
-                   break
+                   return (player, history)
 
                if self.draw():
-                   gameOver = True
-                   break
-
+                   return (None, history)
                    
-  
-        # game result to [0,1]
-        y0 = 0.5 if winner == None else 1 if winner.role == 'X' else 0 
-        sys.stdout.write(str(y0))
-        sys.stdout.flush()
-
-        for idx, position in enumerate(reversed(history)):
-            net.train(position, [y0, 1.0/(idx+1)], 0.02, 20)
-
-        return (winner, len(history))
 
     def plainarray(self, field = None):
         if field == None: field = self.field 
         return sum( map( lambda c : [int(c == 'X'), int(c == 'O')], [ c for row in field for c in row ]), [])
+
+
+    def trainGame(self, winner, history):
+        role = ' ' if winner is None else winner.role
+
+        goal = 0.5 if role == ' ' else 1 if role == 'X' else 0 
+        goalDelta = 0.025 * (0 if role == ' ' else -1 if role == 'X' else 1)
+
+        for stepsToFinish, position in enumerate(reversed(history)):
+            net.train(position, [goal + goalDelta * stepsToFinish], 0.1, 20)
+
+
+    def predictPly(self, role = ' ', xy = None):
+        field = self.field
+        if xy != None:
+            field = copy.deepcopy(self.field)
+            self.set(xy, role, field = field)
+
+        return net.predict(self.plainarray(field))[0]
+
 
 # ---------------------------------------------------------------------
 class Player:
@@ -129,30 +140,31 @@ class RandomPlayer(Player):
 
 # ---------------------------------------------------------------------
 class NeuralPlayer(Player):
-    def ply(self, game):
 
-        if random.random() > 0.8: # TODO: make it constructor parameter
+    def __init__(self, role, randomRate):
+        Player.__init__(self, role)
+        self.randomRate = randomRate
+
+    def ply(self, game):
+        if random.random() > 1 - self.randomRate: 
             return random.choice(game.available())
 
-        bestrate = 10
-        bestdist = -10
+        bestrate = 0 if self.role == 'X' else 1
         bestchoice = None
+
         for xy in game.available():
-            field = copy.deepcopy(game.field)
-            game.set(xy, self.role, field = field)
-            (rate, dist) = net.predict(game.plainarray(field))
+            rate = game.predictPly(self.role, xy)
 
-            rate = round(rate, 1)
-            dist = int(1.0/dist)
+            if (self.role == 'X' and rate > bestrate) or \
+               (self.role == 'O' and rate < bestrate):
+                bestchoice, bestrate = xy, rate
 
-            if rate < bestrate:  
-                bestchoice, bestrate, bestdist = xy, rate, dist
-
-            #if rate == bestrate and rate < 0.5 and dist < bestdist:
-            #    bestchoice, bestrate, bestdist = xy, rate, dist
-
-            #if rate == bestrate and rate > 0.5 and dist > bestdist:
-            #    bestchoice, bestrate, bestdist = xy, rate, dist
+        # esli vsyo ploho, pytaemsya navredit'
+        if self.role == 'O' and bestrate > 0.5:
+            for xy in game.available():
+                rate = game.predictPly(self.role, xy)
+                if rate > bestrate:
+                    bestchoice, bestrate = xy, rate
 
         return bestchoice 
 
@@ -172,46 +184,65 @@ class StubbornPlayer(Player):
             if step in game.available():
                 return step
 
+def pprint(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
 # ---------------------------------------------------------------------
+
 # ---------------------------------------------------------------------
-def competition(show = False, rounds = 100):
+def competition(show, rounds, epoch):
+    playStub = (epoch % 2 == 1)
+    pprint((' Test ' if playStub else 'Train ') + str(epoch) + ': ')
+
     results = {'X': [0, 0], 'O': [0, 0], ' ': [0, 0]}
     i = 0
     while i < rounds:
-        #playerX, playerO = NeuralPlayer('X'), StubbornPlayer('O')
-        #playerX, playerO = RandomPlayer('X'), StubbornPlayer('O')
-        playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O')
+        if not playStub:
+            playerX, playerO = NeuralPlayer('X',0.0), NeuralPlayer('O', 0.0)
+        else:
+            playerX, playerO = StubbornPlayer('X'), NeuralPlayer('O', 0.0)
 
         i+=1
         tictactoe = Game()
-        (winner, length) = tictactoe.play([ playerX, playerO ], show)
+        (winner, history) = tictactoe.play([ playerX, playerO ], show)
 
         role = ' ' if winner is None else winner.role
-        results[role] = (results[role][0] + 1, results[role][1] + length)
+
+        if not playStub: 
+            tictactoe.trainGame(role, position, idx)
+
+        results[role] = (results[role][0] + 1, results[role][1] + len(history))
+        pprint(role)
+
 
     print
-    for role in results:
-        print role, ': ', results[role][0], " avg ", results[role][1]/(1 if results[role][0] == 0 else results[role][0])
+    for role, (cnt, leng) in results.iteritems():
+        print role, ': ', cnt, " avg ", leng/(1 if cnt == 0 else cnt)
+#print role, ': ', data[0], " avg ", data[1]/(1 if data[0] == 0 else data[0])
     print
 
 # ---------------------------------------------------------------------
 def playagame(playerX, playerO):    
     tictactoe = Game()
-    #winner = tictactoe.play([ RandomPlayer('X'), HumanPlayer('O') ], True)
-    winner, _ = tictactoe.play([ playerX, playerO ], True)
+    winner, history = tictactoe.play([ playerX, playerO ], True)
+    
     print 'Winner: ', winner.role
+    
+    tictactoe.trainGame(winner, history)
+    rate = net.predict(tictactoe.plainarray())[0]
+    print 'Network opinion after training: ', rate
+
+
 
 
 # ---------------------------------------------------------------------
 if mode == 'play':    
-    #playagame(RandomPlayer('X'), HumanPlayer('O'))
-    #playagame(HumanPlayer('X'), NeuralPlayer('O'))
-    playagame(HumanPlayer('X'), HumanPlayer('O'))
+    while True:
+        playagame(HumanPlayer('X'), NeuralPlayer('O', 0.0))
 
 else:   
     for i in range(100):
-        competition(show=False, rounds = 50)
+        competition(show=False, rounds = 50, epoch = i)
         net.save(filename + '.' + str(i))
-
-
 
