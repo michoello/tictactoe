@@ -42,11 +42,26 @@ def mul(matrix, scalar):
 
 
 
+def _dims(v):
+      if not isinstance(v, list):
+        return []
+      dimension = [len(v)]
+      if len(v) > 0 and isinstance(v[0], list):
+        dimension.extend(_dims(v[0]))
+      return dimension
+
+
+
+
 
 class BB:
     def __init__(self, *args):
        self.args = list(args)
        self.value = self.args[0]
+
+
+    def dims(self):
+      return _dims(self.value)
 
     def val(self):
       return self.value
