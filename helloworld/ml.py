@@ -89,7 +89,14 @@ class BB:
 class BBSum(BB):
     def __init__(self, arg1, arg2):
        super().__init__(arg1, arg2)
+
+       if self.arg(0).dims() != self.arg(1).dims():
+          raise ValueError(f"Dimentions unmatch input->{self.arg(0).dims()}, bias->{self.arg(1).dims()}")
+
+
        self.value = add(self.arg(0).val(), self.arg(1).val())
+
+
 
     def dif(self, dvalue):
        super().dif(dvalue)
@@ -103,17 +110,15 @@ class BBMatmul(BB):
        self.input = self.arg(0)
        self.weights = self.arg(1)
 
+       if self.input.dims()[1] != self.weights.dims()[0]:
+          raise ValueError(f"Dimentions unmatch input->{self.input.dims()}, weights->{self.weights.dims()}")
+
        self.value = matmul(self.input.val(), self.weights.val())
  
     def dif(self, dvalue):
        super().dif(dvalue)
        self.weights.dif( matmul(transpose(self.input.val()), self.dval()))
        self.input.dif( matmul(self.dval(), transpose(self.weights.val())) ) 
-
-       # Somehow, this works as well, though a bit different losses
-       # are produced, but still reducing over time.
-       #self.weights.dif( matmul(self.input.val(), self.dval()))
-       #self.input.dif( matmul( self.weights.val(), self.dval()) ) 
 
 
 class BBSigmoid(BB):

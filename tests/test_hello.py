@@ -9,9 +9,10 @@ class TestHelloWorld(unittest.TestCase):
         self.assertNotEqual(say_hello("Charlie"), "Hello, Alice!")
 
 
-    def test_ml(self):
-        x = [[0.5, 0.9]] 
-        w1 = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]] 
+    def test_basic_ops(self):
+        x = [[1, 2]] 
+        w1 = [[3, 4, 5], [6, 7, 8]] 
+        w_wrong = [[3, 4, 5]] 
         
         xx = ml.BB(x)
         ww1 = ml.BB(w1)
@@ -19,18 +20,25 @@ class TestHelloWorld(unittest.TestCase):
         yy = xx @ ww1
 
         assert xx.dims() == [1, 2]
-        assert ww1.dims() == [3, 2], f"Actual value is {ww1.dims()}"
-        assert yy.dims() == [1, 2], f"Actual value is {yy.dims()}"
+        assert ww1.dims() == [2, 3], f"Actual value is {ww1.dims()}"
+        assert yy.dims() == [1, 3], f"Actual value is {yy.dims()}"
 
 
+        assert yy.val() == [
+            [ 15, 18, 21 ],
+        ]
 
-        print(x)
-        print(w1)
-        print(ml.transpose(w1))
-        print(ml.matmul(x, w1))
 
-        #return [[sum(a * b for a, b in zip(row, col)) for col in transpose(B)] for row in A]
-        print( [[ (row, col) for col in ml.transpose(w1)] for row in x] )
+        ww_wrong = ml.BB(w_wrong)
+        with self.assertRaises(ValueError):
+           y_wrong = xx @ ww_wrong
+
+        b = [[1, 2, 3]]
+
+        yy1 = yy + ml.BB(b)
+
+
+        assert yy1.val() == [[16, 20, 24]], f"actual value is {yy1.val()}"
 
 
 if __name__ == "__main__":
