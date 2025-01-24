@@ -30,11 +30,11 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val()
 
 # Run the example
-x = [[0.5, 0.9]]  # Input (1 sample, 2 features)
+x = [[0.5, 0.9]]                          # Input (1 sample, 2 features)
 w1 = [[0.1, 0.2, 0.3], [ 0.4, 0.5, 0.6]]  # Weights for layer 1 (2x2)
-b1 = [[0.1, 0.2, 0.3]]               # Biases for layer 1 (1x2)
-w2 = [[0.5], [0.6], [0.7]]             # Weights for layer 2 (2x1)
-b2 = [[0.3]]                    # Biases for layer 2 (1x1)
+b1 = [[0.1, 0.2, 0.3]]                    # Biases for layer 1 (1x2)
+w2 = [[0.5], [0.6], [0.7]]                # Weights for layer 2 (2x1)
+b2 = [[0.3]]                              # Biases for layer 2 (1x1)
 
 y = [[0.001]]         # True output (1 sample, 1 target)
 
