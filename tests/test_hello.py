@@ -41,5 +41,19 @@ class TestHelloWorld(unittest.TestCase):
         assert yy1.val() == [[16, 20, 24]], f"actual value is {yy1.val()}"
 
 
+    def test_reshape(self):
+        w1 = [[3, 4, 5], [6, 7, 8]] 
+        assert ml.reshape(w1, 3, 2) == [ [3, 4], [5, 6], [7, 8]]
+
+        ww1 = ml.BB(w1)
+
+        ww2 = ml.BBReshape(ww1, 6, 1)
+
+        assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
+
+
+
+
+
 if __name__ == "__main__":
     unittest.main()

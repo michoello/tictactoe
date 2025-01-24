@@ -42,6 +42,7 @@ def mul(matrix, scalar):
 
 
 
+
 def _dims(v):
       if not isinstance(v, list):
         return []
@@ -85,6 +86,8 @@ class BB:
        return BBSum(self, other)
 
 
+       
+
 
 class BBSum(BB):
     def __init__(self, arg1, arg2):
@@ -93,15 +96,38 @@ class BBSum(BB):
        if self.arg(0).dims() != self.arg(1).dims():
           raise ValueError(f"Dimentions unmatch input->{self.arg(0).dims()}, bias->{self.arg(1).dims()}")
 
-
        self.value = add(self.arg(0).val(), self.arg(1).val())
-
 
 
     def dif(self, dvalue):
        super().dif(dvalue)
        self.arg(0).dif(self.dval())
        self.arg(1).dif(self.dval())
+
+
+def reshape(matrix, o, p):
+  flat_list = sum(matrix, [])  # Flatten the matrix
+  return [flat_list[i * p:(i + 1) * p] for i in range(o)]
+
+
+
+class BBReshape(BB):
+    def __init__(self, arg, o, p):
+       super().__init__(arg)
+       
+       m, n = self.arg(0).dims()
+       if m * n != o * p:
+          assert ValueError(f"Incompatible reshape {m} * {n} != {o} * {p}")
+       self.m, self.n = m, n
+       self.o, self.p = o, p
+       self.value = reshape(arg.val(), o, p)
+
+    def dif(self, dvalue):
+       super().dif(dvalue)
+       self.arg(0).dif( reshape(dvalue, self.m, self.n) )
+   
+
+
 
 
 class BBMatmul(BB):
