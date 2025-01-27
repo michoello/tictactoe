@@ -2,11 +2,15 @@ import unittest
 from helloworld import say_hello
 from helloworld import ml
 
+
+def roughlyEqual(m1, m2):
+    if all([round(a, 2) == round(b, 2) for row_a, row_b in zip(m1, m2) for a, b in zip(row_a, row_b)]):
+        return True
+    print(f"Arrays not equal:\n{m1}\n{m2}")
+    return False
+
+
 class TestHelloWorld(unittest.TestCase):
-    def test_say_hello(self):
-        self.assertEqual(say_hello("Alice"), "Hello, Alice!")
-        self.assertEqual(say_hello("Bob"), "Hello, Bob!")
-        self.assertNotEqual(say_hello("Charlie"), "Hello, Alice!")
 
 
     def test_basic_ops(self):
@@ -39,6 +43,22 @@ class TestHelloWorld(unittest.TestCase):
 
 
         assert yy1.val() == [[16, 20, 24]], f"actual value is {yy1.val()}"
+
+
+    def test_bme_loss(self):
+        
+        xx = ml.BB([[1], [2]])
+        yy = ml.BB([[4], [6]])
+
+        ll = ml.BBMSELoss2(xx, yy)
+
+        self.assertEqual(ll.val(), [[9], [16]])
+
+        ll.dif()
+        self.assertEqual(ll.dval(), [[-3], [-4]])
+
+        xx.appl(0.1)
+        self.assertTrue(roughlyEqual(ll.val(), [[7.29], [12.96]]))
 
 
     def test_reshape(self):

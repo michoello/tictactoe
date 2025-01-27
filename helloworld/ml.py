@@ -1,6 +1,5 @@
 import math
 
-learning_rate = 0.01
 
 
 
@@ -76,7 +75,7 @@ class BB:
     def arg(self, i):
        return self.args[i]
 
-    def appl(self):
+    def appl(self, learning_rate):
        self.value = subtract(self.value, mul(self.dvalue, learning_rate))
 
     def __matmul__(self, other):
@@ -84,7 +83,6 @@ class BB:
 
     def __add__(self, other):
        return BBSum(self, other)
-
 
     def sigmoid(self):
        return BBSigmoid(self)
@@ -172,6 +170,24 @@ class BBMSELoss(BB):
        return subtract(self.inp.val(), self.y.val()) # derivative of loss
  
     def dif(self, dvalue):
+      self.dvalue = self.derivative()
+      self.inp.dif(self.dval()) 
+
+
+class BBMSELoss2(BB):
+    def __init__(self, inp, y):
+       self.inp = inp
+       self.y = y
+       self.value = [[(a - b) ** 2 for a, b in zip(row_a, row_b)] for row_a, row_b in zip(inp.val(), y.val())]
+
+    def derivative(self):
+       return subtract(self.inp.val(), self.y.val()) # derivative of loss
+
+    def val(self):
+       self.value = [[(a - b) ** 2 for a, b in zip(row_a, row_b)] for row_a, row_b in zip(self.inp.val(), self.y.val())]
+       return self.value
+ 
+    def dif(self):
       self.dvalue = self.derivative()
       self.inp.dif(self.dval()) 
 

@@ -20,12 +20,12 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     lloss.dif(1)
 
     # Update weights and biases
-    ww1.appl() 
-    bb1.appl() 
-    ww2.appl()
-    bb2.appl()
+    ww1.appl(0.01) 
+    bb1.appl(0.01) 
+    ww2.appl(0.01)
+    bb2.appl(0.01)
 
-    xx.appl()
+    xx.appl(0.01)
 
     return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val()
 
