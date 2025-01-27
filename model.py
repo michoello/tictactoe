@@ -11,9 +11,7 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     yy = ml.BB(y)
 
     # Forward pass
-    #zz1 = ml.BBSigmoid(xx @ ww1  + bb1)
     zz1 = (xx @ ww1  + bb1).sigmoid()
-    #zz2 = ml.BBSigmoid(zz1 @ ww2 + bb2)
     zz2 = (zz1 @ ww2 + bb2).sigmoid()
 
     lloss = ml.BBMSELoss(zz2, yy)
