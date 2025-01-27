@@ -86,6 +86,8 @@ class BB:
        return BBSum(self, other)
 
 
+    def sigmoid(self):
+       return BBSigmoid(self)
        
 
 
