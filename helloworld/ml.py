@@ -87,6 +87,8 @@ class BB:
     def sigmoid(self):
        return BBSigmoid(self)
        
+    def mse(self, y):
+       return BBMSELoss(self, y)
 
 
 class BBSum(BB):
@@ -164,22 +166,8 @@ class BBMSELoss(BB):
     def __init__(self, inp, y):
        self.inp = inp
        self.y = y
-       self.value = 0.5 * sum((a - b) ** 2 for a, b in zip(inp.val()[0], y.val()[0]))
 
-    def derivative(self):
-       return subtract(self.inp.val(), self.y.val()) # derivative of loss
- 
-    def dif(self, dvalue):
-      self.dvalue = self.derivative()
-      self.inp.dif(self.dval()) 
-
-
-class BBMSELoss2(BB):
-    def __init__(self, inp, y):
-       self.inp = inp
-       self.y = y
-       self.value = [[(a - b) ** 2 for a, b in zip(row_a, row_b)] for row_a, row_b in zip(inp.val(), y.val())]
-
+    # TODO: actually derivative must be 0.5 * ..., but TODO
     def derivative(self):
        return subtract(self.inp.val(), self.y.val()) # derivative of loss
 

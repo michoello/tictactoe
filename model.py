@@ -13,11 +13,10 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     # Forward pass
     zz1 = (xx @ ww1  + bb1).sigmoid()
     zz2 = (zz1 @ ww2 + bb2).sigmoid()
-
-    lloss = ml.BBMSELoss(zz2, yy)
+    lloss = zz2.mse(yy)
 
     # Backward pass
-    lloss.dif(1)
+    lloss.dif()
 
     # Update weights and biases
     ww1.appl(0.01) 

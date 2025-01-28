@@ -50,7 +50,8 @@ class TestHelloWorld(unittest.TestCase):
         xx = ml.BB([[1], [2]])
         yy = ml.BB([[4], [6]])
 
-        ll = ml.BBMSELoss2(xx, yy)
+        #ll = ml.BBMSELoss(xx, yy)
+        ll = xx.mse(yy)
 
         self.assertEqual(ll.val(), [[9], [16]])
 
