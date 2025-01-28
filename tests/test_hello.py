@@ -67,10 +67,12 @@ class TestHelloWorld(unittest.TestCase):
         assert ml.reshape(w1, 3, 2) == [ [3, 4], [5, 6], [7, 8]]
 
         ww1 = ml.BB(w1)
+        self.assertEqual(ww1.val(), w1)
 
         ww2 = ml.BBReshape(ww1, 6, 1)
+        self.assertEqual(ww2.val(), [[3],[4],[5],[6],[7],[8]])
 
-        assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
+        #assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
 
 
 

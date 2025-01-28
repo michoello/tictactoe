@@ -57,13 +57,15 @@ def _dims(v):
 class BB:
     def __init__(self, *args):
        self.args = list(args)
-       self.value = self.args[0]
-
+       self.value = None
 
     def dims(self):
+      if self.value is None:
+         self.val()
       return _dims(self.value)
 
     def val(self):
+      self.value = self.args[0]
       return self.value
 
     def dif(self, dvalue):
@@ -77,6 +79,7 @@ class BB:
 
     def appl(self, learning_rate):
        self.value = subtract(self.value, mul(self.dvalue, learning_rate))
+       self.args[0]  = self.value
 
     def __matmul__(self, other):
        return BBMatmul(self, other)
@@ -98,7 +101,9 @@ class BBSum(BB):
        if self.arg(0).dims() != self.arg(1).dims():
           raise ValueError(f"Dimentions unmatch input->{self.arg(0).dims()}, bias->{self.arg(1).dims()}")
 
+    def val(self):
        self.value = add(self.arg(0).val(), self.arg(1).val())
+       return self.value
 
 
     def dif(self, dvalue):
@@ -122,7 +127,11 @@ class BBReshape(BB):
           assert ValueError(f"Incompatible reshape {m} * {n} != {o} * {p}")
        self.m, self.n = m, n
        self.o, self.p = o, p
-       self.value = reshape(arg.val(), o, p)
+  
+    def val(self):
+       self.value = reshape(self.arg(0).val(), self.o, self.p)
+       return self.value
+
 
     def dif(self, dvalue):
        super().dif(dvalue)
@@ -141,7 +150,9 @@ class BBMatmul(BB):
        if self.input.dims()[1] != self.weights.dims()[0]:
           raise ValueError(f"Dimentions unmatch input->{self.input.dims()}, weights->{self.weights.dims()}")
 
+    def val(self):
        self.value = matmul(self.input.val(), self.weights.val())
+       return self.value
  
     def dif(self, dvalue):
        super().dif(dvalue)
@@ -151,8 +162,13 @@ class BBMatmul(BB):
 
 class BBSigmoid(BB):
     def __init__(self, inp):
+       super().__init__(inp)
        self.inp = inp
-       self.value = vectorized(sigmoid, inp.val())
+
+    def val(self):
+       self.value = vectorized(sigmoid, self.inp.val())
+       return self.value
+
 
     def derivative(self):
        return sigmoid_derivative(self.inp.val())
@@ -164,6 +180,7 @@ class BBSigmoid(BB):
 
 class BBMSELoss(BB):
     def __init__(self, inp, y):
+       super().__init__(inp, y)
        self.inp = inp
        self.y = y
 
