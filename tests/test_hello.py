@@ -50,7 +50,6 @@ class TestHelloWorld(unittest.TestCase):
         xx = ml.BB([[1], [2]])
         yy = ml.BB([[4], [6]])
 
-        #ll = ml.BBMSELoss(xx, yy)
         ll = xx.mse(yy)
 
         self.assertEqual(ll.val(), [[9], [16]])
@@ -60,6 +59,27 @@ class TestHelloWorld(unittest.TestCase):
 
         xx.appl(0.1)
         self.assertTrue(roughlyEqual(ll.val(), [[7.29], [12.96]]))
+
+
+    def test_bme_loss(self):
+        x = ml.BB([[1, 2]])
+        w = ml.BB([[3, 4, 5], [ 6, 7, 8]])
+
+        y = x @ w
+
+        self.assertEqual(y.val(), [[15, 18, 21]])
+
+        loss = y.mse(ml.BB([[0, 0, 0]]))
+        self.assertEqual(loss.val(), [[225, 324, 441]])
+
+        loss.dif()
+        self.assertEqual(loss.dval(), [[15, 18, 21]])
+
+        w.appl(0.01)
+        self.assertTrue(roughlyEqual(loss.val(), [[ 203.06, 292.41, 398.00]]))
+
+        x.appl(0.01)
+        self.assertTrue(roughlyEqual(loss.val(), [[ 195.02, 284.87, 391.68 ]]))
 
 
     def test_reshape(self):
@@ -72,7 +92,7 @@ class TestHelloWorld(unittest.TestCase):
         ww2 = ml.BBReshape(ww1, 6, 1)
         self.assertEqual(ww2.val(), [[3],[4],[5],[6],[7],[8]])
 
-        #assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
+        assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
 
 
 
