@@ -24,22 +24,26 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     ww2.appl(0.01)
     bb2.appl(0.01)
 
-    xx.appl(0.01)
-
     return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val()
 
 # Run the example
-x = [[0.5, 0.9]]                          # Input (1 sample, 2 features)
+xs = [
+   [0.5, 0.9],
+   [0.1, 0.3],
+   [10, 4],
+]                         # Input (each sample 2 features)
 w1 = [[0.1, 0.2, 0.3], [ 0.4, 0.5, 0.6]]  # Weights for layer 1 (2x2)
 b1 = [[0.1, 0.2, 0.3]]                    # Biases for layer 1 (1x2)
 w2 = [[0.5], [0.6], [0.7]]                # Weights for layer 2 (2x1)
 b2 = [[0.3]]                              # Biases for layer 2 (1x1)
 
-y = [[0.001]]         # True output (1 sample, 1 target)
+ys = [[0.001], [0.9], [0.5]]         # True output (each sample 1 target)
 
 for i in range(100000):
-   loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, y, w1, b1, w2, b2)
-   #loss, x, _, _, _, _ = gradient_backpropagation(x, y, w1, b1, w2, b2)
+
+   for x, y in zip(xs, ys):
+      loss, _, w1, b1, w2, b2 = gradient_backpropagation([x], [y], w1, b1, w2, b2)
+
    if i % 5000 == 0:
        print(f"Loss {i}: {loss}")
 

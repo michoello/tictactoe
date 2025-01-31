@@ -33,24 +33,48 @@ def random_mat(m, n):
     return [[random.random() for _ in range(n)] for _ in range(m)]
 
 # Run the example
-x = [
+x1 = [
   [ 0, 0, 0, 0, 0, 0],
   [ 0, 0, 0, 0, 0, 0],
-  [ 0, 1, 0, 0, 0, 0],
+  [ 0, 1, -1, -1, -1, 0],
   [ 0, 1, 0, 0, 0, 0],
   [ 0, 1, 0, 0, 0, 0],
   [ 0, 1, 0, 0, 0, 0],
 ]
+
+x2 = [
+  [ 0, 1, 0, 1, 1, 0],
+  [ 0, 0, 1, 0, 0, 0],
+  [ 0, 0, 0, 1, 0, 0],
+  [ 0,-1,-1,-1,-1, 0],
+  [ 0, 0, 0, 0, 0, 0],
+  [ 0, 0, 0, 0, 0, 0],
+]
+
+
+x3 = [
+  [ 0, 1, 0, 1, 1, 0],
+  [ 0, 0, 1, 0, 0, 0],
+  [ 0, 0, 0, 1, 0, 0],
+  [ 0,-1, 1,-1,-1, 0],
+  [ 0, 0,-1,-1, 0, 0],
+  [ 0, 0, 0, 0, 0, 0],
+]
+
+
+xs = [x1, x2, x3]
 
 w1 = random_mat(32, 16)
 b1 = random_mat(1, 16)
 w2 = random_mat(16, 1)
 b2 = [[-0.9]]
 
-y = [[1]]         # True output (1 sample, 1 target)
+ys = [[1], [0], [0.5]]         # True output (1 sample, 1 target)
 
 for i in range(10000):
-   loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, y, w1, b1, w2, b2)
+   for x, y in zip(xs, ys):
+      loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, [y], w1, b1, w2, b2)
+   #loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, y, w1, b1, w2, b2)
    if i % 500 == 0:
        print(f"Loss {i}: {loss}")
 
