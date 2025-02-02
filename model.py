@@ -1,4 +1,4 @@
-from helloworld import ml
+from lib import ml
 
 
 def gradient_backpropagation(x, y, w1, b1, w2, b2):

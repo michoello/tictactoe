@@ -1,6 +1,6 @@
 import unittest
-from helloworld import say_hello
-from helloworld import ml
+from lib import say_hello
+from lib import ml
 
 
 def roughlyEqual(m1, m2):
@@ -80,6 +80,7 @@ class TestHelloWorld(unittest.TestCase):
 
         x.appl(0.01)
         self.assertTrue(roughlyEqual(loss.val(), [[ 195.02, 284.87, 391.68 ]]))
+
 
 
     def test_reshape(self):
