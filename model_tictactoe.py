@@ -1,4 +1,4 @@
-from lib import ml
+from lib import ml, game
 import random
 
 
@@ -21,12 +21,12 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     lloss.dif()
 
     # Update weights and biases
-    ww1.appl(0.1) 
-    bb1.appl(0.1) 
-    ww2.appl(0.1)
-    bb2.appl(0.1)
+    ww1.appl(0.01) 
+    bb1.appl(0.01) 
+    ww2.appl(0.01)
+    bb2.appl(0.01)
 
-    return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val()
+    return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val(), zz2.val()
 
 
 def random_mat(m, n):
@@ -71,12 +71,23 @@ b2 = [[-0.9]]
 
 ys = [[1], [0], [0.5]]         # True output (1 sample, 1 target)
 
-for i in range(10000):
-   for x, y in zip(xs, ys):
-      loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, [y], w1, b1, w2, b2)
-   #loss, _, w1, b1, w2, b2 = gradient_backpropagation(x, y, w1, b1, w2, b2)
+sum_loss = 0
+for i in range(100000):
+
+   while True:
+      board = game.generate_random_board()
+      winner = [(game.check_winner(board) + 1.0) / 2.0]
+      if winner != [0.5]:
+         break
+   loss, _, w1, b1, w2, b2, prediction = gradient_backpropagation(board, [winner], w1, b1, w2, b2)
+   sum_loss = sum_loss + loss[0][0]
    if i % 500 == 0:
-       print(f"Loss {i}: {loss}")
+       print(f"Loss {i}: {loss} {sum_loss/500}")
+       sum_loss = 0
+          
+       game.print_board(board)
+
+       print("Winner:", winner, prediction)
 
 
 
