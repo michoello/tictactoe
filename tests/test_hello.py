@@ -1,6 +1,6 @@
 import unittest
-from lib import say_hello
 from lib import ml
+from lib import game 
 
 
 def roughlyEqual(m1, m2):
@@ -95,6 +95,18 @@ class TestHelloWorld(unittest.TestCase):
 
         assert ww2.val() == [[3],[4],[5],[6],[7],[8]], f"actual value {ww2.val()}"
 
+
+    def test_game_reshape(self):
+        board = game.generate_random_board()
+       
+        xx = ml.BB(board)
+        self.assertEqual(xx.dims(), [6,6])
+
+        with self.assertRaises(ValueError):
+           zz0 = ml.BBReshape(xx, 1, 32)
+
+        zz0 = ml.BBReshape(xx, 1, 36)
+        self.assertEqual(zz0.dims(), [1, 36])
 
 
 

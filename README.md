@@ -5,7 +5,11 @@ And one more line.
 ```
 pip install -e .
 
-python main.py
+# To run training
+python model_tictactoe.py
 
+# To run unittests
 python -m unittest discover -s tests
+# or
+./testme.sh
 ```

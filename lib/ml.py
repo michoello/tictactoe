@@ -124,7 +124,7 @@ class BBReshape(BB):
        
        m, n = self.arg(0).dims()
        if m * n != o * p:
-          assert ValueError(f"Incompatible reshape {m} * {n} != {o} * {p}")
+          raise ValueError(f"Incompatible reshape {m} * {n} != {o} * {p}")
        self.m, self.n = m, n
        self.o, self.p = o, p
   

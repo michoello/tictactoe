@@ -12,7 +12,7 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     yy = ml.BB(y)
 
     # Forward pass
-    zz0 = ml.BBReshape(xx, 1, 32)
+    zz0 = ml.BBReshape(xx, 1, 36)
     zz1 = (zz0 @ ww1  + bb1).sigmoid()
     zz2 = (zz1 @ ww2 + bb2).sigmoid()
     lloss = zz2.mse(yy)
@@ -64,7 +64,7 @@ x3 = [
 
 xs = [x1, x2, x3]
 
-w1 = random_mat(32, 16)
+w1 = random_mat(36, 16)
 b1 = random_mat(1, 16)
 w2 = random_mat(16, 1)
 b2 = [[-0.9]]
@@ -87,7 +87,7 @@ for i in range(100000):
           
        game.print_board(board)
 
-       print("Winner:", winner, prediction)
+       print("Winner:", winner[0], prediction[0][0], "error: ", (winner[0] - prediction[0][0])**2)
 
 
 
