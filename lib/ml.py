@@ -1,5 +1,5 @@
 import math
-
+import json
 
 
 
@@ -51,9 +51,6 @@ def _dims(v):
       return dimension
 
 
-
-
-
 class BB:
     def __init__(self, *args):
        self.args = list(args)
@@ -92,6 +89,17 @@ class BB:
        
     def mse(self, y):
        return BBMSELoss(self, y)
+
+    def save(self) -> str:
+       results = []
+       for arg in self.args:
+          if isinstance(arg, list):
+             results.append(json.dumps(arg))
+          elif isinstance(arg, BB):
+             results.append(arg.save())
+          else:
+             raise ValueError(f"Unserializable arg: ", type(arg).__name__)
+       return json.dumps(results)
 
 
 class BBSum(BB):

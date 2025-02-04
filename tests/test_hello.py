@@ -109,6 +109,16 @@ class TestHelloWorld(unittest.TestCase):
         self.assertEqual(zz0.dims(), [1, 36])
 
 
+    def test_serialize(self):
+        x = ml.BB([[1,2,3], [4,5,6]])
+
+        x_saved = x.save()
+
+        self.assertEqual(x_saved, '["[[1, 2, 3], [4, 5, 6]]"]')
+
+        y = ml.BB([])
+        y_saved = y.save()
+        self.assertEqual(y_saved, '["[]"]')
 
 
 if __name__ == "__main__":
