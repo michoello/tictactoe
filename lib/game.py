@@ -25,22 +25,33 @@ def print_board(board):
             print(bg_color + symbols[cell] + "\033[0m", end="")
         print()
 
-
+# Returns 1 if crosses win, -1 if zeroes win, 0 if tie and None if board is invalid
 def check_winner(b):
     # Check rows and columns
+    winners = {1: 0, -1: 0}
     for i in range(6):
-        for j in range(3): 
-            if b[i][j] == b[i][j + 1] == b[i][j + 2] == b[i][j + 3] and b[i][j] != 0:
-                return b[i][j]
-            if b[j][i] == b[j + 1][i] == b[j + 2][i] == b[j + 3][i] and b[j][i] != 0:
-                return b[j][i]
+        for j in range(3):
+            cell = b[i][j]
+            if cell != 0 and b[i][j] == b[i][j + 1] == b[i][j + 2] == b[i][j + 3]:
+                winners[ cell ] = winners[ cell ] + 1
+            cell = b[j][i]
+            if cell != 0 and b[j][i] == b[j + 1][i] == b[j + 2][i] == b[j + 3][i]:
+                winners[ cell ] = winners[ cell ] + 1
 
     # Check diagonals
     for i in range(3):
         for j in range(3):
-            if b[i][j] == b[i + 1][j + 1] == b[i + 2][j + 2] == b[i + 3][j + 3] and b[i][j] != 0:
-                return b[i][j]
-            if b[i][j + 3] == b[i + 1][j + 2] == b[i + 2][j + 1] == b[i + 3][j] and b[i][j + 3] != 0:
-                return b[i][j + 3]
+            cell = b[i][j]
+            if cell != 0 and b[i][j] == b[i + 1][j + 1] == b[i + 2][j + 2] == b[i + 3][j + 3]:
+                winners[ cell ] = winners[ cell ] + 1
+            cell = b[i][j+3]
+            if cell != 0 and b[i][j + 3] == b[i + 1][j + 2] == b[i + 2][j + 1] == b[i + 3][j]:
+                winners[ cell ] = winners[ cell ] + 1
 
-    return 0 
+    crosses = winners[1]
+    zeroes = winners[-1]
+
+    if zeroes + crosses > 1: return None
+    if crosses == 1: return 1
+    if zeroes == 1:  return -1
+    return 0

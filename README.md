@@ -8,6 +8,9 @@ pip install -e .
 # To run training
 python model_tictactoe.py
 
+# To generate boards
+python game.py
+
 # To run unittests
 python -m unittest discover -s tests
 # or
