@@ -120,6 +120,15 @@ class TestHelloWorld(unittest.TestCase):
         y_saved = y.save()
         self.assertEqual(y_saved, '["[]"]')
 
+        y = ml.BB([[1,2],[3,4],[5,6]])
+        y_saved = y.save()
+        self.assertEqual(y_saved, '["[[1, 2], [3, 4], [5, 6]]"]')
+
+        z = x @ y
+        z_saved = z.save()
+        self.assertEqual(z.val(), [[22, 28], [49, 64]])
+        self.assertEqual(z_saved, '["[\\"[[1, 2, 3], [4, 5, 6]]\\"]", "[\\"[[1, 2], [3, 4], [5, 6]]\\"]"]')
+
 
 if __name__ == "__main__":
     unittest.main()
