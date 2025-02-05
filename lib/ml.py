@@ -91,15 +91,32 @@ class BB:
        return BBMSELoss(self, y)
 
     def save(self) -> str:
+       return json.dumps(self.to_json())
+
+    def to_json(self):
        results = []
        for arg in self.args:
           if isinstance(arg, list):
-             results.append(json.dumps(arg))
+             results.append(arg)
           elif isinstance(arg, BB):
-             results.append(arg.save())
+             results.append(arg.to_json())
           else:
              raise ValueError(f"Unserializable arg: ", type(arg).__name__)
-       return json.dumps(results)
+       return results
+
+    def load(self, jsonx):
+       return self.from_json(json.loads(jsonx))
+
+    def from_json(self, jsoned):
+        for i, res in enumerate(jsoned):
+           if isinstance(self.args[i], list):
+               self.args[i] = res
+           elif isinstance(self.args[i], BB):
+               self.args[j].from_json(res)
+           else:
+             raise ValueError(f"Trouble deserializing arg #{i}: ", type(self.args[i]).__name__)
+
+
 
 
 class BBSum(BB):

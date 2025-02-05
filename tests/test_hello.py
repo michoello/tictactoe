@@ -113,21 +113,35 @@ class TestHelloWorld(unittest.TestCase):
         x = ml.BB([[1,2,3], [4,5,6]])
 
         x_saved = x.save()
-
-        self.assertEqual(x_saved, '["[[1, 2, 3], [4, 5, 6]]"]')
+        self.assertEqual(x_saved, '[[[1, 2, 3], [4, 5, 6]]]')
 
         y = ml.BB([])
         y_saved = y.save()
-        self.assertEqual(y_saved, '["[]"]')
+        self.assertEqual(y_saved, '[[]]')
 
         y = ml.BB([[1,2],[3,4],[5,6]])
         y_saved = y.save()
-        self.assertEqual(y_saved, '["[[1, 2], [3, 4], [5, 6]]"]')
+        self.assertEqual(y_saved, '[[[1, 2], [3, 4], [5, 6]]]')
 
         z = x @ y
         z_saved = z.save()
         self.assertEqual(z.val(), [[22, 28], [49, 64]])
-        self.assertEqual(z_saved, '["[\\"[[1, 2, 3], [4, 5, 6]]\\"]", "[\\"[[1, 2], [3, 4], [5, 6]]\\"]"]')
+        self.assertEqual(z_saved, '[[[[1, 2, 3], [4, 5, 6]]], [[[1, 2], [3, 4], [5, 6]]]]')
+
+
+        x.load('[[[11, 22, 33], [44, 55, 66]]]')
+        x_saved = x.save()
+        self.assertEqual(x_saved, '[[[11, 22, 33], [44, 55, 66]]]')
+
+        z_saved = z.save()
+        self.assertEqual(z.val(), [[242, 308], [539, 704]])
+        self.assertEqual(z_saved, '[[[[11, 22, 33], [44, 55, 66]]], [[[1, 2], [3, 4], [5, 6]]]]')
+
+
+        # Check that inner fields of the `z` are updated correctly
+        self.assertEqual(z.arg(0).val(), [[11, 22, 33], [44, 55, 66]])
+        self.assertEqual(z.input.val(), [[11, 22, 33], [44, 55, 66]])
+ 
 
 
 if __name__ == "__main__":
