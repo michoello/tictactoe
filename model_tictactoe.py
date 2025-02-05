@@ -73,16 +73,7 @@ ys = [[1], [0], [0.5]]         # True output (1 sample, 1 target)
 
 
 
-boards, winners = [], []
-for i in range(1, 41):
-   while True:
-      board = game.generate_random_board()
-      winner = game.check_winner(board)
-      if winner is not None: # and winner != 0:
-         winner = [(winner + 1.0) / 2.0]
-         break
-   boards.append(board)
-   winners.append(winner)
+boards, winners = game.generate_batch(120)
 
 
 sum_loss = 0
@@ -92,14 +83,13 @@ for i in range(100000):
   for board, winner in zip(boards, winners):
     loss, _, w1, b1, w2, b2, prediction = gradient_backpropagation(board, [winner], w1, b1, w2, b2)
     sum_loss = sum_loss + loss[0][0]
-    j = j + 1
-    if j % 3001 == 0:
 
-      print(f"Loss {i}: {loss} {sum_loss/500}")
-      sum_loss = 0
- 
+    if random.random() > 0.999:
+      print(f"Loss {i}: {sum_loss/500}")
+      print("Winner:", winner[0], " Prediction: ", prediction[0][0], "error: ", (winner[0] - prediction[0][0])**2)
       game.print_board(board)
-      print("Winner:", winner[0], prediction[0][0], "error: ", (winner[0] - prediction[0][0])**2)
-
+      print()
+      
+      sum_loss = 0
 
 

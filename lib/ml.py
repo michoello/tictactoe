@@ -162,10 +162,6 @@ class BBReshape(BB):
        super().dif(dvalue)
        self.arg(0).dif( reshape(dvalue, self.m, self.n) )
    
-
-
-
-
 class BBMatmul(BB):
     def __init__(self, arg1, arg2):
        super().__init__(arg1, arg2)

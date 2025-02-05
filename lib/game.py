@@ -55,3 +55,18 @@ def check_winner(b):
     if crosses == 1: return 1
     if zeroes == 1:  return -1
     return 0
+
+# Generates a random batch of size N, where each class is presented with n // 3 samples
+def generate_batch(n):
+  boards, winners = [], []
+  for board_class in range(-1, 2):
+    for i in range(n // 3):
+      while True:
+        board = generate_random_board()
+        winner = check_winner(board)
+        if winner == board_class:
+          break
+      boards.append(board)
+      winners.append([(winner + 1.0) / 2.0])
+  return boards, winners
+
