@@ -2,6 +2,10 @@ from lib import ml, game
 import random
 
 
+def random_mat(m, n):
+    return [[random.random() for _ in range(n)] for _ in range(m)]
+
+
 def gradient_backpropagation(x, y, w1, b1, w2, b2):
 
     xx = ml.BB(x)
@@ -26,54 +30,19 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     ww2.appl(0.1)
     bb2.appl(0.1)
 
-    return lloss.val(), xx.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val(), zz2.val()
+    return lloss, ww1, bb1, ww2, bb2, zz2
 
 
-def random_mat(m, n):
-    return [[random.random() for _ in range(n)] for _ in range(m)]
 
-# Run the example
-x1 = [
-  [ 0, 0, 0, 0, 0, 0],
-  [ 0, 0, 0, 0, 0, 0],
-  [ 0, 1, -1, -1, -1, 0],
-  [ 0, 1, 0, 0, 0, 0],
-  [ 0, 1, 0, 0, 0, 0],
-  [ 0, 1, 0, 0, 0, 0],
-]
-
-x2 = [
-  [ 0, 1, 0, 1, 1, 0],
-  [ 0, 0, 1, 0, 0, 0],
-  [ 0, 0, 0, 1, 0, 0],
-  [ 0,-1,-1,-1,-1, 0],
-  [ 0, 0, 0, 0, 0, 0],
-  [ 0, 0, 0, 0, 0, 0],
-]
-
-
-x3 = [
-  [ 0, 1, 0, 1, 1, 0],
-  [ 0, 0, 1, 0, 0, 0],
-  [ 0, 0, 0, 1, 0, 0],
-  [ 0,-1, 1,-1,-1, 0],
-  [ 0, 0,-1,-1, 0, 0],
-  [ 0, 0, 0, 0, 0, 0],
-]
-
-
-xs = [x1, x2, x3]
 
 w1 = random_mat(36, 16)
 b1 = random_mat(1, 16)
 w2 = random_mat(16, 1)
 b2 = [[-0.9]]
 
-ys = [[1], [0], [0.5]]         # True output (1 sample, 1 target)
 
-
-
-boards, winners = game.generate_batch(120)
+# 120 still works, but larger - not well
+boards, winners = game.generate_batch(60) 
 
 
 sum_loss = 0
@@ -81,7 +50,8 @@ j = 0
 for i in range(100000):
   
   for board, winner in zip(boards, winners):
-    loss, _, w1, b1, w2, b2, prediction = gradient_backpropagation(board, [winner], w1, b1, w2, b2)
+    lloss, ww1, bb1, ww2, bb2, zz2 = gradient_backpropagation(board, [winner], w1, b1, w2, b2)
+    loss, w1, b1, w2, b2, prediction = lloss.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val(), zz2.val()
     sum_loss = sum_loss + loss[0][0]
 
     if random.random() > 0.999:
