@@ -28,10 +28,7 @@ class TestHelloWorld(unittest.TestCase):
         assert yy.dims() == [1, 3], f"Actual value is {yy.dims()}"
 
 
-        assert yy.val() == [
-            [ 15, 18, 21 ],
-        ]
-
+        assert yy.val() == [ [ 15, 18, 21 ] ]
 
         ww_wrong = ml.BB(w_wrong)
         with self.assertRaises(ValueError):
@@ -41,8 +38,14 @@ class TestHelloWorld(unittest.TestCase):
 
         yy1 = yy + ml.BB(b)
 
-
         assert yy1.val() == [[16, 20, 24]], f"actual value is {yy1.val()}"
+
+
+        # update x values
+        xx.set([[11,22]])
+        self.assertEqual(xx.val(), [[11,22]])
+        # Check that yy (which is xx @ ww) is also updated
+        self.assertEqual(yy.val(), [[165, 198, 231]])
 
 
     def test_bme_loss(self):

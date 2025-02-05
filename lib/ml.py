@@ -74,6 +74,10 @@ class BB:
     def arg(self, i):
        return self.args[i]
 
+    # Only for inputs and weights. TODO: better API
+    def set(self, newarg):
+       self.args[0] = newarg
+
     def appl(self, learning_rate):
        self.value = subtract(self.value, mul(self.dvalue, learning_rate))
        self.args[0]  = self.value

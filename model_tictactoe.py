@@ -6,20 +6,25 @@ def random_mat(m, n):
     return [[random.random() for _ in range(n)] for _ in range(m)]
 
 
-def gradient_backpropagation(x, y, w1, b1, w2, b2):
+xx = ml.BB(random_mat(6,6))
+ww1 = ml.BB(random_mat(36, 16))
+bb1 = ml.BB(random_mat(1, 16))
+ww2 = ml.BB(random_mat(16, 1))
+bb2 = ml.BB(random_mat(1, 1))
+yy = ml.BB(random_mat(1, 1))
 
-    xx = ml.BB(x)
-    ww1 = ml.BB(w1)
-    bb1 = ml.BB(b1)
-    ww2 = ml.BB(w2)
-    bb2 = ml.BB(b2)
-    yy = ml.BB(y)
+# Forward pass
+zz0 = ml.BBReshape(xx, 1, 36)
+zz1 = (zz0 @ ww1 + bb1).sigmoid()
+zz2 = (zz1 @ ww2 + bb2).sigmoid()
+lloss = zz2.mse(yy)
 
-    # Forward pass
-    zz0 = ml.BBReshape(xx, 1, 36)
-    zz1 = (zz0 @ ww1  + bb1).sigmoid()
-    zz2 = (zz1 @ ww2 + bb2).sigmoid()
-    lloss = zz2.mse(yy)
+
+def gradient_backpropagation(x, y):
+
+    # Fit in the inputs and labels
+    xx.set(x)
+    yy.set(y) 
 
     # Backward pass
     lloss.dif()
@@ -30,36 +35,30 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
     ww2.appl(0.1)
     bb2.appl(0.1)
 
-    return lloss, ww1, bb1, ww2, bb2, zz2
-
-
-
-
-w1 = random_mat(36, 16)
-b1 = random_mat(1, 16)
-w2 = random_mat(16, 1)
-b2 = [[-0.9]]
-
 
 # 120 still works, but larger - not well
 boards, winners = game.generate_batch(60) 
 
 
-sum_loss = 0
-j = 0
+sum_loss, j = 0, 0
 for i in range(100000):
   
   for board, winner in zip(boards, winners):
-    lloss, ww1, bb1, ww2, bb2, zz2 = gradient_backpropagation(board, [winner], w1, b1, w2, b2)
-    loss, w1, b1, w2, b2, prediction = lloss.val(), ww1.val(), bb1.val(), ww2.val(), bb2.val(), zz2.val()
-    sum_loss = sum_loss + loss[0][0]
+    gradient_backpropagation(board, [winner])
+    loss, prediction = lloss.val(), zz2.val()
+
+    sum_loss, j = sum_loss + loss[0][0], j + 1
 
     if random.random() > 0.999:
-      print(f"Loss {i}: {sum_loss/500}")
+      print(f"Loss {i}: {sum_loss/j}")
       print("Winner:", winner[0], " Prediction: ", prediction[0][0], "error: ", (winner[0] - prediction[0][0])**2)
       game.print_board(board)
       print()
       
-      sum_loss = 0
+      sum_loss, j = 0, 0
+
+      model_dump = lloss.save()
+      with open("model_dump.json", "w") as file:
+          file.write(model_dump)
 
 
