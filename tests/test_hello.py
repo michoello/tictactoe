@@ -145,6 +145,68 @@ class TestHelloWorld(unittest.TestCase):
         self.assertEqual(z.arg(0).val(), [[11, 22, 33], [44, 55, 66]])
         self.assertEqual(z.input.val(), [[11, 22, 33], [44, 55, 66]])
  
+    def test_game_winner(self):
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 1, 1, 1, 1, 0],
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), 1)
+
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0,-1, 0, 0, 0, 0],
+           [ 0,-1, 1, 1, 1, 0],
+           [ 0,-1, 0, 0, 0, 0],
+           [ 0,-1, 0, 0, 0, 0],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), -1)
+
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0, 1, 0, 0, 0],
+           [ 0,-1, 1, 1, 1, 0],
+           [ 0,-1, 0, 0, 1, 0],
+           [ 0,-1, 0, 0, 0, 1],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), 1)
+
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0, 1, 0,-1, 0],
+           [ 0,-1, 1,-1, 1, 0],
+           [ 0,-1,-1, 0, 1, 0],
+           [ 0,-1, 0, 0, 0, 1],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), -1)
+
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 0,-1, 0,-1, 0],
+           [ 0,-1, 1, 1, 1, 0],
+           [ 0,-1,-1, 0, 1, 0],
+           [ 0,-1, 0, 0, 0, 1],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), 0)
+
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0,-1,-1, 0,-1, 0],
+           [ 0,-1, 1, 1, 1, 1],
+           [ 0,-1,-1, 0, 1, 0],
+           [ 0,-1, 0, 0, 0, 1],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        self.assertEqual(game.check_winner(board), None)
+
+
 
 
 if __name__ == "__main__":

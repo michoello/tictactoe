@@ -1,1 +1,1 @@
-python model_tictactoe.py
+python train_tictactoe.py
