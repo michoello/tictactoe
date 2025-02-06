@@ -7,6 +7,7 @@ for i in range(1000):
    game.print_board(board)
    winner = game.check_winner(board)
    print("Winner:", winner)
+   print()
    wins[winner] = wins.get(winner, 0) + 1
 
 

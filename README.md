@@ -6,10 +6,10 @@ And one more line.
 pip install -e .
 
 # To run training
-python model_tictactoe.py
+python train_tictactoe.py
 
 # To generate boards
-python game.py
+python generate_games.py
 
 # To run unittests
 python -m unittest discover -s tests
