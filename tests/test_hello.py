@@ -154,7 +154,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0, 0, 0, 0, 0, 0],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), 1)
+        self.assertEqual(game.check_winner(board)[0], 1)
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -164,7 +164,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 0],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), -1)
+        self.assertEqual(game.check_winner(board)[0], -1)
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -174,7 +174,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), 1)
+        self.assertEqual(game.check_winner(board)[0], 1)
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -184,7 +184,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), -1)
+        self.assertEqual(game.check_winner(board)[0], -1)
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -194,7 +194,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), 0)
+        self.assertEqual(game.check_winner(board)[0], 0)
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -204,7 +204,7 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board), None)
+        self.assertEqual(game.check_winner(board)[0], None)
 
 
 

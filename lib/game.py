@@ -16,49 +16,52 @@ def print_board(board):
     symbols = {
         0: "   ", 
         -1: "\033[32m 0 \033[0m",  # Green for zero
-        1: "\033[94m X \033[0m"   # Light blue for cross
+        1: "\033[94m X \033[0m",   # Light blue for cross
+
+        -2: "\033[31m 0 \033[0m",  # Red for winning zero
+        2: "\033[31m X \033[0m",  # Red for winning cross
     }
+
+    winner, xyo = check_winner(board)
     
     for i, row in enumerate(board):
         for j, cell in enumerate(row):
+            if (i, j) in xyo:
+               cell = cell * 2
             bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
             print(bg_color + symbols[cell] + "\033[0m", end="")
         print()
+    print("Winner:", winner)
 
 # Returns 1 if crosses win, -1 if zeroes win, 0 if tie and None if board is invalid
 def check_winner(b):
-    # Check rows and columns
-    winners = {1: 0, -1: 0}
 
-    #ll = [(0,0), (0, 1), (0, 2), (0, 3)]
-    #winner = 0
+    lll = [
+       [(0, 1), (0, 2), (0, 3)],
+       [(1, 0), (2, 0), (3, 0)],
+       [(1, 1), (2, 2), (3, 3)],
+       [(-1, 1), (-2, 2), (-3, 3)],
+    ]
 
+    g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+
+    xyo = []
+    winner = 0
     for i in range(6):
-        for j in range(3):
-            cell = b[i][j]
-            if cell != 0 and b[i][j] == b[i][j + 1] == b[i][j + 2] == b[i][j + 3]:
-                winners[ cell ] = winners[ cell ] + 1
-            cell = b[j][i]
-            if cell != 0 and b[j][i] == b[j + 1][i] == b[j + 2][i] == b[j + 3][i]:
-                winners[ cell ] = winners[ cell ] + 1
+       for j in range(6):
+          if b[i][j] == 0:
+             continue
 
-    # Check diagonals
-    for i in range(3):
-        for j in range(3):
-            cell = b[i][j]
-            if cell != 0 and b[i][j] == b[i + 1][j + 1] == b[i + 2][j + 2] == b[i + 3][j + 3]:
-                winners[ cell ] = winners[ cell ] + 1
-            cell = b[i][j+3]
-            if cell != 0 and b[i][j + 3] == b[i + 1][j + 2] == b[i + 2][j + 1] == b[i + 3][j]:
-                winners[ cell ] = winners[ cell ] + 1
+          for ll in lll:
+             xy = [(i + lx, j + ly) for lx, ly in ll]
+             if all([ g(x,y) == b[i][j] for x, y in xy]):
+                if winner:
+                    return None, []
+                winner = b[i][j] 
+                xyo = xy + [(i, j)]
 
-    crosses = winners[1]
-    zeroes = winners[-1]
+    return winner, xyo
 
-    if zeroes + crosses > 1: return None
-    if crosses == 1: return 1
-    if zeroes == 1:  return -1
-    return 0
 
 # Generates a random batch of size N, where each class is presented with n // 3 samples
 def generate_batch(n):
@@ -67,7 +70,7 @@ def generate_batch(n):
     for i in range(n // 3):
       while True:
         board = generate_random_board()
-        winner = check_winner(board)
+        winner, _ = check_winner(board)
         if winner == board_class:
           break
       boards.append(board)
