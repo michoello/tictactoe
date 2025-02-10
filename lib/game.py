@@ -31,7 +31,7 @@ def print_board(board):
             bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
             print(bg_color + symbols[cell] + "\033[0m", end="")
         print()
-    print("Winner:", winner)
+    #print("Winner:", winner)
 
 # Returns 1 if crosses win, -1 if zeroes win, 0 if tie and None if board is invalid
 def check_winner(b):
