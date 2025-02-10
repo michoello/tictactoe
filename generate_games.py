@@ -18,36 +18,27 @@ if mode=="random_boards":
 
 
 if mode== "single_game":
- 
-   board = [
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-   ]
- 
-   ply = 1 # crosses
-   num = 0 # number of filled cells
-   while True:
-     row = random.randint(0, 5)  
-     col = random.randint(0, 5)
+   boards, winner = game.generate_random_game()
 
-     if board[row][col] == 0:
-        board[row][col] = ply
-        num = num + 1
-        ply = -ply
+   for num, board in enumerate(boards):
+       print("Number", num)
+       game.print_board(board)
+       print()
 
-        print("Number", num)
-        game.print_board(board)
+   print("Winner: ", winner)
 
-        winner, _ = game.check_winner(board)
-        if winner != 0:
-           print("Winner: ", winner)
-           break
- 
-        print()
-    
+
+
+if mode == "many_games":
+   wins = {}
+   for i in range(100):
+     _, winner = game.generate_random_game()
+     wins[winner] = wins.get(winner, 0) + 1
+
+   print("WINNERS: ", wins) 
+
+
+
+
 if mode == "idontknow":
    print("idontknow")

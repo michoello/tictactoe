@@ -1,4 +1,5 @@
 import random
+import copy
 
 def generate_random_board():
     size = 6 * 6
@@ -77,3 +78,34 @@ def generate_batch(n):
       winners.append([(winner + 1.0) / 2.0])
   return boards, winners
 
+
+def generate_random_game():
+   board = [
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+   ]
+ 
+   boards = [board]
+
+   ply = 1 # crosses
+   num = 0 # number of filled cells
+   while num < 36:
+     row = random.randint(0, 5)  
+     col = random.randint(0, 5)
+
+     if board[row][col] == 0:
+        board[row][col] = ply
+        num = num + 1
+        ply = -ply
+
+        boards.append(copy.deepcopy(board))
+
+        winner, _ = check_winner(board)
+        if winner != 0:
+           return boards, winner
+
+   return boards, 0
