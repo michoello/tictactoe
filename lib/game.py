@@ -55,12 +55,12 @@ def check_winner(b):
           for ll in lll:
              xy = [(i + lx, j + ly) for lx, ly in ll]
              if all([ g(x,y) == b[i][j] for x, y in xy]):
-                if winner:
+                if winner != 0 and winner != b[i][j]:
                     return None, []
                 winner = b[i][j] 
-                xyo = xy + [(i, j)]
+                xyo = xyo + [(i, j)] + xy
 
-    return winner, xyo
+    return winner, sorted(set(xyo))
 
 
 # Generates a random batch of size N, where each class is presented with n // 3 samples

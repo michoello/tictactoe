@@ -184,7 +184,9 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board)[0], -1)
+        winner, cells = game.check_winner(board)
+        self.assertEqual(winner, -1)
+        self.assertEqual(cells, [(1, 4), (2, 3), (3, 2), (4, 1)])
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -194,7 +196,9 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board)[0], 0)
+        winner, cells = game.check_winner(board)
+        self.assertEqual(winner, 0)
+        self.assertEqual(cells, [])
 
         board = [
            [ 0, 0, 0, 0, 0, 0],
@@ -204,9 +208,21 @@ class TestHelloWorld(unittest.TestCase):
            [ 0,-1, 0, 0, 0, 1],
            [ 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.check_winner(board)[0], None)
+        winner, cells = game.check_winner(board)
+        self.assertEqual(winner, None)
 
 
+        board = [
+           [ 0, 0, 0, 0, 0, 0],
+           [ 0, 1,-1, 0,-1, 0],
+           [ 0, 1, 1, 1, 1, 1],
+           [ 0, 1,-1, 0, 1, 0],
+           [ 0, 1, 0, 0, 0, 1],
+           [ 0, 0, 0, 0, 0, 0],
+        ]
+        winner, cells = game.check_winner(board)
+        self.assertEqual(winner, 1)
+        self.assertEqual(cells, [(1, 1), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (3, 1), (4, 1)])
 
 
 if __name__ == "__main__":
