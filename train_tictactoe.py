@@ -2,16 +2,12 @@ from lib import ml, game
 import random
 import sys
 
-def random_mat(m, n):
-    return [[random.random() for _ in range(n)] for _ in range(m)]
-
-
-xx = ml.BB(random_mat(6,6))
-ww1 = ml.BB(random_mat(36, 16))
-bb1 = ml.BB(random_mat(1, 16))
-ww2 = ml.BB(random_mat(16, 1))
-bb2 = ml.BB(random_mat(1, 1))
-yy = ml.BB(random_mat(1, 1))
+xx = ml.BB(ml.random_matrix(6,6))
+ww1 = ml.BB(ml.random_matrix(36, 16))
+bb1 = ml.BB(ml.random_matrix(1, 16))
+ww2 = ml.BB(ml.random_matrix(16, 1))
+bb2 = ml.BB(ml.random_matrix(1, 1))
+yy = ml.BB(ml.random_matrix(1, 1))
 
 # Forward pass
 zz0 = ml.BBReshape(xx, 1, 36)
@@ -75,10 +71,22 @@ for i in range(100000):
   print(f"Test set loss, epoch {i}: {test_loss/j}")
 
   if test_loss < best_test_loss:
+
+      xx.set(test_boards[0])
+      check_prediction = zz2.val()
+      print("Saving: check_prediction=", check_prediction)
+
       model_dump = lloss.save()
       with open("model_dump.json", "w") as file:
           file.write(model_dump)
       best_test_loss = test_loss
+
+      lloss.load(model_dump)
+      check_prediction2 = zz2.val()
+      print(test_boards[0])
+      print("Loading: check_prediction=", check_prediction2)
+
+
   else:
       sys.exit(0)
 

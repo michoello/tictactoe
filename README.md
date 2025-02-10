@@ -14,6 +14,14 @@ python generate_games.py random_games
 # To generate single game
 python generate_games.py single_game
 
+
+# To generate many games
+python generate_games.py many_games
+
+# To load model and TODO: generate game based on model choice
+python generate_games.py model_game
+
+
 # To run unittests
 python -m unittest discover -s tests
 # or

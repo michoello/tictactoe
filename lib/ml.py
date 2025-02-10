@@ -1,6 +1,10 @@
 import math
 import json
+import random
 
+
+def random_matrix(m, n):
+    return [[random.random() for _ in range(n)] for _ in range(m)]
 
 
 # Sigmoid activation and its derivative
@@ -116,7 +120,7 @@ class BB:
            if isinstance(self.args[i], list):
                self.args[i] = res
            elif isinstance(self.args[i], BB):
-               self.args[j].from_json(res)
+               self.args[i].from_json(res)
            else:
              raise ValueError(f"Trouble deserializing arg #{i}: ", type(self.args[i]).__name__)
 
