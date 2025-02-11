@@ -13,5 +13,3 @@ zz0 = ml.BBReshape(xx, 1, 36)
 zz1 = (zz0 @ ww1 + bb1).sigmoid()
 zz2 = (zz1 @ ww2 + bb2).sigmoid()
 lloss = zz2.mse(yy)
-
-

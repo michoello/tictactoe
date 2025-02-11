@@ -1,6 +1,24 @@
 import random
 import copy
 
+START_BOARD = [
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+     [ 0, 0, 0, 0, 0, 0],
+]
+START_VALUES = [
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+]
+
+
 def generate_random_board():
     size = 6 * 6
     num_zeroes = random.randint(0, size // 2)  # Random number of zeroes (up to half the board)
@@ -79,17 +97,21 @@ def generate_batch(n):
   return boards, winners
 
 
+# Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
+# Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
+def all_next_steps(board, ply):
+   boards = []
+   for row in range(6):
+       for col in range(6):
+           if board[row][col] == 0:
+              next_board = copy.deepcopy(board)
+              next_board[row][col] = ply
+              boards.append((next_board, row, col))
+   return boards
+
+# Generate sequence of boards for a single random game
 def generate_random_game():
-   board = [
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-   ]
- 
-   boards = [board]
+   boards = [START_BOARD]
 
    ply = 1 # crosses
    num = 0 # number of filled cells
@@ -109,3 +131,4 @@ def generate_random_game():
            return boards, winner
 
    return boards, 0
+
