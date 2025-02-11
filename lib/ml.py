@@ -109,7 +109,7 @@ class BB:
           elif isinstance(arg, BB):
              results.append(arg.to_json())
           else:
-             raise ValueError(f"Unserializable arg: ", type(arg).__name__)
+             raise ValueError("Unserializable arg: ", type(arg).__name__)
        return results
 
     def load(self, jsonx):

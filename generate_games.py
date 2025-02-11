@@ -1,5 +1,4 @@
-from lib import ml, game
-import random
+from lib import game
 import sys
 import copy
 
