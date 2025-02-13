@@ -1,6 +1,7 @@
 from lib import game
 import sys
 import copy
+import random
 
 from lib import ttt_classifier as ttt
 
@@ -69,12 +70,22 @@ def best_step(values, ply):
              best_xy = (row, col)
   return best_xy
 
+
+def random_step(values, ply):
+  empty_cells = []
+  for row in range(6):
+     for col in range(6):
+         if (v := values[row][col]) is None:
+            continue
+         empty_cells.append((row, col))
+  return random.choice(empty_cells)
+
+
 if mode == "model_game":
 
-  with open("model_dump.json", "r") as file:
+  with open("models/model_trained.json", "r") as file:
        model_dump = file.read()
        ttt.lloss.load(model_dump)
-
 
   board = copy.deepcopy(game.START_BOARD)
 
@@ -91,12 +102,18 @@ if mode == "model_game":
     for bxy in boards:
        b, x, y = bxy
        ttt.xx.set(b)
-       value = ttt.zz2.val()
+       value = ttt.zz3.val()
        values[x][y] = value[0][0]
 
     print_scores(values)
-    x, y = best_step(values, ply)
-    print("Best step:", x, y)
+
+    if random.random() < 0.9:
+      x, y = best_step(values, ply)
+      print("Best step:", x, y)
+    else:
+      x, y = random_step(values, ply)
+      print("Random step:", x, y)
+
     board[x][y] = ply
     game.print_board(board)
 
@@ -106,3 +123,4 @@ if mode == "model_game":
        break
 
     ply = -ply
+    step_no = step_no + 1
