@@ -8,33 +8,33 @@ TEST_BATCH_SIZE = 30
 def gradient_backpropagation(x, y, epoch):
 
     # Fit in the inputs and labels
-    ttt.xx.set(x)
-    ttt.yy.set(y) 
+    ttt.x.set(x)
+    ttt.y.set(y) 
 
     # Backward pass
-    ttt.lloss.dif()
+    ttt.loss.dif()
 
     # Update weights and biases
     #alpha = 0.1 if epoch < 5 else 0.001
     alpha = 0.1 
     #alpha = 1
 
-    ttt.ww1.appl(alpha) 
-    ttt.bb1.appl(alpha) 
-    ttt.ww2.appl(alpha)
-    ttt.bb2.appl(alpha)
-    ttt.ww3.appl(alpha)
-    ttt.bb3.appl(alpha)
+    ttt.w1.appl(alpha) 
+    ttt.b1.appl(alpha) 
+    ttt.w2.appl(alpha)
+    ttt.b2.appl(alpha)
+    ttt.w3.appl(alpha)
+    ttt.b3.appl(alpha)
 
 
-#model_dump = ttt.lloss.save()
+#model_dump = ttt.loss.save()
 #with open("models/model_initial.json", "w") as file:
 #    file.write(model_dump)
 
 
 #with open("models/model_initial.json", "r") as file:
 #    model_dump = file.read() 
-#ttt.lloss.load(model_dump)
+#ttt.loss.load(model_dump)
 
 
 test_boards, test_winners = game.generate_batch(TEST_BATCH_SIZE) 
@@ -51,15 +51,15 @@ for epoch in range(100):
       for board, winner in zip(train_boards, train_winners):
         gradient_backpropagation(board, [winner], epoch)
     
-        loss, prediction = ttt.lloss.val(), ttt.zz3.val()
+        loss, prediction = ttt.loss.val(), ttt.prediction.val()
         train_loss = train_loss + loss[0][0]
     
       test_loss = 0
       for board, winner in zip(test_boards, test_winners):
-          ttt.xx.set(board)
-          ttt.yy.set([winner]) 
+          ttt.x.set(board)
+          ttt.y.set([winner]) 
     
-          loss, prediction = ttt.lloss.val(), ttt.zz3.val()
+          loss, prediction = ttt.loss.val(), ttt.prediction.val()
           test_loss = test_loss + loss[0][0]
 
       train_loss = train_loss/len(train_boards)
@@ -67,7 +67,7 @@ for epoch in range(100):
       print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
     
       if test_loss < best_test_loss:
-          model_dump = ttt.lloss.save()
+          model_dump = ttt.loss.save()
           with open("models/model_trained.json", "w") as file:
               file.write(model_dump)
           best_test_loss = test_loss

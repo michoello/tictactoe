@@ -85,7 +85,7 @@ if mode == "model_game":
 
   with open("models/model_trained.json", "r") as file:
        model_dump = file.read()
-       ttt.lloss.load(model_dump)
+       ttt.loss.load(model_dump)
 
   board = copy.deepcopy(game.START_BOARD)
 
@@ -101,13 +101,13 @@ if mode == "model_game":
     values = copy.deepcopy(game.START_VALUES)
     for bxy in boards:
        b, x, y = bxy
-       ttt.xx.set(b)
-       value = ttt.zz3.val()
+       ttt.x.set(b)
+       value = ttt.prediction.val()
        values[x][y] = value[0][0]
 
     print_scores(values)
 
-    if random.random() < 0.9:
+    if step_no > 0 and random.random() < 0.9:
       x, y = best_step(values, ply)
       print("Best step:", x, y)
     else:
@@ -118,9 +118,10 @@ if mode == "model_game":
     game.print_board(board)
 
     winner, _ = game.check_winner(board)
-    print("Winner: ", winner)
     if winner != 0:
+       print("Winner: ", winner)
        break
 
+    print()
     ply = -ply
     step_no = step_no + 1
