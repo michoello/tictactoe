@@ -49,16 +49,12 @@ if mode == "many_games":
 
 
 def print_scores(values):
-    #        -2: "\033[31m 0 \033[0m",  # Red for winning zero
     for i, row in enumerate(values):
         for j, value in enumerate(row):
             bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
             score = round(value * 100) if value is not None else "  "
             print(bg_color + f" {score:02}" + "\033[0m", end="")
         print()
-
-
-
 
 def best_step(values, ply):
   best = -100 if ply == 1 else 100
@@ -88,9 +84,12 @@ def random_step(values, ply):
 
 if mode == "model_game":
 
+  m = ttt.TTTClass()
+
   with open("models/model_trained.json", "r") as file:
+  #with open("models/model_initial.json", "r") as file:
        model_dump = file.read()
-       ttt.loss.load(model_dump)
+       m.loss.load(model_dump)
 
   board = copy.deepcopy(game.START_BOARD)
 
@@ -106,9 +105,10 @@ if mode == "model_game":
     values = copy.deepcopy(game.START_VALUES)
     for bxy in boards:
        b, x, y = bxy
-       ttt.x.set(b)
-       value = ttt.prediction.val()
+       m.x.set(b)
+       value = m.prediction.val()
        values[x][y] = value[0][0]
+       
 
     print_scores(values)
 
