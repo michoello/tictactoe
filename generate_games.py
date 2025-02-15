@@ -84,16 +84,16 @@ def random_step(values, ply):
 
 if mode == "model_game":
 
-  m = ttt.TTTClass()
+  m_crosses = ttt.TTTClass()
+  m_zeroes = ttt.TTTClass()
 
-  with open("models/model_trained.json", "r") as file:
-  #with open("models/model_initial.json", "r") as file:
-       model_dump = file.read()
-       m.loss.load(model_dump)
+  m_zeroes.load_from_file("models/model_trained.json")
+  m_crosses.load_from_file("models/model_initial.json")
 
   board = copy.deepcopy(game.START_BOARD)
 
   ply = 1
+  m = m_crosses
   step_no = 0
   while True:
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
@@ -108,7 +108,6 @@ if mode == "model_game":
        m.x.set(b)
        value = m.prediction.val()
        values[x][y] = value[0][0]
-       
 
     print_scores(values)
 
@@ -129,4 +128,5 @@ if mode == "model_game":
 
     print()
     ply = -ply
+    m = m_crosses if ply == 1 else m_zeroes
     step_no = step_no + 1

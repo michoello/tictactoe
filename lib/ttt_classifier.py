@@ -29,3 +29,10 @@ class TTTClass:
 
     self.y = ml.BB(ml.random_matrix(1, 1))
     self.loss = self.prediction.mse(self.y)
+
+
+  def load_from_file(self, file_name):
+     with open(file_name, "r") as file:
+       model_dump = file.read()
+       self.loss.load(model_dump)
+
