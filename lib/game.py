@@ -132,3 +132,39 @@ def generate_random_game():
 
    return boards, 0
 
+
+
+def print_scores(values):
+    for i, row in enumerate(values):
+        for j, value in enumerate(row):
+            bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
+            score = round(value * 100) if value is not None else "  "
+            print(bg_color + f" {score:02}" + "\033[0m", end="")
+        print()
+
+def best_step(values, ply):
+  best = -100 if ply == 1 else 100
+  best_xy = (-1, -1)
+  for row in range(6):
+     for col in range(6):
+         if (v := values[row][col]) is None:
+            continue
+         if ply == 1 and v > best:
+             best = v
+             best_xy = (row, col)
+         if ply == -1 and v < best:
+             best = v 
+             best_xy = (row, col)
+  return best_xy
+
+
+def random_step(values, ply):
+  empty_cells = []
+  for row in range(6):
+     for col in range(6):
+         if (v := values[row][col]) is None:
+            continue
+         empty_cells.append((row, col))
+  return random.choice(empty_cells)
+
+
