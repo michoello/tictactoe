@@ -36,3 +36,9 @@ class TTTClass:
        model_dump = file.read()
        self.loss.load(model_dump)
 
+
+  def save_to_file(self, file_name):
+     with open(file_name, "w") as file:
+       model_dump = self.loss.save()
+       file.write(model_dump)
+
