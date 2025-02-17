@@ -1,5 +1,16 @@
 # Classifier model for TicTacToe board
 from . import ml
+import copy
+
+START_VALUES = [
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+    [ None, None, None, None, None, None ],
+]
+
 
 
 # Simple classifier of board position
@@ -41,4 +52,15 @@ class TTTClass:
      with open(file_name, "w") as file:
        model_dump = self.loss.save()
        file.write(model_dump)
+
+  # For a set of next step boards and coords of next step 
+  # calculates value and stores it in the coords of next step.
+  def get_next_step_values(self, boards):
+    values = copy.deepcopy(START_VALUES)
+    for bxy in boards:
+       b, x, y = bxy
+       self.x.set(b)
+       value = self.prediction.val()
+       values[x][y] = value[0][0]
+    return values
 

@@ -9,14 +9,6 @@ START_BOARD = [
      [ 0, 0, 0, 0, 0, 0],
      [ 0, 0, 0, 0, 0, 0],
 ]
-START_VALUES = [
-    [ None, None, None, None, None, None ],
-    [ None, None, None, None, None, None ],
-    [ None, None, None, None, None, None ],
-    [ None, None, None, None, None, None ],
-    [ None, None, None, None, None, None ],
-    [ None, None, None, None, None, None ],
-]
 
 
 def generate_random_board():
@@ -167,4 +159,11 @@ def random_step(values, ply):
          empty_cells.append((row, col))
   return random.choice(empty_cells)
 
+
+def choose_next_step(values, ply, exploration_rate): 
+    if random.random() < exploration_rate:
+      x, y = random_step(values, ply)
+    else:
+      x, y = best_step(values, ply)
+    return x, y
 

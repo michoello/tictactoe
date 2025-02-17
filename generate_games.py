@@ -67,23 +67,12 @@ if mode == "model_game":
     if len(boards) == 0:
        break
 
-    values = copy.deepcopy(game.START_VALUES)
-    for bxy in boards:
-       b, x, y = bxy
-       m.x.set(b)
-       value = m.prediction.val()
-       values[x][y] = value[0][0]
-
+    values = m.get_next_step_values(boards)
     game.print_scores(values)
 
-    if step_no > 0 and random.random() < 0.9:
-      x, y = game.best_step(values, ply)
-      print("Best step:", x, y)
-    else:
-      x, y = game.random_step(values, ply)
-      print("Random step:", x, y)
-
+    x, y = game.choose_next_step(values, ply, 0.1)
     board[x][y] = ply
+    print("Next step:", x, y)
     game.print_board(board)
 
     winner, _ = game.check_winner(board)
