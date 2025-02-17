@@ -149,15 +149,17 @@ def best_step(values, ply):
              best_xy = (row, col)
   return best_xy
 
-
+# TODO: don't use values, use board here
 def random_step(values, ply):
-  empty_cells = []
+  # Reservoir sampling
+  count, chosen = 0, None
   for row in range(6):
      for col in range(6):
-         if (v := values[row][col]) is None:
-            continue
-         empty_cells.append((row, col))
-  return random.choice(empty_cells)
+         if values[row][col] is not None:
+            count = count + 1
+            if random.random() < 1 / count:
+               chosen = (row, col)
+  return chosen
 
 
 def choose_next_step(values, ply, exploration_rate): 
