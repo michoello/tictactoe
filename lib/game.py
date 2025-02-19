@@ -9,6 +9,43 @@ START_BOARD = [
      [ 0, 0, 0, 0, 0, 0],
      [ 0, 0, 0, 0, 0, 0],
 ]
+# For some reason this seem to behave differently
+# START_BOARD = [ [0]*6 for _ in range(6)]
+
+class Game:
+   def __init__(self, model_crosses, model_zeroes):
+      self.model_crosses = model_crosses
+      self.model_zeroes = model_zeroes
+
+   
+   def play_game(self, exploration_rate):
+      board = copy.deepcopy(START_BOARD)
+    
+      steps = []
+
+      step_no, ply, m  = 0, 1, self.model_crosses
+      while True:
+    
+        boards = all_next_steps(board, ply)
+        if len(boards) == 0:
+           break
+    
+        values = m.get_next_step_values(boards)
+        x, y = choose_next_step(values, ply, step_no, exploration_rate)
+        board[x][y] = ply
+
+        steps.append([values, board, ply, x, y])
+    
+        winner, _ = check_winner(board)
+        if winner != 0:
+           break
+    
+        ply = -ply
+        m = self.model_crosses if ply == 1 else self.model_zeroes
+        step_no = step_no + 1
+      return steps
+
+# ----------------------------------
 
 
 def generate_random_board():
@@ -162,8 +199,8 @@ def random_step(values, ply):
   return chosen
 
 
-def choose_next_step(values, ply, exploration_rate): 
-    if random.random() < exploration_rate:
+def choose_next_step(values, ply, step_no, exploration_rate): 
+    if step_no == 0 or random.random() < exploration_rate:
       x, y = random_step(values, ply)
     else:
       x, y = best_step(values, ply)

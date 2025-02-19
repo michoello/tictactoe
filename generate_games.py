@@ -27,11 +27,11 @@ if mode=="random_boards":
   print("WINNERS: ", wins) 
 
 
-if mode== "single_game":
+if mode == "generate_random_game":
    boards, winner = game.generate_random_game()
 
    for num, board in enumerate(boards):
-       print("Number", num)
+       print("Step", num)
        game.print_board(board)
        print()
 
@@ -47,7 +47,9 @@ if mode == "many_games":
 
    print("WINNERS: ", wins) 
 
-if mode == "model_game":
+   
+
+if mode == "play_single_game":
 
   m_crosses = ttt.TTTClass()
   m_zeroes = ttt.TTTClass()
@@ -55,32 +57,11 @@ if mode == "model_game":
   m_zeroes.load_from_file("models/model_trained.json")
   m_crosses.load_from_file("models/model_initial.json")
 
-  board = copy.deepcopy(game.START_BOARD)
-
-  ply = 1
-  m = m_crosses
-  step_no = 0
-  while True:
+  g = game.Game(m_crosses, m_zeroes)
+  steps = g.play_game(0.3)
+  for step_no, (values, board, ply, x, y) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
-
-    boards = game.all_next_steps(board, ply)
-    if len(boards) == 0:
-       break
-
-    values = m.get_next_step_values(boards)
     game.print_scores(values)
-
-    x, y = game.choose_next_step(values, ply, 0.1)
-    board[x][y] = ply
     print("Next step:", x, y)
     game.print_board(board)
-
-    winner, _ = game.check_winner(board)
-    if winner != 0:
-       print("Winner: ", winner)
-       break
-
     print()
-    ply = -ply
-    m = m_crosses if ply == 1 else m_zeroes
-    step_no = step_no + 1

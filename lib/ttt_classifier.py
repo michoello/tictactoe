@@ -10,6 +10,8 @@ START_VALUES = [
     [ None, None, None, None, None, None ],
     [ None, None, None, None, None, None ],
 ]
+# For some reason this does not work
+#START_VALUES = [ [None]*6 for _ in range(6)]
 
 
 

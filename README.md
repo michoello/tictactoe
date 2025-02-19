@@ -12,14 +12,14 @@ python train_tictactoe.py
 python generate_games.py random_games
 
 # To generate random single game
-python generate_games.py single_game
+python generate_games.py gen_random_game
 
 
 # To generate many games
 python generate_games.py many_games
 
-# To load model and play a game based on that model
-python generate_games.py model_game
+# Load two models and play a single game between them
+python generate_games.py play_single_game
 
 
 # To run unittests
