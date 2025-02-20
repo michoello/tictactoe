@@ -1,9 +1,14 @@
 from lib import game
 from lib import ttt_classifier as ttt
 import sys
+import math
 
 TRAINING_BATCH_SIZE = 60
 TEST_BATCH_SIZE = 30
+
+def norm(matrix):
+    return math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
+
 
 def gradient_backpropagation(m, x, y, epoch):
 
@@ -15,7 +20,24 @@ def gradient_backpropagation(m, x, y, epoch):
     m.loss.dif()
 
     # Update weights and biases
-    alpha = 0.01 if epoch < 10 else 0.001
+    #alpha = 0.01 if epoch < 10 else 0.001
+
+
+    # TODO: interesting! explore more
+    w1norm = norm(m.w1.val())
+    w1dnorm = norm(m.w1.dval())
+    alpha = 0.01
+    if w1dnorm / w1norm < 0.01:
+        alpha = 0.1 
+    if w1dnorm / w1norm > 1000:
+        alpha = 0.001
+    #print(norm(m.w2.val()))
+    #print(norm(m.w2.dval()))
+    #print(norm(m.b2.val()))
+    #print(norm(m.b2.dval()))
+    #print(norm(m.b1.val()))
+    #print(norm(m.b1.dval()))
+    #sys.exit(0)
 
     m.w1.appl(alpha) 
     m.b1.appl(alpha) 

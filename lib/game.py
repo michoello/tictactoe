@@ -34,7 +34,7 @@ class Game:
         x, y = choose_next_step(values, ply, step_no, exploration_rate)
         board[x][y] = ply
 
-        steps.append([values, board, ply, x, y])
+        steps.append([copy.deepcopy(values), copy.deepcopy(board), ply, x, y])
     
         winner, _ = check_winner(board)
         if winner != 0:

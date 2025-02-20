@@ -4,6 +4,7 @@ import random
 
 
 def random_matrix(m, n):
+    #return [[random.random()*2-1 for _ in range(n)] for _ in range(m)]
     return [[random.random() for _ in range(n)] for _ in range(m)]
 
 
