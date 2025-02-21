@@ -24,6 +24,7 @@ class Game:
       steps = []
 
       step_no, ply, m  = 0, 1, self.model_crosses
+      winner = None
       while True:
     
         boards = all_next_steps(board, ply)
@@ -34,6 +35,7 @@ class Game:
         x, y = choose_next_step(values, ply, step_no, exploration_rate)
         board[x][y] = ply
 
+        # TODO: dict or data class
         steps.append([copy.deepcopy(values), copy.deepcopy(board), ply, x, y])
     
         winner, _ = check_winner(board)
@@ -43,6 +45,14 @@ class Game:
         ply = -ply
         m = self.model_crosses if ply == 1 else self.model_zeroes
         step_no = step_no + 1
+
+      # Set desired rewards to the boards
+      reward = winner
+      for step in reversed(steps):
+         step.append(reward)
+         reward = reward * 0.9
+
+
       return steps
 
 # ----------------------------------

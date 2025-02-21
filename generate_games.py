@@ -59,9 +59,9 @@ if mode == "play_single_game":
 
   g = game.Game(m_crosses, m_zeroes)
   steps = g.play_game(0.3)
-  for step_no, (values, board, ply, x, y) in enumerate(steps):
+  for step_no, (values, board, ply, x, y, reward) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
     game.print_scores(values)
-    print("Next step:", x, y)
+    print("Next step:", x, y, " Reward: ", reward)
     game.print_board(board)
     print()
