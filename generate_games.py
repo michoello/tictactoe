@@ -54,8 +54,13 @@ if mode == "play_single_game":
   m_crosses = ttt.TTTClass()
   m_zeroes = ttt.TTTClass()
 
-  m_zeroes.load_from_file("models/model_trained.json")
-  m_crosses.load_from_file("models/model_initial.json")
+  crosses_model = sys.argv[2]
+  zeroes_model = sys.argv[3]
+
+  #m_zeroes.load_from_file("models/model_trained.json")
+  #m_crosses.load_from_file("models/model_initial.json")
+  m_crosses.load_from_file(crosses_model)
+  m_zeroes.load_from_file(zeroes_model)
 
   g = game.Game(m_crosses, m_zeroes)
   steps = g.play_game(0.3)

@@ -1,6 +1,7 @@
 # Classifier model for TicTacToe board
 from . import ml
 import copy
+import math
 
 START_VALUES = [
     [ None, None, None, None, None, None ],
@@ -65,4 +66,26 @@ class TTTClass:
        value = self.prediction.val()
        values[x][y] = value[0][0]
     return values
+
+
+  def apply_gradient(self):
+
+    norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
+
+
+    # TODO: interesting! explore more
+    w1norm = norm(self.w1.val())
+    w1dnorm = norm(self.w1.dval())
+    alpha = 0.01
+    if w1dnorm / w1norm < 0.01:
+        alpha = 0.1 
+    if w1dnorm / w1norm > 1000:
+        alpha = 0.001
+
+    self.w1.appl(alpha) 
+    self.b1.appl(alpha) 
+    self.w2.appl(alpha)
+    self.b2.appl(alpha)
+    #self.w3.appl(alpha)
+    #self.b3.appl(alpha)
 
