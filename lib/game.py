@@ -53,7 +53,7 @@ class Game:
          reward = reward * 0.9
 
 
-      return steps
+      return steps, winner
 
 # ----------------------------------
 

@@ -19,6 +19,14 @@ python generate_games.py play_single_game  models/model_initial.json models/mode
 
 
 #
+# Play many games between two models and output stats
+# First model crosses, second zeroes
+#
+python generate_games.py play_single_game  models/model_initial.json models/model_trained.json
+
+
+
+#
 # Other modes
 #
 # To generate many random boards with stats

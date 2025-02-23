@@ -50,23 +50,31 @@ if mode == "many_games":
    
 
 if mode == "play_single_game":
-
-  m_crosses = ttt.TTTClass()
-  m_zeroes = ttt.TTTClass()
-
-  crosses_model = sys.argv[2]
-  zeroes_model = sys.argv[3]
-
-  #m_zeroes.load_from_file("models/model_trained.json")
-  #m_crosses.load_from_file("models/model_initial.json")
-  m_crosses.load_from_file(crosses_model)
-  m_zeroes.load_from_file(zeroes_model)
+  m_crosses = ttt.TTTClass(sys.argv[2])
+  m_zeroes = ttt.TTTClass(sys.argv[3])
 
   g = game.Game(m_crosses, m_zeroes)
-  steps = g.play_game(0.3)
+  steps, winner = g.play_game(0.3)
   for step_no, (values, board, ply, x, y, reward) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
     game.print_scores(values)
     print("Next step:", x, y, " Reward: ", reward)
     game.print_board(board)
     print()
+
+
+if mode == "play_many_games":
+  m_crosses = ttt.TTTClass(sys.argv[2])
+  m_zeroes = ttt.TTTClass(sys.argv[3])
+
+  winners = {-1: 0, 0: 0, 1: 0}
+  cnt = 0
+  g = game.Game(m_crosses, m_zeroes)
+  for f in range(100):
+     _, winner = g.play_game(0.3)
+     winners[winner] = winners[winner] + 1
+     cnt = cnt + 1
+
+  print(f"Crosses: {winners[1]} out of {cnt}")
+  print(f"Zeroes: {winners[-1]} out of {cnt}")
+  print(f"Ties: {winners[0]} out of {cnt}")

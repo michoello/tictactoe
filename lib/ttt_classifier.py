@@ -18,7 +18,7 @@ START_VALUES = [
 
 # Simple classifier of board position
 class TTTClass:
-  def __init__(self):
+  def __init__(self, file_to_load_from=None):
 
     self.x = ml.BB(ml.random_matrix(6,6))
 
@@ -43,6 +43,9 @@ class TTTClass:
 
     self.y = ml.BB(ml.random_matrix(1, 1))
     self.loss = self.prediction.mse(self.y)
+
+    if file_to_load_from is not None:
+       self.load_from_file(file_to_load_from)
 
 
   def load_from_file(self, file_name):
