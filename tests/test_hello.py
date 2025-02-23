@@ -12,7 +12,6 @@ def roughlyEqual(m1, m2):
 
 class TestHelloWorld(unittest.TestCase):
 
-
     def test_basic_ops(self):
         x = [[1, 2]] 
         w1 = [[3, 4, 5], [6, 7, 8]] 

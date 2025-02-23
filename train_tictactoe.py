@@ -9,7 +9,6 @@ initial_model_dump = sys.argv[1]
 final_model_dump = sys.argv[2]
 
 m = ttt.TTTClass()
-#m.save_to_file("models/model_initial.json")
 m.save_to_file(initial_model_dump)
 
 
@@ -47,7 +46,6 @@ for epoch in range(100):
       print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
     
       if test_loss < best_test_loss:
-          #m.save_to_file("models/model_trained.json")
           m.save_to_file(final_model_dump)
           best_test_loss = test_loss
       else:
