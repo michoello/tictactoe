@@ -95,6 +95,7 @@ class TestTrainingCycle(unittest.TestCase):
             cnt = cnt + 1
 
         print("WINNERS", winners)
+        # This sometimes fails. TODO: find a way to pass reliably
         self.assertGreater(winners[-1], winners[1])
 
 if __name__ == "__main__":
