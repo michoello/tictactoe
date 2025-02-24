@@ -54,7 +54,7 @@ if mode == "play_single_game":
   m_zeroes = ttt.TTTClass(sys.argv[3])
 
   g = game.Game(m_crosses, m_zeroes)
-  steps, winner = g.play_game(0.3)
+  steps, winner = g.play_game(0.0)
   for step_no, (values, board, ply, x, y, reward) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
     game.print_scores(values)
