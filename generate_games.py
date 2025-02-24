@@ -71,7 +71,8 @@ if mode == "play_many_games":
   cnt = 0
   g = game.Game(m_crosses, m_zeroes)
   for f in range(100):
-     _, winner = g.play_game(0.3)
+     #_, winner = g.play_game(0.3)
+     _, winner = g.play_game(0.1)
      winners[winner] = winners[winner] + 1
      cnt = cnt + 1
 
