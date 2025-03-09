@@ -10,7 +10,7 @@ final_model_dump = sys.argv[1]
 #m.save_to_file(initial_model_dump)
 
 
-def generate_playing_batch():
+def generate_playing_batch(num_games):
 
   m_crosses = ttt.TTTClass("models/model_victory_only.json")
   m_zeroes = ttt.TTTClass("models/model_victory_only.json")
@@ -18,27 +18,21 @@ def generate_playing_batch():
 
   boards, values = [], []
 
-  for i in range(20):
-    steps, winner = g.play_game(0.3)
+  for i in range(num_games):
+    steps, winner = g.play_game(0.1)
     for step_no, (_, board, ply, x, y, reward) in enumerate(steps):
       boards.append(board)
       values.append([(reward+1)/2])
   
   return boards, values
 
-
-train_boards, train_winners = generate_playing_batch()
-
 m = ttt.TTTClass()
 
 best_test_loss = 10 ** 1000
-test_boards, test_winners = generate_playing_batch()
 for epoch in range(100):
 
-    train_boards, train_winners = generate_playing_batch()
-    test_boards, test_winners = generate_playing_batch()
-    #test_boards, test_winners = game.generate_batch(TEST_BATCH_SIZE) 
-    #train_boards, train_winners = game.generate_batch(TRAINING_BATCH_SIZE) 
+    train_boards, train_winners = generate_playing_batch(25)
+    test_boards, test_winners = generate_playing_batch(1)
 
     for i in range(100):
       
@@ -66,6 +60,18 @@ for epoch in range(100):
       test_loss = test_loss/len(test_boards)
       print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
     
+    for board, winner in zip(test_boards, test_winners):
+       m.x.set(board)
+       m.y.set([winner]) 
+       loss = m.loss.val()
+       prediction = m.prediction.val()
+
+       game.print_board(board)
+       print(f"WINNER: {winner}, PREDICTION {prediction} LOSS {loss}")
+
+    break
+
+
     if test_loss < best_test_loss:
       print("EPOCH {epoch}: SAVING!")
       m.save_to_file(final_model_dump)
