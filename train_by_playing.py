@@ -34,7 +34,7 @@ for epoch in range(100):
     train_boards, train_winners = generate_playing_batch(25)
     test_boards, test_winners = generate_playing_batch(1)
 
-    for i in range(100):
+    for i in range(200):
       
       train_loss = 0
       for board, winner in zip(train_boards, train_winners):
@@ -60,19 +60,21 @@ for epoch in range(100):
       test_loss = test_loss/len(test_boards)
       print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
     
-    for board, winner in zip(test_boards, test_winners):
-       m.x.set(board)
-       m.y.set([winner]) 
-       loss = m.loss.val()
-       prediction = m.prediction.val()
+    if epoch == 0:
+      #for board, winner in zip(test_boards, test_winners):
+      for board, winner in zip(train_boards, train_winners):
+        m.x.set(board)
+        m.y.set([winner]) 
+        loss = m.loss.val()
+        prediction = m.prediction.val()
 
-       game.print_board(board)
-       print(f"WINNER: {winner}, PREDICTION {prediction} LOSS {loss}")
+        game.print_board(board)
+        print(f"WINNER: {winner}, PREDICTION {prediction} LOSS {loss}")
 
-    break
+      break
 
 
     if test_loss < best_test_loss:
-      print("EPOCH {epoch}: SAVING!")
+      print(f"EPOCH {epoch}: SAVING!")
       m.save_to_file(final_model_dump)
       best_test_loss = test_loss
