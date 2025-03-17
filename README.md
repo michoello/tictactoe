@@ -1,9 +1,27 @@
-Here it comes.
-And one more line.
+#
+#  2025-03-16 !!! CURRENTLY UNDER CONSTRUCTION  !!!
+# Run model training for temporal learning classifier
+#
+python train_by_playing.py models/model_playing.json
 
-# Commands to run
+# Supposedly it should win here, but not yet - losing almost all the games :(
+python generate_games.py play_many_games  models/model_victory_only.json models/model_playing.json
+
+
+
+#
+# More or less stable Commands to run
+#
+
+
+#
+# Running unittests, including training session with results probabilistic evaluation
+#
+./testme.sh
+
 ```
 pip install -e .
+```
 
 #
 # Run model training classifier for victory board
@@ -26,11 +44,8 @@ python generate_games.py play_many_games  models/model_initial.json models/model
 
 
 
-# Run model training for temporal learning classifier
-python train_by_playing.py models/model_playing.json
 
-# Supposedly it should win here, but not yet - losing almost all the games :(
-python generate_games.py play_many_games  models/model_victory_only.json models/model_playing.json
+
 
 
 
