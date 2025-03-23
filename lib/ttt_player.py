@@ -22,24 +22,24 @@ class TTTPlayer:
 
     self.x = ml.BB(ml.random_matrix(6,6))
 
-    self.w1 = ml.BB(ml.random_matrix(36, 16))
-    self.b1 = ml.BB(ml.random_matrix(1, 16))
+    self.w1 = ml.BB(ml.random_matrix(36, 64))
+    self.b1 = ml.BB(ml.random_matrix(1, 64))
 
-    self.w2 = ml.BB(ml.random_matrix(16, 4))
-    self.b2 = ml.BB(ml.random_matrix(1, 4))
+    self.w2 = ml.BB(ml.random_matrix(64, 1))
+    self.b2 = ml.BB(ml.random_matrix(1, 1))
 
-    self.w3 = ml.BB(ml.random_matrix(4, 1))
-    self.b3 = ml.BB(ml.random_matrix(1, 1))
+#    self.w3 = ml.BB(ml.random_matrix(4, 1))
+#    self.b3 = ml.BB(ml.random_matrix(1, 1))
 
 
     self.z0 = ml.BBReshape(self.x, 1, 36)
     self.z1 = (self.z0 @ self.w1 + self.b1).sigmoid()
     self.z2 = (self.z1 @ self.w2 + self.b2).sigmoid()
-    self.z3 = (self.z2 @ self.w3 + self.b3).sigmoid()
+#    self.z3 = (self.z2 @ self.w3 + self.b3).sigmoid()
 
 
     # Predicts who is the winner (1 for crosses, -1 for zeroes)
-    self.prediction = self.z3
+    self.prediction = self.z2
 
     self.y = ml.BB(ml.random_matrix(1, 1))
     self.loss = self.prediction.mse(self.y)
@@ -75,7 +75,6 @@ class TTTPlayer:
 
     norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
 
-
     # TODO: interesting! explore more
     w1norm = norm(self.w1.val())
     w1dnorm = norm(self.w1.dval())
@@ -84,11 +83,12 @@ class TTTPlayer:
         alpha = 0.1 
     if w1dnorm / w1norm > 1000:
         alpha = 0.001
+    #alpha = 0.0001
 
     self.w1.appl(alpha) 
     self.b1.appl(alpha) 
     self.w2.appl(alpha)
     self.b2.appl(alpha)
-    self.w3.appl(alpha)
-    self.b3.appl(alpha)
+    #self.w3.appl(alpha)
+    #self.b3.appl(alpha)
 
