@@ -9,7 +9,7 @@ TEST_BATCH_SIZE = 30
 final_model_dump = sys.argv[1]
 
 
-def generate_playing_batch(num_games, weighted=False):
+def generate_playing_batch(num_games):
 
   m_crosses = tttc.TTTClass("models/model_victory_only.json")
   m_zeroes = tttc.TTTClass("models/model_victory_only.json")
@@ -23,12 +23,19 @@ def generate_playing_batch(num_games, weighted=False):
       boards.append(board)
       train_reward = [(reward+1)/2]
       values.append(train_reward)
-      if weighted and (reward > 0.8 or reward < -0.8):
-          for i in range(5):
-             boards.append(board)
-             values.append(train_reward)
   
   return boards, values
+
+
+def balance_batch(train_board, train_values):
+    train_boards_b, train_values_b = [], []
+    for board, value in zip(train_boards, train_values):
+       count = 5 if (value[0] > 0.9 or value[0] < 0.1) else 1
+       for i in range(count):
+           train_boards_b.append(board)
+           train_values_b.append(value)
+
+    return train_boards_b, train_values_b
 
 
 def calc_loss_buckets(m, boards, values):
@@ -71,12 +78,14 @@ best_test_loss = 10 ** 1000
 for epoch in range(1000):
 
     # Gradient descent
-    train_boards, train_values = generate_playing_batch(20, True)
+    train_boards, train_values = generate_playing_batch(20)
+    train_boards_b, train_values_b = balance_batch(train_boards, train_values)
+
     for i in range(train_iterations):
       
         # Backward pass
         train_loss = 0
-        for board, value in zip(train_boards, train_values):
+        for board, value in zip(train_boards_b, train_values_b):
             m.x.set(board)
             m.y.set([value]) 
 
