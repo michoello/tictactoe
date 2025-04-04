@@ -78,11 +78,12 @@ class TTTPlayer:
     # TODO: interesting! explore more
     w1norm = norm(self.w1.val())
     w1dnorm = norm(self.w1.dval())
-    alpha = 0.01
-    if w1dnorm / w1norm < 0.01:
-        alpha = 0.1 
-    if w1dnorm / w1norm > 1000:
-        alpha = 0.001
+    alpha = 0.0001
+    #alpha = 0.01
+    #if w1dnorm / w1norm < 0.01:
+    #    alpha = 0.1 
+    #if w1dnorm / w1norm > 1000:
+    #    alpha = 0.001
     #alpha = 0.0001
 
     self.w1.appl(alpha) 
