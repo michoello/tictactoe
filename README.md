@@ -2,7 +2,9 @@
 #  2025-03-16 !!! CURRENTLY UNDER CONSTRUCTION  !!!
 # Run model training for temporal learning classifier
 #
-python train_by_playing.py models/model_playing.json
+python train_by_playing.py --init_model models/model_playing_128.json --save_to_model models/model_playing_128_2.json
+
+
 
 # Supposedly it should win here, but not yet - losing almost all the games :(
 python generate_games.py play_many_games  models/model_victory_only.json models/model_playing.json

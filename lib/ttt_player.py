@@ -22,10 +22,10 @@ class TTTPlayer:
 
     self.x = ml.BB(ml.random_matrix(6,6))
 
-    self.w1 = ml.BB(ml.random_matrix(36, 64))
-    self.b1 = ml.BB(ml.random_matrix(1, 64))
+    self.w1 = ml.BB(ml.random_matrix(36, 128))
+    self.b1 = ml.BB(ml.random_matrix(1, 128))
 
-    self.w2 = ml.BB(ml.random_matrix(64, 1))
+    self.w2 = ml.BB(ml.random_matrix(128, 1))
     self.b2 = ml.BB(ml.random_matrix(1, 1))
 
 #    self.w3 = ml.BB(ml.random_matrix(4, 1))
@@ -78,7 +78,7 @@ class TTTPlayer:
     # TODO: interesting! explore more
     w1norm = norm(self.w1.val())
     w1dnorm = norm(self.w1.dval())
-    alpha = 0.0001
+    alpha = 0.001
     #alpha = 0.01
     #if w1dnorm / w1norm < 0.01:
     #    alpha = 0.1 

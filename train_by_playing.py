@@ -3,10 +3,18 @@ from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 import sys
 
-TRAINING_BATCH_SIZE = 60
-TEST_BATCH_SIZE = 30
 
-final_model_dump = sys.argv[1]
+import argparse
+
+parser = argparse.ArgumentParser(description="Train your model")
+
+parser.add_argument('--init_model', type=str, help='Path to the initial model file')
+parser.add_argument('--save_to_model', type=str, help='Path to save the trained model')
+
+args = parser.parse_args()
+
+print(f"Init model: {args.init_model}")
+print("Save to model:", args.save_to_model)
 
 
 def generate_playing_batch(num_games):
@@ -46,18 +54,6 @@ def generate_balanced_batch(num_boards, value_weights):
     return outboards, outvalues          
 
 
-
-def balance_batch(train_board, train_values):
-    train_boards_b, train_values_b = [], []
-    for board, value in zip(train_boards, train_values):
-       count = 5 if (value[0] > 0.9 or value[0] < 0.1) else 1
-       for i in range(count):
-           train_boards_b.append(board)
-           train_values_b.append(value)
-
-    return train_boards_b, train_values_b
-
-
 def calc_loss_buckets(m, boards, values):
     loss_buckets = [ [0, 0] for _ in range(10)]
     for board, value in zip(boards, values):
@@ -90,8 +86,11 @@ def calc_loss(m, boards, values):
 # --------------------------------------------
 
 m = tttp.TTTPlayer()
+if args.init_model is not None:
+    print(f"Init player model: {args.init_model}")
+    m.load_from_file(args.init_model)
 
-test_boards, test_values = generate_playing_batch(10)
+test_boards, test_values = generate_playing_batch(100)
 
 train_iterations = 25
 best_test_loss = 10 ** 1000
@@ -100,16 +99,9 @@ for epoch in range(1000):
     test_loss_buckets = calc_loss_buckets(m, test_boards, test_values)
     print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
 
-    # !!!
     train_boards, train_values = generate_balanced_batch(100, test_loss_buckets)
     train_boards_b, train_values_b = train_boards, train_values
 
-
-    # Gradient descent
-    #train_boards, train_values = generate_playing_batch(20)
-    #train_boards_b, train_values_b = balance_batch(train_boards, train_values)
-
-    #sys.exit(0)
 
     train_loss_buckets = calc_loss_buckets(m, train_boards, train_values)
     print(f"\nTRAIN LOSS BUCKETS: ", [round(l, 2) if l is not None else "None" for l in train_loss_buckets])
@@ -131,9 +123,6 @@ for epoch in range(1000):
         train_loss = calc_loss(m, train_boards, train_values)
         test_loss = calc_loss(m, test_boards, test_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
-
-
-
    
     # Print extended stats each 10 epochs
     if epoch % 10 == 0:
@@ -147,9 +136,7 @@ for epoch in range(1000):
         game.print_board(board)
         print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
 
-
-
     if test_loss < best_test_loss:
-      print(f"EPOCH {epoch}: SAVING!")
-      m.save_to_file(final_model_dump)
+      print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
+      m.save_to_file(args.save_to_model)
       best_test_loss = test_loss
