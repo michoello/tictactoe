@@ -107,6 +107,9 @@ class BB:
     def mse(self, y):
        return BBMSELoss(self, y)
 
+    def bce(self, y):
+       return BBBCELoss(self, y)
+
     def save(self) -> str:
        return json.dumps(self.to_json())
 
@@ -216,6 +219,7 @@ class BBSigmoid(BB):
       self.inp.dif(self.dval()) 
 
 
+# Mean Squared Error
 class BBMSELoss(BB):
     def __init__(self, inp, y):
        super().__init__(inp, y)
@@ -233,4 +237,44 @@ class BBMSELoss(BB):
     def dif(self):
       self.dvalue = self.derivative()
       self.inp.dif(self.dval()) 
+
+
+# Binary cross enthropy
+class BBBCELoss(BB):
+    def __init__(self, inp, y):
+       super().__init__(inp, y)
+       self.inp = inp
+       self.y = y
+
+    def derivative(self):
+       return self.bce_derivative()
+       #return subtract(self.inp.val(), self.y.val()) # derivative of loss
+
+    def bce_derivative(self):
+       # Clamp p to avoid division by zero
+       epsilon = 1e-12
+       dval = []
+       for row_a, row_b in zip(self.y.val(), self.inp.val()):
+          for y, p in zip(row_a, row_b):
+            p = max(min(p, 1 - epsilon), epsilon)
+            dval.append( (p - y) / (p * (1 - p)) )
+       return [dval]
+
+    def val(self):
+       loss = []
+       eps = 1e-15
+       for row_a, row_b in zip(self.y.val(), self.inp.val()):
+          for y, p in zip(row_a, row_b):
+            # Clip p to avoid log(0)
+            p = min(max(p, eps), 1 - eps)
+            l = -(y * math.log(p) + (1 - y) * math.log(1 - p))
+            loss.append(l)
+       self.value = [loss]
+       return self.value
+
+ 
+    def dif(self):
+      self.dvalue = self.derivative()
+      self.inp.dif(self.dval()) 
+
 

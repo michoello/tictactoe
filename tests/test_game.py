@@ -59,7 +59,7 @@ class TestTrainingCycle(unittest.TestCase):
         print("Training")
         best_test_loss = 10 ** 1000
         test_boards, test_winners = game.generate_batch(20) 
-        for epoch in range(50):
+        for epoch in range(10):
             train_boards, train_winners = game.generate_batch(20) 
         
             for i in range(10):

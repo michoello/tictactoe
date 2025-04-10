@@ -3,8 +3,8 @@ from lib import ml
 from lib import game 
 
 
-def roughlyEqual(m1, m2):
-    if all([round(a, 2) == round(b, 2) for row_a, row_b in zip(m1, m2) for a, b in zip(row_a, row_b)]):
+def roughlyEqual(m1, m2, digs=2):
+    if all([round(a, digs) == round(b, digs) for row_a, row_b in zip(m1, m2) for a, b in zip(row_a, row_b)]):
         return True
     print(f"Arrays not equal:\n{m1}\n{m2}")
     return False
@@ -83,6 +83,35 @@ class TestHelloWorld(unittest.TestCase):
         x.appl(0.01)
         self.assertTrue(roughlyEqual(loss.val(), [[ 195.02, 284.87, 391.68 ]]))
 
+
+    def test_bce_loss(self):
+        x = ml.BB([[0.1, -0.2]])
+        w = ml.BB([
+           [-0.1, 0.5, 0.3], 
+           [-0.6, 0.7, 0.8]])
+
+        y = (x @ w).sigmoid()
+
+        self.assertTrue(roughlyEqual(y.val(), [[ 0.527, 0.478, 0.468]], 3))
+
+        loss = y.bce(ml.BB([[0, 1, 0.468]]))
+        self.assertTrue(roughlyEqual(loss.val(), [[ 0.75, 0.739, 0.691 ]], 3))
+
+        loss.dif()
+        #self.assertTrue(roughlyEqual(loss.dval(), [[ 0.527, -0.522, -0.000]], 3))
+        self.assertTrue(roughlyEqual(loss.dval(), [[ 2.116, -2.094, -0.002]], 3))
+
+
+        w.appl(1.0)
+        # Check that loss decreased
+        self.assertTrue(roughlyEqual(loss.val(), [[ 0.736, 0.726, 0.691]]))
+
+        # Check that outputs are getting a bit closer
+        self.assertTrue(roughlyEqual(y.val(), [[ 0.521, 0.484, 0.468 ]], 3))
+
+        x.appl(0.01)
+        # Check that updating x also reduces the loss
+        self.assertTrue(roughlyEqual(loss.val(), [[ 0.734, 0.723, 0.691 ]], 3))
 
 
     def test_reshape(self):
