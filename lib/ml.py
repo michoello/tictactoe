@@ -10,6 +10,9 @@ def random_matrix(m, n):
 
 # Sigmoid activation and its derivative
 def sigmoid(x):
+    # Clipping to prevent overflow when batching gradients
+    x = max(min(x, 20), -20)
+    #print("AAAA", x)
     return 1 / (1 + math.exp(-x))
 
 
@@ -60,6 +63,7 @@ class BB:
     def __init__(self, *args):
        self.args = list(args)
        self.value = None
+       self.dvalue = None
 
     def dims(self):
       if self.value is None:
@@ -71,7 +75,10 @@ class BB:
       return self.value
 
     def dif(self, dvalue):
-      self.dvalue = dvalue
+      if self.dvalue is None:
+          self.dvalue = dvalue
+      else:
+         self.dvalue = add(self.dvalue, dvalue)
 
     def dval(self):
       return self.dvalue
@@ -85,6 +92,7 @@ class BB:
 
     def appl(self, learning_rate):
        self.value = subtract(self.value, mul(self.dvalue, learning_rate))
+       self.dvalue = None
        self.args[0]  = self.value
 
     def __matmul__(self, other):

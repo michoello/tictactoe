@@ -99,7 +99,7 @@ for epoch in range(1000):
     test_loss_buckets = calc_loss_buckets(m, test_boards, test_values)
     print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
 
-    train_boards, train_values = generate_balanced_batch(100, test_loss_buckets)
+    train_boards, train_values = generate_balanced_batch(32, test_loss_buckets)
     train_boards_b, train_values_b = train_boards, train_values
 
 
@@ -120,6 +120,9 @@ for epoch in range(1000):
             loss = m.loss.val()
             train_loss = train_loss + loss[0][0]
 
+        # Batch gradient application. Does not help much
+        # m.apply_gradient()
+
         train_loss = calc_loss(m, train_boards, train_values)
         test_loss = calc_loss(m, test_boards, test_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
@@ -136,7 +139,7 @@ for epoch in range(1000):
         game.print_board(board)
         print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
 
-    if test_loss < best_test_loss:
+    if test_loss < best_test_loss and args.save_to_model is not None:
       print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
       m.save_to_file(args.save_to_model)
       best_test_loss = test_loss

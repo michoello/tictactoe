@@ -53,16 +53,13 @@ class TestTrainingCycle(unittest.TestCase):
         init_model = tempfile.mktemp()
         trained_model = tempfile.mktemp()
 
-
         m = ttt.TTTClass()
         m.save_to_file(init_model)
         
         print("Training")
         best_test_loss = 10 ** 1000
+        test_boards, test_winners = game.generate_batch(20) 
         for epoch in range(50):
-            if epoch % 5 == 0:
-                print(f"{epoch/50*100}%")
-            test_boards, test_winners = game.generate_batch(20) 
             train_boards, train_winners = game.generate_batch(20) 
         
             for i in range(10):
@@ -83,20 +80,43 @@ class TestTrainingCycle(unittest.TestCase):
                   m.save_to_file(trained_model)
                   best_test_loss = test_loss
         
+            if epoch % 5 == 0:
+                print(f"{epoch/50*100}% - test_loss {test_loss}")
+
+
         print("Playing")
-        m_crosses = ttt.TTTClass(init_model)
-        m_zeroes = ttt.TTTClass(trained_model)
-        winners = {-1: 0, 0: 0, 1: 0}
-        cnt = 0
-        g = game.Game(m_crosses, m_zeroes)
+        random_model = ttt.TTTClass(init_model)
+        trained_model = ttt.TTTClass(trained_model)
+        winners = {
+          'random': 0,
+          'trained': 0,
+          'tie': 0
+        }
+
         for f in range(50):
-            _, winner = g.play_game(0.3)
-            winners[winner] = winners[winner] + 1
-            cnt = cnt + 1
+           if f % 2 == 0:
+              # Trained model plays zeroes
+              g = game.Game(random_model, trained_model)
+              trained_player = -1 
+           else:
+              g = game.Game(trained_model, random_model)
+              trained_player = 1
+
+           _, winner = g.play_game(0.3)
+           if winner == 0:
+               winners['tie'] += 1
+           elif winner == trained_player:
+               winners['trained'] += 1
+           else:
+               winners['random'] += 1
 
         print("WINNERS", winners)
         # This sometimes fails. TODO: find a way to pass reliably
-        self.assertGreater(winners[-1], winners[1])
+        self.assertGreater(winners['trained'], winners['random'])
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
