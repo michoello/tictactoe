@@ -11,7 +11,7 @@ def random_matrix(m, n):
 # Sigmoid activation and its derivative
 def sigmoid(x):
     # Clipping to prevent overflow when batching gradients
-    x = max(min(x, 20), -20)
+    #x = max(min(x, 20), -20)
     #print("AAAA", x)
     return 1 / (1 + math.exp(-x))
 
@@ -75,10 +75,11 @@ class BB:
       return self.value
 
     def dif(self, dvalue):
-      if self.dvalue is None:
-          self.dvalue = dvalue
-      else:
-         self.dvalue = add(self.dvalue, dvalue)
+      # why does this happen even without batching gradients?
+      #if self.dvalue is None:
+      self.dvalue = dvalue
+      #else:
+      #   self.dvalue = add(self.dvalue, dvalue)
 
     def dval(self):
       return self.dvalue

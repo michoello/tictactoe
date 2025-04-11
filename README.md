@@ -1,9 +1,19 @@
+
 #
-#  2025-03-16 !!! CURRENTLY UNDER CONSTRUCTION  !!!
-# Run model training for temporal learning classifier
+#  2025-04-11 !!! CURRENTLY UNDER CONSTRUCTION  !!!
+# Ran model training for temporal learning classifier with MSE loss:
+# Looking at the model output it looks better
+#
+python train_by_playing.py --save_to_model models/model_playing_mse_loss.json
+
+#
+#  2025-03-16
+# Ran model training for temporal learning classifier:
+# - adding layers or weights did not help much
+# - batch gradient did not help at all
+# - trying MSE now
 #
 python train_by_playing.py --init_model models/model_playing_128.json --save_to_model models/model_playing_128_2.json
-
 
 
 # Supposedly it should win here, but not yet - losing almost all the games :(

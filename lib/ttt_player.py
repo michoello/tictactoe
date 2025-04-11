@@ -22,10 +22,10 @@ class TTTPlayer:
 
     self.x = ml.BB(ml.random_matrix(6,6))
 
-    self.w1 = ml.BB(ml.random_matrix(36, 128))
-    self.b1 = ml.BB(ml.random_matrix(1, 128))
+    self.w1 = ml.BB(ml.random_matrix(36, 64))
+    self.b1 = ml.BB(ml.random_matrix(1, 64))
 
-    self.w2 = ml.BB(ml.random_matrix(128, 1))
+    self.w2 = ml.BB(ml.random_matrix(64, 1))
     self.b2 = ml.BB(ml.random_matrix(1, 1))
 
     #self.w3 = ml.BB(ml.random_matrix(32, 1))
@@ -42,7 +42,8 @@ class TTTPlayer:
     self.prediction = self.z2
 
     self.y = ml.BB(ml.random_matrix(1, 1))
-    self.loss = self.prediction.mse(self.y)
+    #self.loss = self.prediction.mse(self.y)
+    self.loss = self.prediction.bce(self.y)
 
     if file_to_load_from is not None:
        self.load_from_file(file_to_load_from)
@@ -75,10 +76,10 @@ class TTTPlayer:
 
     norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
 
+    alpha = 0.01 
     # TODO: interesting! explore more
-    w1norm = norm(self.w1.val())
-    w1dnorm = norm(self.w1.dval())
-    alpha = 0.001
+    #w1norm = norm(self.w1.val())
+    #w1dnorm = norm(self.w1.dval())
     #alpha = 0.01
     #if w1dnorm / w1norm < 0.01:
     #    alpha = 0.1 
