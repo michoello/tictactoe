@@ -1,3 +1,14 @@
+# 2025-04-14
+# Updated playing script to support two different models. The player model still fails.
+# TODO run single game and inspect weights
+python generate_games.py --mode play_single_game \
+   --zeroes_model classifier:models/model_victory_only.json \
+   --crosses_model player:models/model_playing_mse_loss.json
+
+python generate_games.py --mode play_many_games \
+   --zeroes_model classifier:models/model_victory_only.json \
+   --crosses_model player:models/model_playing_mse_loss.json
+
 
 #
 #  2025-04-11 !!! CURRENTLY UNDER CONSTRUCTION  !!!
@@ -45,19 +56,18 @@ python train_victory_classifier.py models/model_initial.json models/model_victor
 # Load two models and play a single game between them
 # First model crosses, second zeroes
 #
-python generate_games.py play_single_game  models/model_initial.json models/model_victory_only.json
+python generate_games.py --mode play_single_game \
+   --crosses_model classifier:models/model_initial.json \
+   --zeroes_model classifier:models/model_victory_only.json 
 
 
 #
 # Play many games between two models and output stats
 # First model crosses, second zeroes
 #
-python generate_games.py play_many_games  models/model_initial.json models/model_victory_only.json
-
-
-
-
-
+python generate_games.py --mode play_many_games \
+   --crosses_model classifier:models/model_initial.json \
+   --zeroes_model classifier:models/model_victory_only.json 
 
 
 
@@ -68,14 +78,14 @@ python generate_games.py play_many_games  models/model_initial.json models/model
 # Other modes
 #
 # To generate many random boards with stats
-python generate_games.py random_games
+python generate_games.py --mode random_games
 
 # To generate random single game
-python generate_games.py gen_random_game
+python generate_games.py --mode gen_random_game
 
 
 # To generate many games
-python generate_games.py many_games
+python generate_games.py --mode many_games
 
 
 

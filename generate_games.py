@@ -3,19 +3,29 @@ import sys
 import copy
 import random
 
-from lib import ttt_classifier as ttt
+from lib import ttt_classifier as tttc
+from lib import ttt_player as tttp
+
+import argparse
+
+parser = argparse.ArgumentParser(description="Play your model")
+
+parser.add_argument('--mode', type=str, help='how to run this script')
+parser.add_argument('--crosses_model', type=str, help='Type and path of crosses model')
+parser.add_argument('--zeroes_model', type=str, help='Type and path of zeroes model')
+args = parser.parse_args()
 
 
-mode = sys.argv[1] if len(sys.argv) > 1 else "idontknow"
-print(mode)
+#args.mode = sys.argv[1] if len(sys.argv) > 1 else "idontknow"
+print(args.mode)
 
 
-if mode == "idontknow":
+if args.mode == "idontknow":
    print("idontknow")
    sys.exit(0)
 
 
-if mode=="random_boards":
+if args.mode=="random_boards":
   wins = {}
   for i in range(1000):
     board = game.generate_random_board()
@@ -27,7 +37,7 @@ if mode=="random_boards":
   print("WINNERS: ", wins) 
 
 
-if mode == "generate_random_game":
+if args.mode == "generate_random_game":
    boards, winner = game.generate_random_game()
 
    for num, board in enumerate(boards):
@@ -39,7 +49,7 @@ if mode == "generate_random_game":
 
 
 
-if mode == "many_games":
+if args.mode == "many_games":
    wins = {}
    for i in range(100):
      _, winner = game.generate_random_game()
@@ -49,9 +59,18 @@ if mode == "many_games":
 
    
 
-if mode == "play_single_game":
-  m_crosses = ttt.TTTClass(sys.argv[2])
-  m_zeroes = ttt.TTTClass(sys.argv[3])
+
+def pickup_model(tp, file):
+  if tp not in ['classifier', 'player']:
+      raise f'Bad type: {tp}'
+  return tttc.TTTClass(file) if tp == 'classifier' else tttp.TTTPlayer(file)
+
+
+if args.mode == "play_single_game":
+  crosses_type, crosses_file = args.crosses_model.split(':')
+  m_crosses = pickup_model(crosses_type, crosses_file)
+  zeroes_type, zeroes_file = args.zeroes_model.split(':')
+  m_zeroes = pickup_model(zeroes_type, zeroes_file) 
 
   g = game.Game(m_crosses, m_zeroes)
   steps, winner = g.play_game(0.0)
@@ -63,9 +82,13 @@ if mode == "play_single_game":
     print()
 
 
-if mode == "play_many_games":
-  m_crosses = ttt.TTTClass(sys.argv[2])
-  m_zeroes = ttt.TTTClass(sys.argv[3])
+
+
+if args.mode == "play_many_games":
+  crosses_type, crosses_file = args.crosses_model.split(':')
+  m_crosses = pickup_model(crosses_type, crosses_file)
+  zeroes_type, zeroes_file = args.zeroes_model.split(':')
+  m_zeroes = pickup_model(zeroes_type, zeroes_file) 
 
   winners = {-1: 0, 0: 0, 1: 0}
   cnt = 0
