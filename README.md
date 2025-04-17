@@ -9,7 +9,26 @@
 #    The problem is that this logic "leaks" game rules into the playing, which is not good for generalization
 #  - Instead, we can explore states before "loss", and generate more boards, but that leaks rules into training. Not good again
 #  - We can introduce a feedback loop into training, by making the trained model play games, to make it explore its mistakes.
-#
+
+# Went with the feedback loop idea and wow:
+
+python train_by_playing.py --save_to_model models/model_playing_mce_loss.json 
+
+python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_playing_mce_loss.json
+Crosses: 13 out of 100
+Zeroes: 87 out of 100
+Ties: 0 out of 100
+
+python generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/model_playing_mce_loss.json
+Crosses: 56 out of 100
+Zeroes: 44 out of 100
+Ties: 0 out of 100
+
+# It is trained to play zeroes only, but even for crosses significant progress! 
+# Moving forward with that. Next we need to include "gaming competition" into the training, and as soon as student model starts to consistently win
+# over the teacher, it should become a teacher itself. This can lead to some other side effects ("echo chamber") so let's see
+
+----
 
 
 # 2025-04-14

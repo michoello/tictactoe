@@ -16,10 +16,6 @@ parser.add_argument('--zeroes_model', type=str, help='Type and path of zeroes mo
 args = parser.parse_args()
 
 
-#args.mode = sys.argv[1] if len(sys.argv) > 1 else "idontknow"
-print(args.mode)
-
-
 if args.mode == "idontknow":
    print("idontknow")
    sys.exit(0)

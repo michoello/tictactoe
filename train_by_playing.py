@@ -17,10 +17,8 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def generate_playing_batch(num_games):
+def generate_playing_batch(num_games, m_crosses, m_zeroes):
 
-  m_crosses = tttc.TTTClass("models/model_victory_only.json")
-  m_zeroes = tttc.TTTClass("models/model_victory_only.json")
   g = game.Game(m_crosses, m_zeroes)
 
   boards, values = [], []
@@ -35,15 +33,16 @@ def generate_playing_batch(num_games):
   return boards, values
 
 
-def generate_balanced_batch(num_boards, value_weights):
+def generate_balanced_batch(num_boards, value_weights, m_crosses, m_zeroes):
     sum_weights = sum(value_weights)
     boards_needed  = [int(wei/sum_weights*num_boards) for wei in value_weights]
     print("BOARDS_NEEDED: ", boards_needed)
     outboards, outvalues = [], []
     num_games_played = 0
+
     while sum(boards_needed) > 0:
        num_games_played += 1
-       boards, values = generate_playing_batch(1)
+       boards, values = generate_playing_batch(1, m_crosses, m_zeroes)
        for board, value in zip(boards, values):
            value_bucket = int(value[0]*0.999 * 10)
            if boards_needed[value_bucket] > 0:
@@ -90,16 +89,21 @@ if args.init_model is not None:
     print(f"Init player model: {args.init_model}")
     m.load_from_file(args.init_model)
 
-test_boards, test_values = generate_playing_batch(100)
 
 train_iterations = 25
 best_test_loss = 10 ** 1000
+
+m_crosses = tttc.TTTClass("models/model_victory_only.json")
+m_zeroes = tttc.TTTClass("models/model_victory_only.json")
+
 for epoch in range(1000):
+
+    test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
 
     test_loss_buckets = calc_loss_buckets(m, test_boards, test_values)
     print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
 
-    train_boards, train_values = generate_balanced_batch(32, test_loss_buckets)
+    train_boards, train_values = generate_balanced_batch(32, test_loss_buckets, m_crosses, m_zeroes)
     train_boards_b, train_values_b = train_boards, train_values
 
 
@@ -143,3 +147,6 @@ for epoch in range(1000):
       print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
       m.save_to_file(args.save_to_model)
       best_test_loss = test_loss
+
+    # Now we will generate next batch using our student as one of the players
+    m_zeroes = m
