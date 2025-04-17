@@ -73,7 +73,7 @@ if args.mode == "play_single_game":
   m_zeroes = pickup_model(zeroes_type, zeroes_file) 
 
   g = game.Game(m_crosses, m_zeroes)
-  steps, winner = g.play_game(0.0)
+  steps, winner = g.play_game(0.5, 2)
   for step_no, (values, board, ply, x, y, reward) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
     game.print_scores(values)
@@ -95,7 +95,7 @@ if args.mode == "play_many_games":
   g = game.Game(m_crosses, m_zeroes)
   for f in range(100):
      #_, winner = g.play_game(0.3)
-     _, winner = g.play_game(0.1)
+     _, winner = g.play_game(0.5, 2)
      winners[winner] = winners[winner] + 1
      cnt = cnt + 1
 

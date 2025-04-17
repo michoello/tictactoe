@@ -18,7 +18,7 @@ class Game:
       self.model_zeroes = model_zeroes
 
    
-   def play_game(self, exploration_rate):
+   def play_game(self, exploration_rate, exploration_steps=-1):
       board = copy.deepcopy(START_BOARD)
     
       steps = []
@@ -32,6 +32,8 @@ class Game:
            break
     
         values = m.get_next_step_values(boards)
+        if exploration_steps > 0 and step_no >= exploration_steps:
+           exploration_rate = 0
         x, y = choose_next_step(values, ply, step_no, exploration_rate)
         board[x][y] = ply
 
