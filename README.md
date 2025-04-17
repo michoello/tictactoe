@@ -1,3 +1,17 @@
+# 2025-04-16
+# Updating model params does not help, it looks like something is missing
+# Observation:
+#  - The model does not recognize a state "one step from losing", when e.g. 3 crosses in a row, and we play zero.
+#    The model MUST put zero in the cell where 4th cross would be set, even if it does not lead to winning.
+#
+# Ideas:
+#  - Maybe we can choose best step not only "aggressive", but also "defensive", when another player is to close to victory?
+#    The problem is that this logic "leaks" game rules into the playing, which is not good for generalization
+#  - Instead, we can explore states before "loss", and generate more boards, but that leaks rules into training. Not good again
+#  - We can introduce a feedback loop into training, by making the trained model play games, to make it explore its mistakes.
+#
+
+
 # 2025-04-14
 # Updated playing script to support two different models. The player model still fails.
 # TODO run single game and inspect weights
