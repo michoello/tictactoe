@@ -1,6 +1,7 @@
 import random
 import copy
 from dataclasses import dataclass
+from typing import Optional
 
 START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
 
@@ -11,6 +12,8 @@ class Step:
     x: int
     y: int
     board: list[list[int]]
+    values: list[list[float]]
+    reward: Optional[float] = None
 
 
 
@@ -40,7 +43,17 @@ class Game:
         board[x][y] = ply
 
         # TODO: dict or data class
-        steps.append([copy.deepcopy(values), copy.deepcopy(board), ply, x, y])
+        ss = Step(
+            step_no=step_no,
+            ply=ply,
+            x=x,
+            y       =y,
+            board=copy.deepcopy(board),
+            values=copy.deepcopy(values)
+        )
+
+
+        steps.append([copy.deepcopy(values), copy.deepcopy(board), ply, x, y, ss])
     
         winner, _ = check_winner(board)
         if winner != 0:
@@ -53,7 +66,9 @@ class Game:
       # Set desired rewards to the boards
       reward = winner
       for step in reversed(steps):
+         step[-1].reward = reward
          step.append(reward)
+
          reward = reward * 0.9
 
 
