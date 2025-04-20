@@ -2,6 +2,7 @@ from lib import game
 from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 import sys
+from typing import Any
 
 
 import argparse
@@ -84,7 +85,7 @@ def calc_loss(m, boards, values):
 
 # --------------------------------------------
 
-m = tttp.TTTPlayer()
+m: Any = tttp.TTTPlayer()
 if args.init_model is not None:
     print(f"Init player model: {args.init_model}")
     m.load_from_file(args.init_model)

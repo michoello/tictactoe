@@ -62,8 +62,8 @@ class TestHelloWorld(unittest.TestCase):
         xx.appl(0.1)
         self.assertTrue(roughlyEqual(ll.val(), [[7.29], [12.96]]))
 
-
-    def test_bme_loss(self):
+    # TODO: should be MCE (mean cross entropy)
+    def test_mse_loss(self):
         x = ml.BB([[1, 2]])
         w = ml.BB([[3, 4, 5], [ 6, 7, 8]])
 

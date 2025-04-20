@@ -3,6 +3,7 @@ import sys
 import copy
 import random
 
+from typing import Dict
 from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 
@@ -22,7 +23,7 @@ if args.mode == "idontknow":
 
 
 if args.mode=="random_boards":
-  wins = {}
+  wins: Dict[int, int] = {}
   for i in range(1000):
     board = game.generate_random_board()
     game.print_board(board)
@@ -63,17 +64,15 @@ def pickup_model(tp, file):
 
 
 if args.mode == "play_single_game":
-  crosses_type, crosses_file = args.crosses_model.split(':')
-  m_crosses = pickup_model(crosses_type, crosses_file)
-  zeroes_type, zeroes_file = args.zeroes_model.split(':')
-  m_zeroes = pickup_model(zeroes_type, zeroes_file) 
+  m_crosses = pickup_model(*args.crosses_model.split(':'))
+  m_zeroes = pickup_model(*args.zeroes_model.split(':'))
 
   g = game.Game(m_crosses, m_zeroes)
   steps, winner = g.play_game(0.5, 2)
   for step_no, (values, board, ply, x, y, reward) in enumerate(steps):
     print("Step", step_no, ":", "crosses" if ply == 1 else "zeroes")
     game.print_scores(values)
-    print("Next step:", x, y, " Reward: ", reward)
+    print("  Move:", x, y, " Reward: ", reward)
     game.print_board(board)
     print()
 
@@ -81,16 +80,13 @@ if args.mode == "play_single_game":
 
 
 if args.mode == "play_many_games":
-  crosses_type, crosses_file = args.crosses_model.split(':')
-  m_crosses = pickup_model(crosses_type, crosses_file)
-  zeroes_type, zeroes_file = args.zeroes_model.split(':')
-  m_zeroes = pickup_model(zeroes_type, zeroes_file) 
+  m_crosses = pickup_model(*args.crosses_model.split(':'))
+  m_zeroes = pickup_model(*args.zeroes_model.split(':'))
 
   winners = {-1: 0, 0: 0, 1: 0}
   cnt = 0
   g = game.Game(m_crosses, m_zeroes)
   for f in range(100):
-     #_, winner = g.play_game(0.3)
      _, winner = g.play_game(0.5, 2)
      winners[winner] = winners[winner] + 1
      cnt = cnt + 1

@@ -1,16 +1,18 @@
 import random
 import copy
+from dataclasses import dataclass
 
-START_BOARD = [
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-     [ 0, 0, 0, 0, 0, 0],
-]
-# For some reason this seem to behave differently
-# START_BOARD = [ [0]*6 for _ in range(6)]
+START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
+
+@dataclass
+class Step:
+    step_no: int
+    ply: int  # 1 for crosses, -1 for zeroes
+    x: int
+    y: int
+    board: list[list[int]]
+
+
 
 class Game:
    def __init__(self, model_crosses, model_zeroes):

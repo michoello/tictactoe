@@ -12,7 +12,7 @@ m = ttt.TTTClass()
 m.save_to_file(initial_model_dump)
 
 
-best_test_loss = 10 ** 1000
+best_test_loss = 10.0 ** 1000
 for epoch in range(100):
 
     test_boards, test_winners = game.generate_batch(TEST_BATCH_SIZE) 
@@ -20,7 +20,7 @@ for epoch in range(100):
 
     for i in range(100):
       
-      train_loss = 0
+      train_loss = 0.0
       for board, winner in zip(train_boards, train_winners):
         m.x.set(board)
         m.y.set([winner]) 
@@ -33,7 +33,7 @@ for epoch in range(100):
         train_loss = train_loss + loss[0][0]
     
 
-      test_loss = 0
+      test_loss = 0.0
       for board, winner in zip(test_boards, test_winners):
           m.x.set(board)
           m.y.set([winner]) 
