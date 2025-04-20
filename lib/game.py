@@ -16,7 +16,6 @@ class Step:
     reward: Optional[float] = None
 
 
-
 class Game:
    def __init__(self, model_crosses, model_zeroes):
       self.model_crosses = model_crosses
@@ -42,7 +41,6 @@ class Game:
         x, y = choose_next_step(values, ply, step_no, exploration_rate)
         board[x][y] = ply
 
-        # TODO: dict or data class
         ss = Step(
             step_no=step_no,
             ply=ply,
@@ -52,8 +50,7 @@ class Game:
             values=copy.deepcopy(values)
         )
 
-
-        steps.append([copy.deepcopy(values), copy.deepcopy(board), ply, x, y, ss])
+        steps.append(ss)
     
         winner, _ = check_winner(board)
         if winner != 0:
@@ -66,8 +63,7 @@ class Game:
       # Set desired rewards to the boards
       reward = winner
       for step in reversed(steps):
-         step[-1].reward = reward
-         step.append(reward)
+         step.reward = reward
 
          reward = reward * 0.9
 
@@ -88,27 +84,45 @@ def generate_random_board():
     
     return [values[i * 6:(i + 1) * 6] for i in range(6)]
 
+bgs = {
+   'grey': "\033[100m",
+   'black': "\033[40m" 
+}
+
+fgs = {
+   'green': "\033[32m",
+   'blue': "\033[94m",
+   'red': "\033[31m",
+}
+
+cancel_color = "\033[0m"
+
+def cprint(fg, bg, what):
+    if bg in bgs:
+       what = bgs[bg] + what + cancel_color
+    if fg in fgs:
+       what = fgs[fg] + what + cancel_color
+    print(what, end="")
+    
 
 def print_board(board):
-    symbols = {
-        0: "   ", 
-        -1: "\033[32m 0 \033[0m",  # Green for zero
-        1: "\033[94m X \033[0m",   # Light blue for cross
-
-        -2: "\033[31m 0 \033[0m",  # Red for winning zero
-        2: "\033[31m X \033[0m",  # Red for winning cross
-    }
-
     winner, xyo = check_winner(board)
     
     for i, row in enumerate(board):
         for j, cell in enumerate(row):
-            if (i, j) in xyo:
-               cell = cell * 2
-            bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
-            print(bg_color + symbols[cell] + "\033[0m", end="")
+
+            bg = 'grey' if (i + j) % 2 == 0 else 'black'
+            if cell == -1:
+               what, fg = ' O ', 'green'
+            elif cell == 1:
+               what, fg = ' X ', 'blue'
+            else:
+               what, fg = '   ', 'std'
+            fg = 'red' if (i, j) in xyo else fg 
+            cprint(fg, bg, what)
+
         print()
-    #print("Winner:", winner)
+
 
 # Returns 1 if crosses win, -1 if zeroes win, 0 if tie and None if board is invalid
 def check_winner(b):
