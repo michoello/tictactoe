@@ -27,7 +27,7 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
   for i in range(num_games):
     steps, value = g.play_game(0.3)
     for step in steps: 
-      boards.append(step.board)
+      boards.append(step.board.board)
       train_reward = [(step.reward+1)/2]
       values.append(train_reward)
   
@@ -141,7 +141,7 @@ for epoch in range(1000):
         loss = m.loss.val()
         prediction = m.prediction.val()
 
-        game.print_board(board)
+        game.Board(board).print_board()
         print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
 
     if test_loss < best_test_loss and args.save_to_model is not None:

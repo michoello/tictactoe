@@ -26,7 +26,7 @@ if args.mode=="random_boards":
   wins: Dict[int, int] = {}
   for i in range(1000):
     board = game.generate_random_board()
-    game.print_board(board)
+    board.print_board()
     winner, _ = game.check_winner(board)
     print()
     wins[winner] = wins.get(winner, 0) + 1
@@ -39,7 +39,7 @@ if args.mode == "generate_random_game":
 
    for num, board in enumerate(boards):
        print("Step", num)
-       game.print_board(board)
+       board.print_board()
        print()
 
    print("Winner: ", winner)
@@ -73,7 +73,7 @@ if args.mode == "play_single_game":
     print("Step", ss.step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
     game.print_scores(ss.values)
     print("  Move:", ss.x, ss.y, " Reward: ", ss.reward)
-    game.print_board(ss.board)
+    ss.board.print_board()
     print()
 
 

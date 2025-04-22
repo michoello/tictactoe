@@ -7,21 +7,21 @@ START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
 
 class Board:
 
-    #values: list[list[float]]
+  #values: list[list[float]]
 
-    def __init__(self, board=None):
+  def __init__(self, board=None):
         if not board:
            self.board = copy.deepcopy(START_BOARD)
         else:
            self.board = board
 
-    def copy(self):
+  def copy(self):
         return Board(copy.deepcopy(self.board))
 
 
-    # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
-    # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-    def all_next_steps(self, ply):
+  # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
+  # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
+  def all_next_steps(self, ply):
       boards = []
       for row in range(6):
         for col in range(6):
@@ -31,6 +31,78 @@ class Board:
               boards.append((next_board, row, col))
       return boards
 
+
+  # Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
+  # and None if board is invalid
+  def check_winner(self):
+    b = self.board
+
+    lll = [
+       [(0, 1), (0, 2), (0, 3)],
+       [(1, 0), (2, 0), (3, 0)],
+       [(1, 1), (2, 2), (3, 3)],
+       [(-1, 1), (-2, 2), (-3, 3)],
+    ]
+
+    g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+
+    xyo = []
+    winner = 0
+    for i in range(6):
+       for j in range(6):
+          if b[i][j] == 0:
+             continue
+
+          for ll in lll:
+             xy = [(i + lx, j + ly) for lx, ly in ll]
+             if all([ g(x,y) == b[i][j] for x, y in xy]):
+                if winner != 0 and winner != b[i][j]:
+                    return None, []
+                winner = b[i][j] 
+                xyo = xyo + [(i, j)] + xy
+
+    return winner, sorted(set(xyo))
+
+  def print_board(self):
+
+    bgs = {
+     'grey': "\033[100m",
+     'black': "\033[40m" 
+    }
+
+    fgs = {
+      'green': "\033[32m",
+      'blue': "\033[94m",
+      'red': "\033[31m",
+    }
+
+    cancel_color = "\033[0m"
+
+    def cprint(fg, bg, what):
+      if bg in bgs:
+        what = bgs[bg] + what + cancel_color
+      if fg in fgs:
+        what = fgs[fg] + what + cancel_color
+      print(what, end="")
+
+
+
+    winner, xyo = self.check_winner()
+    
+    for i, row in enumerate(self.board):
+        for j, cell in enumerate(row):
+
+            bg = 'grey' if (i + j) % 2 == 0 else 'black'
+            if cell == -1:
+               what, fg = ' O ', 'green'
+            elif cell == 1:
+               what, fg = ' X ', 'blue'
+            else:
+               what, fg = '   ', 'std'
+            fg = 'red' if (i, j) in xyo else fg 
+            cprint(fg, bg, what)
+
+        print()
 
 
 
@@ -77,13 +149,14 @@ class Game:
             ply=ply,
             x=x,
             y=y,
-            board=board.copy().board, 
+            #board=board.copy().board, 
+            board=board.copy(),
             values=copy.deepcopy(values)
         )
 
         steps.append(ss)
     
-        winner, _ = check_winner(board.board)
+        winner, _ = board.check_winner()
 
         if winner != 0:
            break
@@ -116,75 +189,10 @@ def generate_random_board():
     
     return [values[i * 6:(i + 1) * 6] for i in range(6)]
 
-bgs = {
-   'grey': "\033[100m",
-   'black': "\033[40m" 
-}
-
-fgs = {
-   'green': "\033[32m",
-   'blue': "\033[94m",
-   'red': "\033[31m",
-}
-
-cancel_color = "\033[0m"
-
-def cprint(fg, bg, what):
-    if bg in bgs:
-       what = bgs[bg] + what + cancel_color
-    if fg in fgs:
-       what = fgs[fg] + what + cancel_color
-    print(what, end="")
     
 
-def print_board(board):
-    winner, xyo = check_winner(board)
-    
-    for i, row in enumerate(board):
-        for j, cell in enumerate(row):
-
-            bg = 'grey' if (i + j) % 2 == 0 else 'black'
-            if cell == -1:
-               what, fg = ' O ', 'green'
-            elif cell == 1:
-               what, fg = ' X ', 'blue'
-            else:
-               what, fg = '   ', 'std'
-            fg = 'red' if (i, j) in xyo else fg 
-            cprint(fg, bg, what)
-
-        print()
 
 
-# Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
-# and None if board is invalid
-def check_winner(b):
-
-    lll = [
-       [(0, 1), (0, 2), (0, 3)],
-       [(1, 0), (2, 0), (3, 0)],
-       [(1, 1), (2, 2), (3, 3)],
-       [(-1, 1), (-2, 2), (-3, 3)],
-    ]
-
-    g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
-
-    xyo = []
-    winner = 0
-    for i in range(6):
-       for j in range(6):
-          if b[i][j] == 0:
-             continue
-
-          for ll in lll:
-             xy = [(i + lx, j + ly) for lx, ly in ll]
-             if all([ g(x,y) == b[i][j] for x, y in xy]):
-                if winner != 0 and winner != b[i][j]:
-                    return None, []
-                winner = b[i][j] 
-                xyo = xyo + [(i, j)] + xy
-
-    return winner, sorted(set(xyo))
 
 
 # Generates a random batch of size N, where each class is presented with n // 3 samples
@@ -194,7 +202,7 @@ def generate_batch(n):
     for i in range(n // 3):
       while True:
         board = generate_random_board()
-        winner, _ = check_winner(board)
+        winner, _ = Board(board).check_winner()
         if winner == board_class:
           break
       boards.append(board)
