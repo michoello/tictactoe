@@ -26,9 +26,9 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
 
   for i in range(num_games):
     steps, value = g.play_game(0.3)
-    for step_no, (_, board, ply, x, y, reward) in enumerate(steps):
-      boards.append(board)
-      train_reward = [(reward+1)/2]
+    for step in steps: 
+      boards.append(step.board)
+      train_reward = [(step.reward+1)/2]
       values.append(train_reward)
   
   return boards, values

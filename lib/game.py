@@ -5,6 +5,35 @@ from typing import Optional
 
 START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
 
+class Board:
+
+    #values: list[list[float]]
+
+    def __init__(self, board=None):
+        if not board:
+           self.board = copy.deepcopy(START_BOARD)
+        else:
+           self.board = board
+
+    def copy(self):
+        return Board(copy.deepcopy(self.board))
+
+
+    # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
+    # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
+    def all_next_steps(self, ply):
+      boards = []
+      for row in range(6):
+        for col in range(6):
+           if self.board[row][col] == 0:
+              next_board = self.copy() #copy.deepcopy(board)
+              next_board.board[row][col] = ply
+              boards.append((next_board, row, col))
+      return boards
+
+
+
+
 @dataclass
 class Step:
     step_no: int
@@ -23,7 +52,7 @@ class Game:
 
    
    def play_game(self, exploration_rate, exploration_steps=-1):
-      board = copy.deepcopy(START_BOARD)
+      board = Board()
     
       steps = []
 
@@ -31,28 +60,31 @@ class Game:
       winner = None
       while True:
     
-        boards = all_next_steps(board, ply)
+        boards = board.all_next_steps(ply)
         if len(boards) == 0:
            break
-    
+        
+        boards = [(b[0].board, b[1], b[2]) for b in boards]
+
         values = m.get_next_step_values(boards)
         if exploration_steps > 0 and step_no >= exploration_steps:
            exploration_rate = 0
         x, y = choose_next_step(values, ply, step_no, exploration_rate)
-        board[x][y] = ply
+        board.board[x][y] = ply
 
         ss = Step(
             step_no=step_no,
             ply=ply,
             x=x,
-            y       =y,
-            board=copy.deepcopy(board),
+            y=y,
+            board=board.copy().board, 
             values=copy.deepcopy(values)
         )
 
         steps.append(ss)
     
-        winner, _ = check_winner(board)
+        winner, _ = check_winner(board.board)
+
         if winner != 0:
            break
     
@@ -124,7 +156,8 @@ def print_board(board):
         print()
 
 
-# Returns 1 if crosses win, -1 if zeroes win, 0 if tie and None if board is invalid
+# Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
+# and None if board is invalid
 def check_winner(b):
 
     lll = [
@@ -169,17 +202,6 @@ def generate_batch(n):
   return boards, winners
 
 
-# Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
-# Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-def all_next_steps(board, ply):
-   boards = []
-   for row in range(6):
-       for col in range(6):
-           if board[row][col] == 0:
-              next_board = copy.deepcopy(board)
-              next_board[row][col] = ply
-              boards.append((next_board, row, col))
-   return boards
 
 # Generate sequence of boards for a single random game
 def generate_random_game():

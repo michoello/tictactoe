@@ -12,7 +12,7 @@ m = ttt.TTTClass()
 m.save_to_file(initial_model_dump)
 
 
-best_test_loss = 10.0 ** 1000
+best_test_loss = 10.0 ** 10
 for epoch in range(100):
 
     test_boards, test_winners = game.generate_batch(TEST_BATCH_SIZE) 
