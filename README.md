@@ -1,3 +1,11 @@
+# 2025-04-21
+Wow is not really a wow if you watch the games closely.
+They all similar, very repetitive and quite useless.
+The reason is that the model found imperfection of classifier based model and just started to put zeroes in a row
+blocking the crosses and building 4-line first :)
+If you retrain the classifier and try to run player against it, it will lose.
+Useful insight for next step - the student must becomde a teacher at some point. To be continued.
+
 # 2025-04-16
 # Updating model params does not help, it looks like something is missing
 # Observation:
