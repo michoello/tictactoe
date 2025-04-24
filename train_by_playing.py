@@ -25,7 +25,7 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
   boards, values = [], []
 
   for i in range(num_games):
-    steps, value = g.play_game(0.3)
+    steps, value = g.play_game(0.5, 2)
     for step in steps: 
       boards.append(step.board.board)
       train_reward = [(step.reward+1)/2]
@@ -132,6 +132,7 @@ for epoch in range(1000):
         test_loss = calc_loss(m, test_boards, test_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
    
+
     # Print extended stats each 10 epochs
     if epoch % 10 == 0:
       #for board, value in zip(test_boards, test_values):
@@ -141,13 +142,23 @@ for epoch in range(1000):
         loss = m.loss.val()
         prediction = m.prediction.val()
 
-        game.Board(board).print_board()
-        print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
+        #game.Board(board).print_board()
+        #print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
 
     if test_loss < best_test_loss and args.save_to_model is not None:
       print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
       m.save_to_file(args.save_to_model)
       best_test_loss = test_loss
+
+
+    winners = game.competition(m_crosses, m, 20)
+    print("COMPETITION RESULTS: ", winners)
+    if winners[-1] > winners[1]:
+       m.save_to_file(args.save_to_model)
+       sys.exit(0)    
+    
+
+
 
     # Now we will generate next batch using our student as one of the players
     m_zeroes = m

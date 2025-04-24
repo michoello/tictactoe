@@ -1,3 +1,15 @@
+# 2025-04-23
+Added a competition into training, and stop when the student model starts to win.
+It happens roughly after 10th epoch.
+And it wins indeed, though I haven't checked how the game looks.
+Next need to swap student and teacher and see if the progress goes on.
+
+```
+python train_by_playing.py --save_to_model models/model_barely_winning_zeroes.json
+python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_barely_winning_zeroes.json
+
+```
+
 # 2025-04-21
 Wow is not really a wow if you watch the games closely.
 They all similar, very repetitive and quite useless.
