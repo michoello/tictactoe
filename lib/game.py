@@ -3,6 +3,9 @@ import copy
 from dataclasses import dataclass
 from typing import Optional
 
+
+
+
 START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
 
 class Board:
@@ -279,3 +282,13 @@ def choose_next_step(values, ply, step_no, exploration_rate):
       x, y = best_step(values, ply)
     return x, y
 
+
+
+def competition(m_crosses, m_zeroes, num_games):
+  winners = {-1: 0, 0: 0, 1: 0}
+  g = Game(m_crosses, m_zeroes)
+  for f in range(num_games):
+     _, winner = g.play_game(0.5, 2)
+     winners[winner] = winners[winner] + 1
+
+  return winners

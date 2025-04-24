@@ -59,10 +59,12 @@ class TestTrainingCycle(unittest.TestCase):
         print("Training")
         best_test_loss = 10 ** 1000
         test_boards, test_winners = game.generate_batch(20) 
-        for epoch in range(10):
+        total_epochs = 100
+        good_enough_reached = False
+        for epoch in range(total_epochs):
             train_boards, train_winners = game.generate_batch(20) 
         
-            for i in range(10):
+            for i in range(20):
               
               for board, winner in zip(train_boards, train_winners):
                 m.x.set(board)
@@ -80,13 +82,36 @@ class TestTrainingCycle(unittest.TestCase):
                   m.save_to_file(trained_model)
                   best_test_loss = test_loss
         
-            if epoch % 5 == 0:
-                print(f"{epoch/50*100}% - test_loss {test_loss}")
+            if epoch % 5 == 0 or best_test_loss < 2.9:
+                print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
+                if best_test_loss < 2.9:
+                  # good enough - sometimes it does not re
+                  good_enough_reached = True
+                  break
 
+        if not good_enough_reached:
+            print("!!!!!!!!!!!!!")
+            print("Did not train till good test loss. TODO: find out why this is happening (bad init weights?) ")
+            print("Test will prob fail. Rerun it then")
 
-        print("Playing")
+        print("Playing...")
         random_model = ttt.TTTClass(init_model)
         trained_model = ttt.TTTClass(trained_model)
+
+        # ctw = crosses_trained_winners
+        ctw = game.competition(trained_model, random_model, 20)
+        print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
+        self.assertGreater(ctw[1], ctw[-1])
+        
+        # ztw = zeroes_trained_winners
+        ztw = game.competition(random_model, trained_model, 20)
+        print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
+        self.assertLess(ztw[1], ztw[-1])
+
+
+        return
+
+
         winners = {
           'random': 0,
           'trained': 0,
@@ -102,7 +127,7 @@ class TestTrainingCycle(unittest.TestCase):
               g = game.Game(trained_model, random_model)
               trained_player = 1
 
-           _, winner = g.play_game(0.3)
+           _, winner = g.play_game(0.5, 2)
            if winner == 0:
                winners['tie'] += 1
            elif winner == trained_player:

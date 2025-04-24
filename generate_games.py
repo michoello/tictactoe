@@ -4,8 +4,10 @@ import copy
 import random
 
 from typing import Dict
-from lib import ttt_classifier as tttc
-from lib import ttt_player as tttp
+#from lib import ttt_classifier as tttc
+#from lib import ttt_player as tttp
+from lib import tttc, tttp, pickup_model
+
 
 import argparse
 
@@ -54,14 +56,6 @@ if args.mode == "many_games":
 
    print("WINNERS: ", wins) 
 
-   
-
-
-def pickup_model(tp, file):
-  if tp not in ['classifier', 'player']:
-      raise f'Bad type: {tp}'
-  return tttc.TTTClass(file) if tp == 'classifier' else tttp.TTTPlayer(file)
-
 
 if args.mode == "play_single_game":
   m_crosses = pickup_model(*args.crosses_model.split(':'))
@@ -83,15 +77,9 @@ if args.mode == "play_many_games":
   m_crosses = pickup_model(*args.crosses_model.split(':'))
   m_zeroes = pickup_model(*args.zeroes_model.split(':'))
 
-  winners = {-1: 0, 0: 0, 1: 0}
-  cnt = 0
-  g = game.Game(m_crosses, m_zeroes)
-  for f in range(100):
-     print(f)
-     _, winner = g.play_game(0.5, 2)
-     winners[winner] = winners[winner] + 1
-     cnt = cnt + 1
+  num_games = 100
+  winners = game.competition(m_crosses, m_zeroes, num_games)
 
-  print(f"Crosses: {winners[1]} out of {cnt}")
-  print(f"Zeroes: {winners[-1]} out of {cnt}")
-  print(f"Ties: {winners[0]} out of {cnt}")
+  print(f"Crosses: {winners[1]} out of {num_games}")
+  print(f"Zeroes: {winners[-1]} out of {num_games}")
+  print(f"Ties: {winners[0]} out of {num_games}")
