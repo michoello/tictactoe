@@ -4,109 +4,100 @@ from dataclasses import dataclass
 from typing import Optional
 
 
+START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
-
-START_BOARD = [ [0 for _ in range(6)] for _ in range(6)]
 
 class Board:
 
-  #values: list[list[float]]
+    # values: list[list[float]]
 
-  def __init__(self, board=None):
+    def __init__(self, board=None):
         if not board:
-           self.board = copy.deepcopy(START_BOARD)
+            self.board = copy.deepcopy(START_BOARD)
         else:
-           self.board = board
+            self.board = board
 
-  def copy(self):
+    def copy(self):
         return Board(copy.deepcopy(self.board))
 
+    # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
+    # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
+    def all_next_steps(self, ply):
+        boards = []
+        for row in range(6):
+            for col in range(6):
+                if self.board[row][col] == 0:
+                    next_board = self.copy()  # copy.deepcopy(board)
+                    next_board.board[row][col] = ply
+                    boards.append((next_board, row, col))
+        return boards
 
-  # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
-  # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-  def all_next_steps(self, ply):
-      boards = []
-      for row in range(6):
-        for col in range(6):
-           if self.board[row][col] == 0:
-              next_board = self.copy() #copy.deepcopy(board)
-              next_board.board[row][col] = ply
-              boards.append((next_board, row, col))
-      return boards
+    # Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
+    # and None if board is invalid
+    def check_winner(self):
+        b = self.board
 
+        lll = [
+            [(0, 1), (0, 2), (0, 3)],
+            [(1, 0), (2, 0), (3, 0)],
+            [(1, 1), (2, 2), (3, 3)],
+            [(-1, 1), (-2, 2), (-3, 3)],
+        ]
 
-  # Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
-  # and None if board is invalid
-  def check_winner(self):
-    b = self.board
+        g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
 
-    lll = [
-       [(0, 1), (0, 2), (0, 3)],
-       [(1, 0), (2, 0), (3, 0)],
-       [(1, 1), (2, 2), (3, 3)],
-       [(-1, 1), (-2, 2), (-3, 3)],
-    ]
+        xyo = []
+        winner = 0
+        for i in range(6):
+            for j in range(6):
+                if b[i][j] == 0:
+                    continue
 
-    g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+                for ll in lll:
+                    xy = [(i + lx, j + ly) for lx, ly in ll]
+                    if all([g(x, y) == b[i][j] for x, y in xy]):
+                        if winner != 0 and winner != b[i][j]:
+                            return None, []
+                        winner = b[i][j]
+                        xyo = xyo + [(i, j)] + xy
 
-    xyo = []
-    winner = 0
-    for i in range(6):
-       for j in range(6):
-          if b[i][j] == 0:
-             continue
+        return winner, sorted(set(xyo))
 
-          for ll in lll:
-             xy = [(i + lx, j + ly) for lx, ly in ll]
-             if all([ g(x,y) == b[i][j] for x, y in xy]):
-                if winner != 0 and winner != b[i][j]:
-                    return None, []
-                winner = b[i][j] 
-                xyo = xyo + [(i, j)] + xy
+    def print_board(self):
 
-    return winner, sorted(set(xyo))
+        bgs = {"grey": "\033[100m", "black": "\033[40m"}
 
-  def print_board(self):
+        fgs = {
+            "green": "\033[32m",
+            "blue": "\033[94m",
+            "red": "\033[31m",
+        }
 
-    bgs = {
-     'grey': "\033[100m",
-     'black': "\033[40m" 
-    }
+        cancel_color = "\033[0m"
 
-    fgs = {
-      'green': "\033[32m",
-      'blue': "\033[94m",
-      'red': "\033[31m",
-    }
+        def cprint(fg, bg, what):
+            if bg in bgs:
+                what = bgs[bg] + what + cancel_color
+            if fg in fgs:
+                what = fgs[fg] + what + cancel_color
+            print(what, end="")
 
-    cancel_color = "\033[0m"
+        winner, xyo = self.check_winner()
 
-    def cprint(fg, bg, what):
-      if bg in bgs:
-        what = bgs[bg] + what + cancel_color
-      if fg in fgs:
-        what = fgs[fg] + what + cancel_color
-      print(what, end="")
+        for i, row in enumerate(self.board):
+            for j, cell in enumerate(row):
 
+                bg = "grey" if (i + j) % 2 == 0 else "black"
+                if cell == -1:
+                    what, fg = " O ", "green"
+                elif cell == 1:
+                    what, fg = " X ", "blue"
+                else:
+                    what, fg = "   ", "std"
+                fg = "red" if (i, j) in xyo else fg
+                cprint(fg, bg, what)
 
-
-    winner, xyo = self.check_winner()
-    
-    for i, row in enumerate(self.board):
-        for j, cell in enumerate(row):
-
-            bg = 'grey' if (i + j) % 2 == 0 else 'black'
-            if cell == -1:
-               what, fg = ' O ', 'green'
-            elif cell == 1:
-               what, fg = ' X ', 'blue'
-            else:
-               what, fg = '   ', 'std'
-            fg = 'red' if (i, j) in xyo else fg 
-            cprint(fg, bg, what)
-
-        print()
-
+            print()
 
 
 @dataclass
@@ -121,174 +112,169 @@ class Step:
 
 
 class Game:
-   def __init__(self, model_crosses, model_zeroes):
-      self.model_crosses = model_crosses
-      self.model_zeroes = model_zeroes
+    def __init__(self, model_crosses, model_zeroes):
+        self.model_crosses = model_crosses
+        self.model_zeroes = model_zeroes
 
-   
-   def play_game(self, exploration_rate, exploration_steps=-1):
-      board = Board()
-    
-      steps = []
+    def play_game(self, exploration_rate, exploration_steps=-1):
+        board = Board()
 
-      step_no, ply, m  = 0, 1, self.model_crosses
-      winner = None
-      while True:
-    
-        boards = board.all_next_steps(ply)
-        if len(boards) == 0:
-           break
-        
-        boards = [(b[0].board, b[1], b[2]) for b in boards]
+        steps = []
 
-        values = m.get_next_step_values(boards)
-        if exploration_steps > 0 and step_no >= exploration_steps:
-           exploration_rate = 0
-        x, y = choose_next_step(values, ply, step_no, exploration_rate)
-        board.board[x][y] = ply
+        step_no, ply, m = 0, 1, self.model_crosses
+        winner = None
+        while True:
 
-        ss = Step(
-            step_no=step_no,
-            ply=ply,
-            x=x,
-            y=y,
-            #board=board.copy().board, 
-            board=board.copy(),
-            values=copy.deepcopy(values)
-        )
+            boards = board.all_next_steps(ply)
+            if len(boards) == 0:
+                break
 
-        steps.append(ss)
-    
-        winner, _ = board.check_winner()
+            boards = [(b[0].board, b[1], b[2]) for b in boards]
 
-        if winner != 0:
-           break
-    
-        ply = -ply
-        m = self.model_crosses if ply == 1 else self.model_zeroes
-        step_no = step_no + 1
+            values = m.get_next_step_values(boards)
+            if exploration_steps > 0 and step_no >= exploration_steps:
+                exploration_rate = 0
+            x, y = choose_next_step(values, ply, step_no, exploration_rate)
+            board.board[x][y] = ply
 
-      # Set desired rewards to the boards
-      reward = winner
-      for step in reversed(steps):
-         step.reward = reward
+            ss = Step(
+                step_no=step_no,
+                ply=ply,
+                x=x,
+                y=y,
+                # board=board.copy().board,
+                board=board.copy(),
+                values=copy.deepcopy(values),
+            )
 
-         reward = reward * 0.9
+            steps.append(ss)
 
+            winner, _ = board.check_winner()
 
-      return steps, winner
+            if winner != 0:
+                break
+
+            ply = -ply
+            m = self.model_crosses if ply == 1 else self.model_zeroes
+            step_no = step_no + 1
+
+        # Set desired rewards to the boards
+        reward = winner
+        for step in reversed(steps):
+            step.reward = reward
+
+            reward = reward * 0.9
+
+        return steps, winner
+
 
 # ----------------------------------
 
 
 def generate_random_board():
     size = 6 * 6
-    num_zeroes = random.randint(0, size // 2)  # Random number of zeroes (up to half the board)
+    num_zeroes = random.randint(
+        0, size // 2
+    )  # Random number of zeroes (up to half the board)
     num_crosses = num_zeroes + random.choice([0, 1])  # Either equal or one more cross
     num_empty = size - num_zeroes - num_crosses
-    
+
     values = [1] * num_crosses + [-1] * num_zeroes + [0] * num_empty
     random.shuffle(values)
-    
-    return [values[i * 6:(i + 1) * 6] for i in range(6)]
 
-    
-
-
-
+    return [values[i * 6 : (i + 1) * 6] for i in range(6)]
 
 
 # Generates a random batch of size N, where each class is presented with n // 3 samples
 def generate_batch(n):
-  boards, winners = [], []
-  for board_class in range(-1, 2):
-    for i in range(n // 3):
-      while True:
-        board = generate_random_board()
-        winner, _ = Board(board).check_winner()
-        if winner == board_class:
-          break
-      boards.append(board)
-      winners.append([(winner + 1.0) / 2.0])
-  return boards, winners
-
+    boards, winners = [], []
+    for board_class in range(-1, 2):
+        for i in range(n // 3):
+            while True:
+                board = generate_random_board()
+                winner, _ = Board(board).check_winner()
+                if winner == board_class:
+                    break
+            boards.append(board)
+            winners.append([(winner + 1.0) / 2.0])
+    return boards, winners
 
 
 # Generate sequence of boards for a single random game
 def generate_random_game():
-   boards = [START_BOARD]
+    boards = [START_BOARD]
 
-   ply = 1 # crosses
-   num = 0 # number of filled cells
-   while num < 36:
-     row = random.randint(0, 5)  
-     col = random.randint(0, 5)
+    ply = 1  # crosses
+    num = 0  # number of filled cells
+    while num < 36:
+        row = random.randint(0, 5)
+        col = random.randint(0, 5)
 
-     if board[row][col] == 0:
-        board[row][col] = ply
-        num = num + 1
-        ply = -ply
+        if board[row][col] == 0:
+            board[row][col] = ply
+            num = num + 1
+            ply = -ply
 
-        boards.append(copy.deepcopy(board))
+            boards.append(copy.deepcopy(board))
 
-        winner, _ = check_winner(board)
-        if winner != 0:
-           return boards, winner
+            winner, _ = check_winner(board)
+            if winner != 0:
+                return boards, winner
 
-   return boards, 0
-
+    return boards, 0
 
 
 def print_scores(values):
     for i, row in enumerate(values):
         for j, value in enumerate(row):
-            bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m" 
+            bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m"
             score = round(value * 100) if value is not None else "  "
             print(bg_color + f" {score:02}" + "\033[0m", end="")
         print()
 
+
 def best_step(values, ply):
-  best = -100 if ply == 1 else 100
-  best_xy = (-1, -1)
-  for row in range(6):
-     for col in range(6):
-         if (v := values[row][col]) is None:
-            continue
-         if ply == 1 and v > best:
-             best = v
-             best_xy = (row, col)
-         if ply == -1 and v < best:
-             best = v 
-             best_xy = (row, col)
-  return best_xy
+    best = -100 if ply == 1 else 100
+    best_xy = (-1, -1)
+    for row in range(6):
+        for col in range(6):
+            if (v := values[row][col]) is None:
+                continue
+            if ply == 1 and v > best:
+                best = v
+                best_xy = (row, col)
+            if ply == -1 and v < best:
+                best = v
+                best_xy = (row, col)
+    return best_xy
+
 
 # TODO: don't use values, use board here
 def random_step(values, ply):
-  # Reservoir sampling
-  count, chosen = 0, None
-  for row in range(6):
-     for col in range(6):
-         if values[row][col] is not None:
-            count = count + 1
-            if random.random() < 1 / count:
-               chosen = (row, col)
-  return chosen
+    # Reservoir sampling
+    count, chosen = 0, None
+    for row in range(6):
+        for col in range(6):
+            if values[row][col] is not None:
+                count = count + 1
+                if random.random() < 1 / count:
+                    chosen = (row, col)
+    return chosen
 
 
-def choose_next_step(values, ply, step_no, exploration_rate): 
+def choose_next_step(values, ply, step_no, exploration_rate):
     if step_no == 0 or random.random() < exploration_rate:
-      x, y = random_step(values, ply)
+        x, y = random_step(values, ply)
     else:
-      x, y = best_step(values, ply)
+        x, y = best_step(values, ply)
     return x, y
 
 
-
 def competition(m_crosses, m_zeroes, num_games):
-  winners = {-1: 0, 0: 0, 1: 0}
-  g = Game(m_crosses, m_zeroes)
-  for f in range(num_games):
-     _, winner = g.play_game(0.5, 2)
-     winners[winner] = winners[winner] + 1
+    winners = {-1: 0, 0: 0, 1: 0}
+    g = Game(m_crosses, m_zeroes)
+    for f in range(num_games):
+        _, winner = g.play_game(0.5, 2)
+        winners[winner] = winners[winner] + 1
 
-  return winners
+    return winners

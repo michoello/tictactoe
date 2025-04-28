@@ -1,12 +1,18 @@
 import unittest
 from lib import ml
-from lib import game 
+from lib import game
 import tempfile
 from lib import ttt_classifier as ttt
 
 
 def roughlyEqual(m1, m2):
-    if all([round(a, 2) == round(b, 2) for row_a, row_b in zip(m1, m2) for a, b in zip(row_a, row_b)]):
+    if all(
+        [
+            round(a, 2) == round(b, 2)
+            for row_a, row_b in zip(m1, m2)
+            for a, b in zip(row_a, row_b)
+        ]
+    ):
         return True
     print(f"Arrays not equal:\n{m1}\n{m2}")
     return False
@@ -15,10 +21,10 @@ def roughlyEqual(m1, m2):
 class TestTrainingCycle(unittest.TestCase):
 
     def test_omg(self):
-        x = [[1, 2]] 
-        w1 = [[3, 4, 5], [6, 7, 8]] 
-        w_wrong = [[3, 4, 5]] 
-        
+        x = [[1, 2]]
+        w1 = [[3, 4, 5], [6, 7, 8]]
+        w_wrong = [[3, 4, 5]]
+
         xx = ml.BB(x)
         ww1 = ml.BB(w1)
 
@@ -28,12 +34,11 @@ class TestTrainingCycle(unittest.TestCase):
         assert ww1.dims() == [2, 3], f"Actual value is {ww1.dims()}"
         assert yy.dims() == [1, 3], f"Actual value is {yy.dims()}"
 
-
-        assert yy.val() == [ [ 15, 18, 21 ] ]
+        assert yy.val() == [[15, 18, 21]]
 
         ww_wrong = ml.BB(w_wrong)
         with self.assertRaises(ValueError):
-           y_wrong = xx @ ww_wrong
+            y_wrong = xx @ ww_wrong
 
         b = [[1, 2, 3]]
 
@@ -41,13 +46,11 @@ class TestTrainingCycle(unittest.TestCase):
 
         assert yy1.val() == [[16, 20, 24]], f"actual value is {yy1.val()}"
 
-
         # update x values
-        xx.set([[11,22]])
-        self.assertEqual(xx.val(), [[11,22]])
+        xx.set([[11, 22]])
+        self.assertEqual(xx.val(), [[11, 22]])
         # Check that yy (which is xx @ ww) is also updated
         self.assertEqual(yy.val(), [[165, 198, 231]])
-
 
     def test_training_classifier_and_game(self):
         init_model = tempfile.mktemp()
@@ -55,43 +58,45 @@ class TestTrainingCycle(unittest.TestCase):
 
         m = ttt.TTTClass()
         m.save_to_file(init_model)
-        
+
         print("Training")
-        best_test_loss = 10 ** 1000
-        test_boards, test_winners = game.generate_batch(20) 
+        best_test_loss = 10**1000
+        test_boards, test_winners = game.generate_batch(20)
         total_epochs = 100
         good_enough_reached = False
         for epoch in range(total_epochs):
-            train_boards, train_winners = game.generate_batch(20) 
-        
+            train_boards, train_winners = game.generate_batch(20)
+
             for i in range(20):
-              
-              for board, winner in zip(train_boards, train_winners):
-                m.x.set(board)
-                m.y.set([winner]) 
-                m.loss.dif()
-                m.apply_gradient()
-        
-              test_loss = 0
-              for board, winner in zip(test_boards, test_winners):
-                m.x.set(board)
-                m.y.set([winner]) 
-                test_loss = test_loss + m.loss.val()[0][0]
-            
-              if test_loss < best_test_loss:
-                  m.save_to_file(trained_model)
-                  best_test_loss = test_loss
-        
+
+                for board, winner in zip(train_boards, train_winners):
+                    m.x.set(board)
+                    m.y.set([winner])
+                    m.loss.dif()
+                    m.apply_gradient()
+
+                test_loss = 0
+                for board, winner in zip(test_boards, test_winners):
+                    m.x.set(board)
+                    m.y.set([winner])
+                    test_loss = test_loss + m.loss.val()[0][0]
+
+                if test_loss < best_test_loss:
+                    m.save_to_file(trained_model)
+                    best_test_loss = test_loss
+
             if epoch % 5 == 0 or best_test_loss < 2.9:
                 print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
                 if best_test_loss < 2.9:
-                  # good enough - sometimes it does not re
-                  good_enough_reached = True
-                  break
+                    # good enough - sometimes it does not re
+                    good_enough_reached = True
+                    break
 
         if not good_enough_reached:
             print("!!!!!!!!!!!!!")
-            print("Did not train till good test loss. TODO: find out why this is happening (bad init weights?) ")
+            print(
+                "Did not train till good test loss. TODO: find out why this is happening (bad init weights?) "
+            )
             print("Test will prob fail. Rerun it then")
 
         print("Playing...")
@@ -102,45 +107,36 @@ class TestTrainingCycle(unittest.TestCase):
         ctw = game.competition(trained_model, random_model, 20)
         print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
         self.assertGreater(ctw[1], ctw[-1])
-        
+
         # ztw = zeroes_trained_winners
         ztw = game.competition(random_model, trained_model, 20)
         print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
         self.assertLess(ztw[1], ztw[-1])
 
-
         return
 
-
-        winners = {
-          'random': 0,
-          'trained': 0,
-          'tie': 0
-        }
+        winners = {"random": 0, "trained": 0, "tie": 0}
 
         for f in range(50):
-           if f % 2 == 0:
-              # Trained model plays zeroes
-              g = game.Game(random_model, trained_model)
-              trained_player = -1 
-           else:
-              g = game.Game(trained_model, random_model)
-              trained_player = 1
+            if f % 2 == 0:
+                # Trained model plays zeroes
+                g = game.Game(random_model, trained_model)
+                trained_player = -1
+            else:
+                g = game.Game(trained_model, random_model)
+                trained_player = 1
 
-           _, winner = g.play_game(0.5, 2)
-           if winner == 0:
-               winners['tie'] += 1
-           elif winner == trained_player:
-               winners['trained'] += 1
-           else:
-               winners['random'] += 1
+            _, winner = g.play_game(0.5, 2)
+            if winner == 0:
+                winners["tie"] += 1
+            elif winner == trained_player:
+                winners["trained"] += 1
+            else:
+                winners["random"] += 1
 
         print("WINNERS", winners)
         # This sometimes fails. TODO: find a way to pass reliably
-        self.assertGreater(winners['trained'], winners['random'])
-
-
-
+        self.assertGreater(winners["trained"], winners["random"])
 
 
 if __name__ == "__main__":
