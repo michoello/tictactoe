@@ -146,4 +146,9 @@ python generate_games.py --mode many_games
 python -m unittest discover -s tests
 # or
 ./testme.sh
-```
+`
+
+
+# To auto indent
+pip install black
+black .``
