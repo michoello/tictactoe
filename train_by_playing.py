@@ -88,22 +88,7 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-# --------------------------------------------
-
-m: Any = tttp.TTTPlayer()
-if args.init_model is not None:
-    print(f"Init player model: {args.init_model}")
-    m.load_from_file(args.init_model)
-
-
-train_iterations = 25
-best_test_loss = 10**1000
-
-m_crosses = tttc.TTTClass("models/model_victory_only.json")
-m_zeroes = tttc.TTTClass("models/model_victory_only.json")
-
-for epoch in range(1000):
-
+def train_single_epoch(epoch, m, m_crosses, m_zeroes, best_test_loss, train_iterations):
     test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
 
     test_loss_buckets = calc_loss_buckets(m, test_boards, test_values)
@@ -120,9 +105,8 @@ for epoch in range(1000):
         [round(l, 2) if l is not None else "None" for l in train_loss_buckets],
     )
 
+    # Backward pass
     for i in range(train_iterations):
-
-        # Backward pass
         train_loss = 0
         for board, value in zip(train_boards_b, train_values_b):
             m.x.set(board)
@@ -134,24 +118,17 @@ for epoch in range(1000):
             loss = m.loss.val()
             train_loss = train_loss + loss[0][0]
 
-        # Batch gradient application. Does not help much
-        # m.apply_gradient()
-
         train_loss = calc_loss(m, train_boards, train_values)
         test_loss = calc_loss(m, test_boards, test_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
 
     # Print extended stats each 10 epochs
     if epoch % 10 == 0:
-        # for board, value in zip(test_boards, test_values):
         for board, value in zip(train_boards, train_values):
             m.x.set(board)
             m.y.set([value])
             loss = m.loss.val()
             prediction = m.prediction.val()
-
-            # game.Board(board).print_board()
-            # print(f"WINNER: {value}, PREDICTION {prediction} LOSS {loss}")
 
     if test_loss < best_test_loss and args.save_to_model is not None:
         print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
@@ -164,5 +141,28 @@ for epoch in range(1000):
         m.save_to_file(args.save_to_model)
         sys.exit(0)
 
-    # Now we will generate next batch using our student as one of the players
-    m_zeroes = m
+
+# --------------------------------------------
+def main():
+    m: Any = tttp.TTTPlayer()
+    if args.init_model is not None:
+        print(f"Init player model: {args.init_model}")
+        m.load_from_file(args.init_model)
+    
+    train_iterations = 25
+    best_test_loss = 10**1000
+    
+    m_crosses = tttc.TTTClass("models/model_victory_only.json")
+    m_zeroes = tttc.TTTClass("models/model_victory_only.json")
+    
+    for epoch in range(1000):
+         train_single_epoch(epoch, m, m_crosses, m_zeroes, best_test_loss, train_iterations)
+
+         # Now we will generate next batch using our student as one of the players
+         m_zeroes = m
+    
+
+
+if __name__ == "__main__":
+    main()
+
