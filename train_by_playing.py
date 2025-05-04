@@ -11,6 +11,27 @@ parser = argparse.ArgumentParser(description="Train your model")
 
 parser.add_argument("--init_model", type=str, help="Path to the initial model file")
 parser.add_argument("--save_to_model", type=str, help="Path to save the trained model")
+#parser.add_argument("--trainee", choices=["crosses", "zeroes"], help="Choose whom to train: 'crosses' or 'zeroes'")
+
+
+# -------------------------------------------
+# Duplicate all output to a file
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+    def write(self, data):
+        for s in self.streams:
+            s.write(data)
+    def flush(self):
+        for s in self.streams:
+            s.flush()
+
+# Open your log file
+logfile = open("output.log", "w")
+
+# Redirect stdout
+sys.stdout = Tee(sys.stdout, logfile)
+# -------------------------------------------
 
 args = parser.parse_args()
 
@@ -88,10 +109,10 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, m, m_crosses, m_zeroes, best_test_loss, train_iterations):
+def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
     test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
 
-    test_loss_buckets = calc_loss_buckets(m, test_boards, test_values)
+    test_loss_buckets = calc_loss_buckets(m_student, test_boards, test_values)
     print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
 
     train_boards, train_values = generate_balanced_batch(
@@ -99,68 +120,87 @@ def train_single_epoch(epoch, m, m_crosses, m_zeroes, best_test_loss, train_iter
     )
     train_boards_b, train_values_b = train_boards, train_values
 
-    train_loss_buckets = calc_loss_buckets(m, train_boards, train_values)
+    train_loss_buckets = calc_loss_buckets(m_student, train_boards, train_values)
     print(
         f"\nTRAIN LOSS BUCKETS: ",
         [round(l, 2) if l is not None else "None" for l in train_loss_buckets],
     )
 
     # Backward pass
+    train_iterations = 25
     for i in range(train_iterations):
         train_loss = 0
         for board, value in zip(train_boards_b, train_values_b):
-            m.x.set(board)
-            m.y.set([value])
+            m_student.x.set(board)
+            m_student.y.set([value])
 
-            m.loss.dif()
-            m.apply_gradient()
+            m_student.loss.dif()
+            m_student.apply_gradient()
 
-            loss = m.loss.val()
+            loss = m_student.loss.val()
             train_loss = train_loss + loss[0][0]
 
-        train_loss = calc_loss(m, train_boards, train_values)
-        test_loss = calc_loss(m, test_boards, test_values)
+        train_loss = calc_loss(m_student, train_boards, train_values)
+        test_loss = calc_loss(m_student, test_boards, test_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
 
-    # Print extended stats each 10 epochs
-    if epoch % 10 == 0:
-        for board, value in zip(train_boards, train_values):
-            m.x.set(board)
-            m.y.set([value])
-            loss = m.loss.val()
-            prediction = m.prediction.val()
-
-    if test_loss < best_test_loss and args.save_to_model is not None:
-        print(f"EPOCH {epoch}: SAVING loss {test_loss} to {args.save_to_model}")
-        m.save_to_file(args.save_to_model)
-        best_test_loss = test_loss
-
-    winners = game.competition(m_crosses, m, 20)
+# Returns true if student wins
+def competition(m_crosses, m_zeroes, trainee):
+    winners = game.competition(m_crosses, m_zeroes, 20)
     print("COMPETITION RESULTS: ", winners)
-    if winners[-1] > winners[1]:
-        m.save_to_file(args.save_to_model)
-        sys.exit(0)
+
+    if trainee == "zeroes" and winners[-1] > winners[1]:
+       return True
+        
+    if trainee == "crosses" and winners[1] > winners[-1]:
+       return True
+    return False
 
 
 # --------------------------------------------
 def main():
-    m: Any = tttp.TTTPlayer()
+    m_student: Any = tttp.TTTPlayer()
     if args.init_model is not None:
         print(f"Init player model: {args.init_model}")
-        m.load_from_file(args.init_model)
-    
-    train_iterations = 25
-    best_test_loss = 10**1000
+        m_student.load_from_file(args.init_model)
     
     m_crosses = tttc.TTTClass("models/model_victory_only.json")
     m_zeroes = tttc.TTTClass("models/model_victory_only.json")
-    
-    for epoch in range(1000):
-         train_single_epoch(epoch, m, m_crosses, m_zeroes, best_test_loss, train_iterations)
 
-         # Now we will generate next batch using our student as one of the players
-         m_zeroes = m
+
+    trainee = "zeroes"
+    version = 1
+    epoch = 0
     
+    while True:
+        epoch += 1
+        print("-------------------------------------------------")
+        print(f"TRAINING {trainee} VERSION {version} EPOCH {epoch}")
+
+        train_single_epoch(epoch, m_crosses, m_zeroes, m_student)
+
+        # Now we will generate next batch using our student as one of the players
+        if trainee == "zeroes":
+           m_zeroes = m_student
+        if trainee == "crosses":
+           m_crosses = m_student
+
+
+        # Compete and check if student wins now.
+        student_won = competition(m_crosses, m_zeroes, trainee)
+        if student_won:
+           # If it does, save the model version, and start training the other player
+           model_file = f"{args.save_to_model}-{trainee}-{version}.{epoch}.json"
+
+           print(f"STUDENT {trainee} WON! SAVING {model_file} AND SWITCHING")
+           m_student.save_to_file(model_file) 
+
+           trainee = "zeroes" if trainee == "crosses" else "crosses"
+           if trainee == "zeroes":
+              version += 1
+           epoch = 0
+           m_student = m_crosses if trainee == "crosses" else m_zeroes
+
 
 
 if __name__ == "__main__":
