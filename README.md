@@ -1,3 +1,19 @@
+# 2025-05-05
+Multi iterational training. 
+We start with zeroes as student.
+Once a student wins over the teacher, we swap the roles. Now the teacher becomes the student, and previous student is used as a teacher.
+So now we train crosses. And so on.
+Kind of cool, seems like. But it does not work, as it looks like the students and teachers adopt to each other.
+I ran it over night, and ended up with 700+ versions of students for both zeros and crosses.
+However the version 700 of zero is consistenly loosing over version like 695 of the crosses, and version 1 as well.
+
+As I am writing this, I realized that crosses, who start as a "classifier" model, keep being trained as classifier, not a player.
+That may explain part of it :(
+Let's try to fix it next and see what happens.
+
+Next idea will be to compete a student with EACH of previous teachers, and generate training batch using all of them who win.
+Will take a while, but seems promising.
+
 # 2025-04-23
 Added a competition into training, and stop when the student model starts to win.
 It happens roughly after 10th epoch.

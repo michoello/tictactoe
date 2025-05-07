@@ -93,7 +93,7 @@ def calc_loss_buckets(m, boards, values):
 
     for bucket in range(10):
         tt = loss_buckets[bucket]
-        loss_buckets[bucket] = tt[0] / tt[1] if tt[1] != 0 else None
+        loss_buckets[bucket] = tt[0] / tt[1] if tt[1] != 0 else 0.1
     return loss_buckets
 
 
@@ -149,10 +149,10 @@ def competition(m_crosses, m_zeroes, trainee):
     winners = game.competition(m_crosses, m_zeroes, 20)
     print("COMPETITION RESULTS: ", winners)
 
-    if trainee == "zeroes" and winners[-1] > winners[1]:
+    if trainee == "zeroes" and winners[-1] > winners[1] + 2:
        return True
         
-    if trainee == "crosses" and winners[1] > winners[-1]:
+    if trainee == "crosses" and winners[1] > winners[-1] + 2:
        return True
     return False
 
@@ -166,7 +166,6 @@ def main():
     
     m_crosses = tttc.TTTClass("models/model_victory_only.json")
     m_zeroes = tttc.TTTClass("models/model_victory_only.json")
-
 
     trainee = "zeroes"
     version = 1
@@ -199,7 +198,17 @@ def main():
            if trainee == "zeroes":
               version += 1
            epoch = 0
-           m_student = m_crosses if trainee == "crosses" else m_zeroes
+
+           if trainee == "crosses":
+               # TODO: make it straight, too ugly now
+               if version == 1:
+                   print("AAAAAAAAAAAAAA resetting crosses for the first TIME!!!!!!!!!!!!!!")
+                   m_student = tttp.TTTPlayer()
+               else:
+                   m_student = m_crosses
+           else:
+               m_student = m_zeroes
+           #m_student = m_crosses if trainee == "crosses" else m_zeroes
 
 
 
