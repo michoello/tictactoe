@@ -1,3 +1,9 @@
+# 2025-05-15
+Next I will try to train the model from zero level, without "classifier"
+to compete against. If there will be progress, the "classifier"
+model can be used as a test set -- i.e. something we know somewhat capable
+of winning other zero-random model
+
 # 2025-05-05
 Multi iterational training. 
 We start with zeroes as student.
@@ -13,6 +19,14 @@ Let's try to fix it next and see what happens.
 
 Next idea will be to compete a student with EACH of previous teachers, and generate training batch using all of them who win.
 Will take a while, but seems promising.
+
+```
+python train_by_playing.py --save_to_model models/versioned/model
+python generate_games.py --mode play_many_games \
+    --crosses_model classifier:models/model_victory_only.json \
+    --zeroes_model player:models/versioned/model-zeroes-4.4.json
+```
+
 
 # 2025-04-23
 Added a competition into training, and stop when the student model starts to win.

@@ -157,6 +157,25 @@ def competition(m_crosses, m_zeroes, trainee):
     return False
 
 
+
+def model_name(prefix, trainee, version):
+   return f"{prefix}-{trainee}-{version}.json"
+
+
+def versioned_competition(trainee, m_student, version, prefix):
+    opponent = "crosses" if trainee == "zeroes" else "zeroes"
+    for v in range(1, version):
+        m_opponent = tttp.TTTPlayer(model_name(prefix, opponent, v))
+        if trainee == "zeroes":
+           m_crosses, m_zeroes = m_opponent, m_student
+        else:
+           m_crosses, m_zeroes = m_student, m_opponent
+
+        winners = game.competition(m_opponent, m_zeroes, 20)
+        print(f"COMPETITION RESULTS: for version {v} ", winners)
+
+
+
 # --------------------------------------------
 def main():
     m_student: Any = tttp.TTTPlayer()
@@ -170,6 +189,8 @@ def main():
     trainee = "zeroes"
     version = 1
     epoch = 0
+
+    prefix = args.save_to_model
     
     while True:
         epoch += 1
@@ -185,11 +206,13 @@ def main():
            m_crosses = m_student
 
 
+        versioned_competition(trainee, m_student, version, prefix)
+
         # Compete and check if student wins now.
         student_won = competition(m_crosses, m_zeroes, trainee)
         if student_won:
            # If it does, save the model version, and start training the other player
-           model_file = f"{args.save_to_model}-{trainee}-{version}.{epoch}.json"
+           model_file = model_name(prefix, trainee, version)
 
            print(f"STUDENT {trainee} WON! SAVING {model_file} AND SWITCHING")
            m_student.save_to_file(model_file) 
@@ -202,7 +225,6 @@ def main():
            if trainee == "crosses":
                # TODO: make it straight, too ugly now
                if version == 1:
-                   print("AAAAAAAAAAAAAA resetting crosses for the first TIME!!!!!!!!!!!!!!")
                    m_student = tttp.TTTPlayer()
                else:
                    m_student = m_crosses
