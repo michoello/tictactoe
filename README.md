@@ -1,3 +1,75 @@
+# 2025-05-28
+Reworked in the fully zero based model, without pretrained classifier in the picture.
+Along the way refactored the code so now every version is dumped to disk, and minimal amount of 
+models is stored in memory.
+That helped to fix few weird behaviors like crosses did not train, or zeroes "forgot" how to 
+play with older crosses versions etc.
+All of those were simple bugs, messed variables, one off errs etc etc. Very important to keep 
+the code clean, so perhaps need to spend time on unittests.
+
+Currently I see this weird "oscillation", wondeing if this is another bug, or a scientifially explainable
+behavior lol:
+
+```
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-0.json:  {-1: 15, 0: 0, 1: 5}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-1.json:  {-1: 19, 0: 0, 1: 1}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-2.json:  {-1: 15, 0: 0, 1: 5}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-3.json:  {-1: 12, 0: 0, 1: 8}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-4.json:  {-1: 6, 0: 0, 1: 14}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-5.json:  {-1: 7, 0: 0, 1: 13}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-6.json:  {-1: 6, 0: 0, 1: 14}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-7.json:  {-1: 8, 0: 0, 1: 12}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-8.json:  {-1: 10, 0: 0, 1: 10}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-9.json:  {-1: 3, 0: 0, 1: 17}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-10.json:  {-1: 9, 0: 0, 1: 11}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-11.json:  {-1: 6, 0: 0, 1: 14}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-12.json:  {-1: 9, 0: 0, 1: 11}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-13.json:  {-1: 3, 0: 0, 1: 17}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-14.json:  {-1: 11, 0: 0, 1: 9}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-15.json:  {-1: 11, 0: 0, 1: 9}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-16.json:  {-1: 13, 0: 0, 1: 7}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-17.json:  {-1: 12, 0: 0, 1: 8}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-18.json:  {-1: 14, 0: 0, 1: 6}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-19.json:  {-1: 6, 0: 0, 1: 14}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-20.json:  {-1: 7, 0: 0, 1: 13}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-21.json:  {-1: 6, 0: 0, 1: 14}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-22.json:  {-1: 7, 0: 0, 1: 13}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-23.json:  {-1: 5, 0: 2, 1: 13}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-24.json:  {-1: 16, 0: 0, 1: 4}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-25.json:  {-1: 14, 0: 0, 1: 6}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-26.json:  {-1: 13, 0: 0, 1: 7}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-27.json:  {-1: 8, 0: 0, 1: 12}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-28.json:  {-1: 14, 0: 0, 1: 6}
+VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-29.json:  {-1: 14, 0: 0, 1: 6}
+```
+
+Command to run:
+```
+python train_from_zero.py --save_to_model models/from_zero/model
+
+```
+
+The best of models can not win the classifier still though:
+```
+~/src/michoello/tictactoe (wip) python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-29.json
+Crosses: 86 out of 100
+Zeroes: 14 out of 100
+Ties: 0 out of 100
+
+~/src/michoello/tictactoe (wip) python generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/from_zero/model-crosses-29.json
+Crosses: 45 out of 100
+Zeroes: 55 out of 100
+Ties: 0 out of 100
+
+
+```
+
+Train longer or train smarter?
+One thing to do is to play with all previous generations for sure, to force it to learn different behaviors. 
+Maybe also bigger model next
+And need to inspect closer what the game looks like -- crosses play way better for some reason
+
+
 # 2025-05-15
 Next I will try to train the model from zero level, without "classifier"
 to compete against. If there will be progress, the "classifier"
