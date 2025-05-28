@@ -80,48 +80,6 @@ def generate_dumb_batch(num_boards, m_crosses, m_zeroes):
 
 
 
-def generate_balanced_batch(num_boards, value_weights, m_crosses, m_zeroes):
-    sum_weights = sum(value_weights)
-    boards_needed = [int(wei / sum_weights * num_boards) for wei in value_weights]
-    print("BOARDS_NEEDED: ", boards_needed)
-    outboards, outvalues = [], []
-    num_games_played = 0
-
-    while sum(boards_needed) > 0:
-        num_games_played += 1
-        boards, values = generate_playing_batch(1, m_crosses, m_zeroes)
-        for board, value in zip(boards, values):
-            value_bucket = int(value[0] * 0.999 * 10)
-            if boards_needed[value_bucket] > 0:
-                outboards.append(board)
-                outvalues.append(value)
-                boards_needed[value_bucket] -= 1
-    print(
-        "BALANCED BATCH READY: num_boards=",
-        len(outboards),
-        "games_played=",
-        num_games_played,
-    )
-    return outboards, outvalues
-
-
-def calc_loss_buckets(m, boards, values):
-    loss_buckets = [[0, 0] for _ in range(10)]
-    for board, value in zip(boards, values):
-        m.x.set(board)
-        m.y.set([value])
-        loss = m.loss.val()
-
-        loss_bucket = int(value[0] * 0.999 * 10)
-        loss_buckets[loss_bucket][0] += loss[0][0]
-        loss_buckets[loss_bucket][1] += 1
-
-    for bucket in range(10):
-        tt = loss_buckets[bucket]
-        loss_buckets[bucket] = tt[0] / tt[1] if tt[1] != 0 else 0.1
-    return loss_buckets
-
-
 def calc_loss(m, boards, values):
     sum_loss = 0
     for board, value in zip(boards, values):
@@ -135,19 +93,7 @@ def calc_loss(m, boards, values):
 
 
 def train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee):
-    test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
-
-    test_loss_buckets = calc_loss_buckets(m_student, test_boards, test_values)
-    print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
-
-    #train_boards, train_values = generate_balanced_batch(32, test_loss_buckets, m_crosses, m_zeroes)
     train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes)
-
-    train_loss_buckets = calc_loss_buckets(m_student, train_boards, train_values)
-    print(
-        f"\nTRAIN LOSS BUCKETS: ",
-        [round(l, 2) if l is not None else "None" for l in train_loss_buckets],
-    )
 
     # Backward pass
     train_iterations = 25
@@ -174,28 +120,31 @@ def model_name(prefix, trainee, version):
 # Returns true if student wins over previous version
 # TODO: check ALL prev versions victory
 def versioned_competition(trainee, m_student, version, prefix):
-    opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
-    compete_version = version - 1 if opponent == "crosses" else version  
+    if trainee == "crosses":
+        opponent = "zeroes"
+        compete_version = version - 1
+    else:
+        opponent = "crosses"
+        compete_version = version
 
     for v in range(0, compete_version + 1):
-        opponent_name = model_name(prefix, opponent, v)
-        m_opponent = tttp.TTTPlayer(opponent_name)
-        if trainee == "zeroes":
-           m_crosses, m_zeroes = m_opponent, m_student
-        else:
-           m_crosses, m_zeroes = m_student, m_opponent
+        opponent_model = model_name(prefix, opponent, v)
+        m_opponent = tttp.TTTPlayer(opponent_model)
 
-        winners = game.competition(m_opponent, m_zeroes, 20)
-        print(f"VERSIONED COMPETITION RESULTS against {opponent_name}: ", winners)
+        if trainee == "crosses":
+           winners = game.competition(m_student, m_opponent, 20)
+        else:
+           winners = game.competition(m_opponent, m_student, 20)
+        print(f"VERSIONED COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
 
         if v == compete_version:
-           if trainee == "zeroes" and winners[-1] > 15:
-               print(f"STUDENT {trainee} WON!!!")
+           if trainee == "zeroes" and winners[-1] > 11:
+               print(f"STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
                return True
         
-           if trainee == "crosses" and winners[1] > 15:
-               print(f"STUDENT {trainee} WON!!!")
+           if trainee == "crosses" and winners[1] > 11:
+               print(f"STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
                return True
            return False
     print("AAAAAAAAAAAA SHOULD NOT BE HERE")
@@ -220,7 +169,7 @@ def main():
 
     version = 1
     epoch = 0
-    trainee = "zeroes"
+    trainee = "crosses"
 
     
     while True:
@@ -237,7 +186,7 @@ def main():
         # Now we will generate next batch using our student as one of the players
         if trainee == "zeroes":
            m_zeroes = m_student
-        if trainee == "crosses":
+        else:
            m_crosses = m_student
 
         student_won = versioned_competition(trainee, m_student, version, prefix)
@@ -247,11 +196,15 @@ def main():
            # If it does, update the version, and start training the other player
            old_trainee = trainee
 
-           trainee = "zeroes" if trainee == "crosses" else "crosses"
-           if trainee == "zeroes":
-              version += 1
+           if trainee == "crosses":
+               trainee = "zeroes"
+               m_student = m_zeroes
+           else:
+               trainee = "crosses"
+               m_student = m_crosses
+               version += 1
+
            epoch = 0
-           m_student = m_crosses if trainee == "crosses" else m_zeroes
 
            print(f"VICTORY!!! STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
 
