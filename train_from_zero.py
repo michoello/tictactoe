@@ -92,7 +92,7 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, m_student, prefix, version, trainee):
+def train_single_epoch(epoch, prefix, version, trainee):
 
     # TODO: clean this mess up
     if trainee == "crosses":
@@ -184,15 +184,8 @@ def versioned_competition(trainee, version, prefix):
     print("AAAAAAAAAAAA SHOULD NOT BE HERE")
 
 
-
-
 # --------------------------------------------
 def main():
-    m_student: Any = tttp.TTTPlayer()
-    if args.init_model is not None:
-        print(f"Init player model: {args.init_model}")
-        m_student.load_from_file(args.init_model)
-
     prefix = args.save_to_model
     
     version = 0
@@ -204,7 +197,6 @@ def main():
     version = 1
     epoch = 0
     trainee = "crosses"
-
     
     while True:
         # If it does, save the model version, and start training the other player
@@ -214,14 +206,8 @@ def main():
         print("-------------------------------------------------")
         print(f"TRAINING {student_model} EPOCH {epoch}")
 
-        m_student = train_single_epoch(epoch, m_student, prefix, version, trainee)
+        m_student = train_single_epoch(epoch, prefix, version, trainee)
         m_student.save_to_file(student_model) 
-
-        # Now we will generate next batch using our student as one of the players
-        if trainee == "zeroes":
-           m_zeroes = m_student
-        else:
-           m_crosses = m_student
 
         student_won = versioned_competition(trainee, version, prefix)
 
@@ -232,15 +218,10 @@ def main():
 
            if trainee == "crosses":
                trainee = "zeroes"
-               m_student = m_zeroes
            else:
                trainee = "crosses"
-               m_student = m_crosses
                version += 1
         
-
-
-
            epoch = 0
 
            print(f"VICTORY!!! STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
