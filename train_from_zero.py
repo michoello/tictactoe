@@ -57,7 +57,6 @@ def generate_dumb_batch(num_boards, m_crosses, m_zeroes):
     #sum_weights = sum(value_weights)
     #boards_needed = [int(wei / sum_weights * num_boards) for wei in value_weights]
     boards_needed = [3 for _ in range(10)]
-    print("BOARDS_NEEDED: ", boards_needed)
     outboards, outvalues = [], []
     num_games_played = 0
 
@@ -119,7 +118,8 @@ def model_name(prefix, trainee, version):
 
 # Returns true if student wins over previous version
 # TODO: check ALL prev versions victory
-def versioned_competition(trainee, m_student, version, prefix):
+#def versioned_competition(trainee, m_student, version, prefix):
+def versioned_competition(trainee, version, prefix):
 
     if trainee == "crosses":
         opponent = "zeroes"
@@ -127,6 +127,9 @@ def versioned_competition(trainee, m_student, version, prefix):
     else:
         opponent = "crosses"
         compete_version = version
+
+    student_model = model_name(prefix, trainee, version)
+    m_student = tttp.TTTPlayer(student_model)
 
     for v in range(0, compete_version + 1):
         opponent_model = model_name(prefix, opponent, v)
@@ -174,14 +177,14 @@ def main():
     
     while True:
         # If it does, save the model version, and start training the other player
-        model_file = model_name(prefix, trainee, version)
+        student_model = model_name(prefix, trainee, version)
 
         epoch += 1
         print("-------------------------------------------------")
-        print(f"TRAINING {model_file} EPOCH {epoch}")
+        print(f"TRAINING {student_model} EPOCH {epoch}")
 
         train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee)
-        m_student.save_to_file(model_file) 
+        m_student.save_to_file(student_model) 
 
         # Now we will generate next batch using our student as one of the players
         if trainee == "zeroes":
@@ -189,7 +192,7 @@ def main():
         else:
            m_crosses = m_student
 
-        student_won = versioned_competition(trainee, m_student, version, prefix)
+        student_won = versioned_competition(trainee, version, prefix)
 
         # Compete and check if student wins now.
         if student_won:
@@ -207,6 +210,7 @@ def main():
            epoch = 0
 
            print(f"VICTORY!!! STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
+           print("\n\n")
 
 
 
