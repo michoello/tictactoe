@@ -11,7 +11,6 @@ parser = argparse.ArgumentParser(description="Train your model")
 
 parser.add_argument("--init_model", type=str, help="Path to the initial model file")
 parser.add_argument("--save_to_model", type=str, help="Path to save the trained model")
-#parser.add_argument("--trainee", choices=["crosses", "zeroes"], help="Choose whom to train: 'crosses' or 'zeroes'")
 
 
 # -------------------------------------------
@@ -38,7 +37,6 @@ args = parser.parse_args()
 print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
-
 def generate_playing_batch(num_games, m_crosses, m_zeroes):
 
     g = game.Game(m_crosses, m_zeroes)
@@ -53,6 +51,33 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
             values.append(train_reward)
 
     return boards, values
+
+
+def generate_dumb_batch(num_boards, m_crosses, m_zeroes):
+    #sum_weights = sum(value_weights)
+    #boards_needed = [int(wei / sum_weights * num_boards) for wei in value_weights]
+    boards_needed = [3 for _ in range(10)]
+    print("BOARDS_NEEDED: ", boards_needed)
+    outboards, outvalues = [], []
+    num_games_played = 0
+
+    while sum(boards_needed) > 0:
+        num_games_played += 1
+        boards, values = generate_playing_batch(1, m_crosses, m_zeroes)
+        for board, value in zip(boards, values):
+            value_bucket = int(value[0] * 0.999 * 10)
+            if boards_needed[value_bucket] > 0:
+                outboards.append(board)
+                outvalues.append(value)
+                boards_needed[value_bucket] -= 1
+    print(
+        "BALANCED BATCH READY: num_boards=",
+        len(outboards),
+        "games_played=",
+        num_games_played,
+    )
+    return outboards, outvalues
+
 
 
 def generate_balanced_batch(num_boards, value_weights, m_crosses, m_zeroes):
@@ -109,16 +134,14 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
+def train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee):
     test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
 
     test_loss_buckets = calc_loss_buckets(m_student, test_boards, test_values)
     print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
 
-    train_boards, train_values = generate_balanced_batch(
-        32, test_loss_buckets, m_crosses, m_zeroes
-    )
-    train_boards_b, train_values_b = train_boards, train_values
+    #train_boards, train_values = generate_balanced_batch(32, test_loss_buckets, m_crosses, m_zeroes)
+    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes)
 
     train_loss_buckets = calc_loss_buckets(m_student, train_boards, train_values)
     print(
@@ -130,7 +153,7 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
     train_iterations = 25
     for i in range(train_iterations):
         train_loss = 0
-        for board, value in zip(train_boards_b, train_values_b):
+        for board, value in zip(train_boards, train_values):
             m_student.x.set(board)
             m_student.y.set([value])
 
@@ -141,30 +164,21 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
             train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
-        test_loss = calc_loss(m_student, test_boards, test_values)
-        print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
-
-# Returns true if student wins
-def competition(m_crosses, m_zeroes, trainee):
-    winners = game.competition(m_crosses, m_zeroes, 20)
-    print("COMPETITION RESULTS: ", winners)
-
-    if trainee == "zeroes" and winners[-1] > 15:
-       return True
-        
-    if trainee == "crosses" and winners[1] > 15:
-       return True
-    return False
-
+        print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
 
 
 def model_name(prefix, trainee, version):
    return f"{prefix}-{trainee}-{version}.json"
 
 
+# Returns true if student wins over previous version
+# TODO: check ALL prev versions victory
 def versioned_competition(trainee, m_student, version, prefix):
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
-    for v in range(1, version):
+
+    compete_version = version - 1 if opponent == "crosses" else version  
+
+    for v in range(0, compete_version + 1):
         opponent_name = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_name)
         if trainee == "zeroes":
@@ -173,7 +187,19 @@ def versioned_competition(trainee, m_student, version, prefix):
            m_crosses, m_zeroes = m_student, m_opponent
 
         winners = game.competition(m_opponent, m_zeroes, 20)
-        print(f"COMPETITION RESULTS against {opponent_name}: ", winners)
+        print(f"VERSIONED COMPETITION RESULTS against {opponent_name}: ", winners)
+
+        if v == compete_version:
+           if trainee == "zeroes" and winners[-1] > 15:
+               print(f"STUDENT {trainee} WON!!!")
+               return True
+        
+           if trainee == "crosses" and winners[1] > 15:
+               print(f"STUDENT {trainee} WON!!!")
+               return True
+           return False
+    print("AAAAAAAAAAAA SHOULD NOT BE HERE")
+
 
 
 
@@ -205,7 +231,7 @@ def main():
         print("-------------------------------------------------")
         print(f"TRAINING {model_file} EPOCH {epoch}")
 
-        train_single_epoch(epoch, m_crosses, m_zeroes, m_student)
+        train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee)
         m_student.save_to_file(model_file) 
 
         # Now we will generate next batch using our student as one of the players
@@ -214,10 +240,9 @@ def main():
         if trainee == "crosses":
            m_crosses = m_student
 
-        versioned_competition(trainee, m_student, version, prefix)
+        student_won = versioned_competition(trainee, m_student, version, prefix)
 
         # Compete and check if student wins now.
-        student_won = competition(m_crosses, m_zeroes, trainee)
         if student_won:
            # If it does, update the version, and start training the other player
            old_trainee = trainee
@@ -228,9 +253,7 @@ def main():
            epoch = 0
            m_student = m_crosses if trainee == "crosses" else m_zeroes
 
-           print(f"STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
-
-
+           print(f"VICTORY!!! STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
 
 
 
