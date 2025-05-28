@@ -2,6 +2,7 @@ from lib import game
 from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 import sys
+import os
 from typing import Any
 
 
@@ -91,7 +92,35 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee):
+def train_single_epoch(epoch, m_student, prefix, version, trainee):
+
+    # TODO: clean this mess up
+    if trainee == "crosses":
+        crosses_name = model_name(prefix, "crosses", version)
+        if not os.path.exists(crosses_name):
+           # new version started, load previous to train
+           m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version - 1))
+        else:
+           # continue training
+           m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+
+        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
+
+
+        m_student = m_crosses
+    else:
+        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+        
+        zeroes_name = model_name(prefix, "zeroes", version)
+        if not os.path.exists(zeroes_name):
+           # new version started, load previous version to train
+           m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
+        else:
+           # continue training
+           m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+
+        m_student = m_zeroes
+
     train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes)
 
     # Backward pass
@@ -110,6 +139,8 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, t
 
         train_loss = calc_loss(m_student, train_boards, train_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
+
+    return m_student
 
 
 def model_name(prefix, trainee, version):
@@ -168,7 +199,7 @@ def main():
     m_crosses = tttp.TTTPlayer()
     m_crosses.save_to_file(model_name(prefix, "crosses", version))
     m_zeroes = tttp.TTTPlayer()
-    m_crosses.save_to_file(model_name(prefix, "zeroes", version))
+    m_zeroes.save_to_file(model_name(prefix, "zeroes", version))
 
     version = 1
     epoch = 0
@@ -183,7 +214,7 @@ def main():
         print("-------------------------------------------------")
         print(f"TRAINING {student_model} EPOCH {epoch}")
 
-        train_single_epoch(epoch, m_crosses, m_zeroes, m_student, prefix, version, trainee)
+        m_student = train_single_epoch(epoch, m_student, prefix, version, trainee)
         m_student.save_to_file(student_model) 
 
         # Now we will generate next batch using our student as one of the players
@@ -206,6 +237,9 @@ def main():
                trainee = "crosses"
                m_student = m_crosses
                version += 1
+        
+
+
 
            epoch = 0
 
