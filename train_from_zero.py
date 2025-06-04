@@ -38,38 +38,44 @@ args = parser.parse_args()
 print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
-def generate_playing_batch(num_games, m_crosses, m_zeroes):
-
-    g = game.Game(m_crosses, m_zeroes)
+def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
 
     boards, values = [], []
 
-    for i in range(num_games):
-        steps, value = g.play_game(0.5, 2)
+    g = game.Game(m_crosses, m_zeroes)
+
+    i = 0
+    while True:
+        steps, winner = g.play_game(0.5, 2)
+        if trainee == "zeroes" and winner == -1:
+            i += 1
+            continue
+        if trainee == "crosses" and winner == 1:
+            i += 1
+            continue
         for step in steps:
             boards.append(step.board.board)
             train_reward = [(step.reward + 1) / 2]
             values.append(train_reward)
-
+        break
+    print(f"WHILE GENERATING BATCH FOR TRAINING, THE NUMBER OF GAMES {trainee} WON IS {i}")
     return boards, values
 
 
-def generate_dumb_batch(num_boards, m_crosses, m_zeroes):
-    #sum_weights = sum(value_weights)
-    #boards_needed = [int(wei / sum_weights * num_boards) for wei in value_weights]
-    boards_needed = [3 for _ in range(10)]
+def generate_dumb_batch(num_boards, m_crosses, m_zeroes, trainee):
     outboards, outvalues = [], []
     num_games_played = 0
 
-    while sum(boards_needed) > 0:
+    i = 0
+    while i < num_boards: 
         num_games_played += 1
-        boards, values = generate_playing_batch(1, m_crosses, m_zeroes)
+        boards, values = generate_playing_batch(1, m_crosses, m_zeroes, trainee)
         for board, value in zip(boards, values):
             value_bucket = int(value[0] * 0.999 * 10)
-            if boards_needed[value_bucket] > 0:
-                outboards.append(board)
-                outvalues.append(value)
-                boards_needed[value_bucket] -= 1
+            outboards.append(board)
+            outvalues.append(value)
+            i += 1
+
     print(
         "BALANCED BATCH READY: num_boards=",
         len(outboards),
@@ -121,7 +127,7 @@ def train_single_epoch(epoch, prefix, version, trainee):
 
         m_student = m_zeroes
 
-    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes)
+    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, trainee)
 
     # Backward pass
     train_iterations = 25

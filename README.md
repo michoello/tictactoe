@@ -1,3 +1,39 @@
+# 2025-06-02
+
+If we train many-many models, and then check them against classifier model, then there is a clear fluctuation
+of scores. Some models are actually capacble of winning, and we need to stabilize and enforce this:
+ChatGPT suggests to generate training batches using a sample of previous versions, and keep a buffer of past games.
+It also says that a requirement of winning of all prev versions is too strict, but let's see:
+
+```
+$ for i in `seq 0 5`; do echo VERSION $i; python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-$i.json; done
+
+VERSION 0	Zeroes: 5 out of 100
+VERSION 1	Zeroes: 1 out of 100
+VERSION 2	Zeroes: 13 out of 100
+VERSION 3	Zeroes: 11 out of 100
+VERSION 4	Zeroes: 17 out of 100
+VERSION 5	Zeroes: 24 out of 100
+VERSION 6	Zeroes: 18 out of 100
+VERSION 7	Zeroes: 1 out of 100
+VERSION 8	Zeroes: 18 out of 100
+VERSION 9	Zeroes: 1 out of 100
+VERSION 10	Zeroes: 6 out of 100
+VERSION 11	Zeroes: 27 out of 100
+VERSION 12	Zeroes: 55 out of 100
+VERSION 13	Zeroes: 35 out of 100
+VERSION 14	Zeroes: 28 out of 100
+VERSION 15	Zeroes: 20 out of 100
+VERSION 16	Zeroes: 12 out of 100
+VERSION 17	Zeroes: 53 out of 100   # YO!
+VERSION 18	Zeroes: 4 out of 100
+VERSION 19	Zeroes: 7 out of 100
+VERSION 20	Zeroes: 58 out of 100   # YOOOOOOO!
+...
+VERSION 44	Crosses: 37, Zeroes: 63, Ties: 0 out of 100 # The best one. It did not get better after
+
+```
+
 # 2025-05-28
 Reworked in the fully zero based model, without pretrained classifier in the picture.
 Along the way refactored the code so now every version is dumped to disk, and minimal amount of 

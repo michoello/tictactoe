@@ -78,6 +78,4 @@ if args.mode == "play_many_games":
     num_games = 100
     winners = game.competition(m_crosses, m_zeroes, num_games)
 
-    print(f"Crosses: {winners[1]} out of {num_games}")
-    print(f"Zeroes: {winners[-1]} out of {num_games}")
-    print(f"Ties: {winners[0]} out of {num_games}")
+    print(f"Crosses: {winners[1]}, Zeroes: {winners[-1]}, Ties: {winners[0]} out of {num_games}")
