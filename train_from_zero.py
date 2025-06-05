@@ -99,33 +99,13 @@ def calc_loss(m, boards, values):
 
 
 def train_single_epoch(epoch, prefix, version, trainee):
+    print("-------------------------------------------------")
+    print(f"TRAINING {trainee} {version} EPOCH {epoch}")
 
-    # TODO: clean this mess up
-    if trainee == "crosses":
-        crosses_name = model_name(prefix, "crosses", version)
-        if not os.path.exists(crosses_name):
-           # new version started, load previous to train
-           m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version - 1))
-        else:
-           # continue training
-           m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
 
-        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
-
-
-        m_student = m_crosses
-    else:
-        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-        
-        zeroes_name = model_name(prefix, "zeroes", version)
-        if not os.path.exists(zeroes_name):
-           # new version started, load previous version to train
-           m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
-        else:
-           # continue training
-           m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
-
-        m_student = m_zeroes
+    m_student = m_crosses if trainee == "crosses" else m_zeroes
 
     train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, trainee)
 
@@ -146,8 +126,9 @@ def train_single_epoch(epoch, prefix, version, trainee):
         train_loss = calc_loss(m_student, train_boards, train_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
 
-    return m_student
-
+    student_model = model_name(prefix, trainee, version)
+    m_student.save_to_file(student_model) 
+    print(f"SAVED {student_model}")
 
 def model_name(prefix, trainee, version):
    return f"{prefix}-{trainee}-{version}.json"
@@ -155,20 +136,28 @@ def model_name(prefix, trainee, version):
 
 # Returns true if student wins over previous version
 # TODO: check ALL prev versions victory
-#def versioned_competition(trainee, m_student, version, prefix):
 def versioned_competition(trainee, version, prefix):
 
-    if trainee == "crosses":
-        opponent = "zeroes"
-        compete_version = version - 1
-    else:
-        opponent = "crosses"
-        compete_version = version
+    opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
     student_model = model_name(prefix, trainee, version)
     m_student = tttp.TTTPlayer(student_model)
 
-    for v in range(0, compete_version + 1):
+    #
+    # Play against classifier
+    #
+    opponent_model = "models/model_victory_only.json"
+    m_opponent = tttc.TTTClass(opponent_model)
+    if trainee == "crosses":
+        winners = game.competition(m_student, m_opponent, 20)
+    else:
+        winners = game.competition(m_opponent, m_student, 20)
+    print(f"CLASSIFIER COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
+
+    #
+    # Play against previous versions
+    #
+    for v in range(0, version + 1):
         opponent_model = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_model)
 
@@ -178,7 +167,7 @@ def versioned_competition(trainee, version, prefix):
            winners = game.competition(m_opponent, m_student, 20)
         print(f"VERSIONED COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
 
-        if v == compete_version:
+        if v == version:
            if trainee == "zeroes" and winners[-1] > 11:
                print(f"STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
                return True
@@ -188,7 +177,15 @@ def versioned_competition(trainee, version, prefix):
                return True
            return False
     print("AAAAAAAAAAAA SHOULD NOT BE HERE")
+    return False
 
+
+def clone_new_version(prefix, from_version, to_version):
+    m = tttp.TTTPlayer(model_name(prefix, "crosses", from_version))
+    m.save_to_file(model_name(prefix, "crosses", to_version))
+
+    m = tttp.TTTPlayer(model_name(prefix, "zeroes", from_version))
+    m.save_to_file(model_name(prefix, "zeroes", to_version))
 
 # --------------------------------------------
 def main():
@@ -200,24 +197,18 @@ def main():
     m_zeroes = tttp.TTTPlayer()
     m_zeroes.save_to_file(model_name(prefix, "zeroes", version))
 
+    clone_new_version(prefix, 0, 1)
     version = 1
     epoch = 0
     trainee = "crosses"
     
     while True:
-        # If it does, save the model version, and start training the other player
-        student_model = model_name(prefix, trainee, version)
 
         epoch += 1
-        print("-------------------------------------------------")
-        print(f"TRAINING {student_model} EPOCH {epoch}")
-
-        m_student = train_single_epoch(epoch, prefix, version, trainee)
-        m_student.save_to_file(student_model) 
-
-        student_won = versioned_competition(trainee, version, prefix)
+        train_single_epoch(epoch, prefix, version, trainee)
 
         # Compete and check if student wins now.
+        student_won = versioned_competition(trainee, version, prefix)
         if student_won:
            # If it does, update the version, and start training the other player
            old_trainee = trainee
@@ -226,7 +217,15 @@ def main():
                trainee = "zeroes"
            else:
                trainee = "crosses"
+
+               # Increment current version and copy last models, they will be trained next
+               # Copy last model into a new version
+               clone_new_version(prefix, version, version + 1)
                version += 1
+               #m = tttp.TTTPlayer(model_name(prefix, "crosses", version - 1))
+               #m.save_to_file(model_name(prefix, "crosses", version))
+               #m = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
+               #m.save_to_file(model_name(prefix, "zeroes", version))
         
            epoch = 0
 
