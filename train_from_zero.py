@@ -39,14 +39,14 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
-
     boards, values = [], []
 
     g = game.Game(m_crosses, m_zeroes)
 
     i = 0
     while True:
-        steps, winner = g.play_game(0.5, 2)
+        #steps, winner = g.play_game(0.5, 2)
+        steps, winner = g.play_game(0.3, 5)
         if trainee == "zeroes" and winner == -1:
             i += 1
             continue
@@ -58,31 +58,37 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
             train_reward = [(step.reward + 1) / 2]
             values.append(train_reward)
         break
-    print(f"WHILE GENERATING BATCH FOR TRAINING, THE NUMBER OF GAMES {trainee} WON IS {i}")
+    #print(f"WHILE GENERATING BATCH FOR TRAINING, THE NUMBER OF GAMES {trainee} WON IS {i}")
     return boards, values
 
 
-def generate_dumb_batch(num_boards, m_crosses, m_zeroes, trainee):
-    outboards, outvalues = [], []
-    num_games_played = 0
+def generate_dumb_batch(num_boards, trainee, versions_to_train_on, prefix):
+  #version = versions_to_train_on[-1]
+
+  outboards, outvalues = [], []
+  num_games_played = 0
+
+  for version in versions_to_train_on:
+
+    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
 
     i = 0
     while i < num_boards: 
         num_games_played += 1
         boards, values = generate_playing_batch(1, m_crosses, m_zeroes, trainee)
         for board, value in zip(boards, values):
-            value_bucket = int(value[0] * 0.999 * 10)
             outboards.append(board)
             outvalues.append(value)
             i += 1
 
-    print(
-        "BALANCED BATCH READY: num_boards=",
-        len(outboards),
-        "games_played=",
-        num_games_played,
-    )
-    return outboards, outvalues
+  print(
+    "BALANCED BATCH READY: num_boards=",
+    len(outboards),
+    "games_played=",
+    num_games_played,
+  )
+  return outboards, outvalues
 
 
 
@@ -98,16 +104,16 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, prefix, version, trainee):
+def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
+    if len(versions_to_train_on) == 0:
+       versions_to_train_on.append(version)
+
     print("-------------------------------------------------")
-    print(f"TRAINING {trainee} {version} EPOCH {epoch}")
+    print(f"TRAINING {trainee} {version} EPOCH {epoch} - VERSIONS TO TRAIN ON {versions_to_train_on}")
 
-    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+    train_boards, train_values = generate_dumb_batch(32, trainee, versions_to_train_on, prefix)
 
-    m_student = m_crosses if trainee == "crosses" else m_zeroes
-
-    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, trainee)
+    m_student = tttp.TTTPlayer(model_name(prefix, trainee, version))
 
     # Backward pass
     train_iterations = 25
@@ -152,11 +158,12 @@ def versioned_competition(trainee, version, prefix):
         winners = game.competition(m_student, m_opponent, 20)
     else:
         winners = game.competition(m_opponent, m_student, 20)
-    print(f"CLASSIFIER COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
+    print(f"CLASSIFIER COMPETITION RESULTS {trainee} v{version} VS {opponent_model}: ", winners)
 
     #
     # Play against previous versions
     #
+    losing_versions = []
     for v in range(0, version + 1):
         opponent_model = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_model)
@@ -167,17 +174,18 @@ def versioned_competition(trainee, version, prefix):
            winners = game.competition(m_opponent, m_student, 20)
         print(f"VERSIONED COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
 
-        if v == version:
-           if trainee == "zeroes" and winners[-1] > 11:
-               print(f"STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
-               return True
+        if trainee == "zeroes" and winners[-1] < 12:
+           losing_versions.append(v)
+           
         
-           if trainee == "crosses" and winners[1] > 11:
-               print(f"STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
-               return True
-           return False
-    print("AAAAAAAAAAAA SHOULD NOT BE HERE")
-    return False
+        if trainee == "crosses" and winners[1] < 12:
+           losing_versions.append(v)
+
+    return losing_versions
+    if version not in losing_versions:
+        print(f"AAAA STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
+
+    return version not in losing_versions
 
 
 def clone_new_version(prefix, from_version, to_version):
@@ -204,34 +212,29 @@ def main():
     
     while True:
 
-        epoch += 1
-        train_single_epoch(epoch, prefix, version, trainee)
-
         # Compete and check if student wins now.
-        student_won = versioned_competition(trainee, version, prefix)
+        losing_versions = versioned_competition(trainee, version, prefix)
+
+        #student_won = version not in losing_versions
+        student_won = len(losing_versions) == 0
         if student_won:
+           print(f"VICTORY!!! STUDENT {trainee}.v{version} WON!")
            # If it does, update the version, and start training the other player
-           old_trainee = trainee
-
+           trainee = "crosses" if trainee == "zeroes" else "zeroes"
            if trainee == "crosses":
-               trainee = "zeroes"
-           else:
-               trainee = "crosses"
-
                # Increment current version and copy last models, they will be trained next
                # Copy last model into a new version
                clone_new_version(prefix, version, version + 1)
                version += 1
-               #m = tttp.TTTPlayer(model_name(prefix, "crosses", version - 1))
-               #m.save_to_file(model_name(prefix, "crosses", version))
-               #m = tttp.TTTPlayer(model_name(prefix, "zeroes", version - 1))
-               #m.save_to_file(model_name(prefix, "zeroes", version))
         
-           epoch = 0
-
-           print(f"VICTORY!!! STUDENT {old_trainee} WON! NOW STARTING TO TRAIN {trainee} VERSION {version}")
+           print(f"VICTORY!!! NOW STARTING TO TRAIN {trainee}.v{version}")
            print("\n\n")
+           epoch = 0
+           
 
+
+        epoch += 1
+        train_single_epoch(epoch, prefix, version, trainee, losing_versions)
 
 
 if __name__ == "__main__":
