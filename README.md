@@ -1,3 +1,9 @@
+# 2025-06-23
+
+Additional restrictions to amount of victory did not help. The problem is seemingly in the model forgetting what it achieved before.
+Time to add "memory" in form of replay buffer - store past games and use them in training.
+
+
 # 2025-06-02
 
 If we train many-many models, and then check them against classifier model, then there is a clear fluctuation
@@ -6,7 +12,7 @@ ChatGPT suggests to generate training batches using a sample of previous version
 It also says that a requirement of winning of all prev versions is too strict, but let's see:
 
 ```
-$ for i in `seq 0 5`; do echo VERSION $i; python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-$i.json; done
+$ for i in `seq 0 5`; do echo VERSION $i; python3 generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-$i.json; done
 
 VERSION 0	Zeroes: 5 out of 100
 VERSION 1	Zeroes: 1 out of 100
@@ -81,18 +87,18 @@ VERSIONED COMPETITION RESULTS zeroes VS models/from_zero/model-crosses-29.json: 
 
 Command to run:
 ```
-python train_from_zero.py --save_to_model models/from_zero/model
+python3 train_from_zero.py --save_to_model models/from_zero/model
 
 ```
 
 The best of models can not win the classifier still though:
 ```
-~/src/michoello/tictactoe (wip) python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-29.json
+~/src/michoello/tictactoe (wip) python3 generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/from_zero/model-zeroes-29.json
 Crosses: 86 out of 100
 Zeroes: 14 out of 100
 Ties: 0 out of 100
 
-~/src/michoello/tictactoe (wip) python generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/from_zero/model-crosses-29.json
+~/src/michoello/tictactoe (wip) python3 generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/from_zero/model-crosses-29.json
 Crosses: 45 out of 100
 Zeroes: 55 out of 100
 Ties: 0 out of 100
@@ -129,8 +135,8 @@ Next idea will be to compete a student with EACH of previous teachers, and gener
 Will take a while, but seems promising.
 
 ```
-python train_by_playing.py --save_to_model models/versioned/model
-python generate_games.py --mode play_many_games \
+python3 train_by_playing.py --save_to_model models/versioned/model
+python3 generate_games.py --mode play_many_games \
     --crosses_model classifier:models/model_victory_only.json \
     --zeroes_model player:models/versioned/model-zeroes-4.4.json
 ```
@@ -143,8 +149,8 @@ And it wins indeed, though I haven't checked how the game looks.
 Next need to swap student and teacher and see if the progress goes on.
 
 ```
-python train_by_playing.py --save_to_model models/model_barely_winning_zeroes.json
-python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_barely_winning_zeroes.json
+python3 train_by_playing.py --save_to_model models/model_barely_winning_zeroes.json
+python3 generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_barely_winning_zeroes.json
 
 ```
 
@@ -170,14 +176,14 @@ Useful insight for next step - the student must becomde a teacher at some point.
 
 # Went with the feedback loop idea and wow:
 
-python train_by_playing.py --save_to_model models/model_playing_mce_loss.json 
+python3 train_by_playing.py --save_to_model models/model_playing_mce_loss.json 
 
-python generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_playing_mce_loss.json
+python3 generate_games.py --mode play_many_games --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/model_playing_mce_loss.json
 Crosses: 13 out of 100
 Zeroes: 87 out of 100
 Ties: 0 out of 100
 
-python generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/model_playing_mce_loss.json
+python3 generate_games.py --mode play_many_games --zeroes_model classifier:models/model_victory_only.json --crosses_model player:models/model_playing_mce_loss.json
 Crosses: 56 out of 100
 Zeroes: 44 out of 100
 Ties: 0 out of 100
@@ -192,11 +198,11 @@ Ties: 0 out of 100
 # 2025-04-14
 # Updated playing script to support two different models. The player model still fails.
 # TODO run single game and inspect weights
-python generate_games.py --mode play_single_game \
+python3 generate_games.py --mode play_single_game \
    --zeroes_model classifier:models/model_victory_only.json \
    --crosses_model player:models/model_playing_mse_loss.json
 
-python generate_games.py --mode play_many_games \
+python3 generate_games.py --mode play_many_games \
    --zeroes_model classifier:models/model_victory_only.json \
    --crosses_model player:models/model_playing_mse_loss.json
 
@@ -206,7 +212,7 @@ python generate_games.py --mode play_many_games \
 # Ran model training for temporal learning classifier with MSE loss:
 # Looking at the model output it looks better
 #
-python train_by_playing.py --save_to_model models/model_playing_mse_loss.json
+python3 train_by_playing.py --save_to_model models/model_playing_mse_loss.json
 
 #
 #  2025-03-16
@@ -215,11 +221,11 @@ python train_by_playing.py --save_to_model models/model_playing_mse_loss.json
 # - batch gradient did not help at all
 # - trying MSE now
 #
-python train_by_playing.py --init_model models/model_playing_128.json --save_to_model models/model_playing_128_2.json
+python3 train_by_playing.py --init_model models/model_playing_128.json --save_to_model models/model_playing_128_2.json
 
 
 # Supposedly it should win here, but not yet - losing almost all the games :(
-python generate_games.py play_many_games  models/model_victory_only.json models/model_playing.json
+python3 generate_games.py play_many_games  models/model_victory_only.json models/model_playing.json
 
 
 
@@ -241,13 +247,13 @@ pip install -e .
 # Run model training classifier for victory board
 # Dumps initial weight (random) in first file, final (best) in second file
 #
-python train_victory_classifier.py models/model_initial.json models/model_victory_only.json
+python3 train_victory_classifier.py models/model_initial.json models/model_victory_only.json
 
 #
 # Load two models and play a single game between them
 # First model crosses, second zeroes
 #
-python generate_games.py --mode play_single_game \
+python3 generate_games.py --mode play_single_game \
    --crosses_model classifier:models/model_initial.json \
    --zeroes_model classifier:models/model_victory_only.json 
 
@@ -256,7 +262,7 @@ python generate_games.py --mode play_single_game \
 # Play many games between two models and output stats
 # First model crosses, second zeroes
 #
-python generate_games.py --mode play_many_games \
+python3 generate_games.py --mode play_many_games \
    --crosses_model classifier:models/model_initial.json \
    --zeroes_model classifier:models/model_victory_only.json 
 
@@ -269,19 +275,19 @@ python generate_games.py --mode play_many_games \
 # Other modes
 #
 # To generate many random boards with stats
-python generate_games.py --mode random_games
+python3 generate_games.py --mode random_games
 
 # To generate random single game
-python generate_games.py --mode gen_random_game
+python3 generate_games.py --mode gen_random_game
 
 
 # To generate many games
-python generate_games.py --mode many_games
+python3 generate_games.py --mode many_games
 
 
 
 # To run unittests
-python -m unittest discover -s tests
+python3 -m unittest discover -s tests
 # or
 ./testme.sh
 `
