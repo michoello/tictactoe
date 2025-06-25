@@ -4,6 +4,7 @@ from lib import ttt_player as tttp
 import sys
 import os
 from typing import Any
+import random
 
 
 import argparse
@@ -49,14 +50,16 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
         steps, winner = g.play_game(0.3, 5)
         if trainee == "zeroes" and winner == -1:
             i += 1
-            continue
+            #continue
         if trainee == "crosses" and winner == 1:
             i += 1
-            continue
+            #continue
         for step in steps:
-            boards.append(step.board.board)
-            train_reward = [(step.reward + 1) / 2]
-            values.append(train_reward)
+            # include only 10% of boards
+            if random.random() > 0.9:
+               boards.append(step.board.board)
+               train_reward = [(step.reward + 1) / 2]
+               values.append(train_reward)
         break
     #print(f"WHILE GENERATING BATCH FOR TRAINING, THE NUMBER OF GAMES {trainee} WON IS {i}")
     return boards, values
@@ -81,6 +84,12 @@ def generate_dumb_batch(num_boards, trainee, versions_to_train_on, prefix):
             outboards.append(board)
             outvalues.append(value)
             i += 1
+
+  # Shuffle the batch
+  combined = list(zip(outboards, outvalues))
+  random.shuffle(combined)
+  boards_shuffled, values_shuffled = zip(*combined)
+  outboards, outvalues = list(boards_shuffled), list(values_shuffled)
 
   print(
     "BALANCED BATCH READY: num_boards=",
@@ -150,17 +159,6 @@ def versioned_competition(trainee, version, prefix):
     m_student = tttp.TTTPlayer(student_model)
 
     #
-    # Play against classifier
-    #
-    opponent_model = "models/model_victory_only.json"
-    m_opponent = tttc.TTTClass(opponent_model)
-    if trainee == "crosses":
-        winners = game.competition(m_student, m_opponent, 20)
-    else:
-        winners = game.competition(m_opponent, m_student, 20)
-    print(f"CLASSIFIER COMPETITION RESULTS {trainee} v{version} VS {opponent_model}: ", winners)
-
-    #
     # Play against previous versions
     #
     losing_versions = []
@@ -181,11 +179,23 @@ def versioned_competition(trainee, version, prefix):
         if trainee == "crosses" and winners[1] < 12:
            losing_versions.append(v)
 
-    return losing_versions
-    if version not in losing_versions:
-        print(f"AAAA STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
+    won_over_prev = version not in losing_versions
+    if won_over_prev:
+        print(f"VICTORY! STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
 
-    return version not in losing_versions
+    #
+    # Play against classifier
+    #
+    opponent_model = "models/model_victory_only.json"
+    m_opponent = tttc.TTTClass(opponent_model)
+    if trainee == "crosses":
+        winners = game.competition(m_student, m_opponent, 20)
+    else:
+        winners = game.competition(m_opponent, m_student, 20)
+    print(f"CLASSIFIER COMPETITION RESULTS {trainee} v{version} prev{won_over_prev} VS {opponent_model}: ", winners)
+
+
+    return losing_versions
 
 
 def clone_new_version(prefix, from_version, to_version):
@@ -215,8 +225,8 @@ def main():
         # Compete and check if student wins now.
         losing_versions = versioned_competition(trainee, version, prefix)
 
-        #student_won = version not in losing_versions
-        student_won = len(losing_versions) == 0
+        student_won = version not in losing_versions
+        #student_won = len(losing_versions) == 0
         if student_won:
            print(f"VICTORY!!! STUDENT {trainee}.v{version} WON!")
            # If it does, update the version, and start training the other player

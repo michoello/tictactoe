@@ -15,7 +15,7 @@ START_VALUES = [
 # START_VALUES = [ [None]*6 for _ in range(6)]
 
 
-# Simple classifier of board position
+# Simple player based on board position value
 class TTTPlayer:
     def __init__(self, file_to_load_from=None):
 
