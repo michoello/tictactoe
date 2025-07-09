@@ -3,7 +3,7 @@ from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 import sys
 from typing import Any
-
+import random
 
 import argparse
 
@@ -55,22 +55,18 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
     return boards, values
 
 
-def generate_balanced_batch(num_boards, value_weights, m_crosses, m_zeroes):
-    sum_weights = sum(value_weights)
-    boards_needed = [int(wei / sum_weights * num_boards) for wei in value_weights]
-    print("BOARDS_NEEDED: ", boards_needed)
+def generate_balanced_batch(num_boards, m_crosses, m_zeroes):
     outboards, outvalues = [], []
     num_games_played = 0
 
-    while sum(boards_needed) > 0:
+    while len(outboards) < num_boards:
         num_games_played += 1
         boards, values = generate_playing_batch(1, m_crosses, m_zeroes)
         for board, value in zip(boards, values):
             value_bucket = int(value[0] * 0.999 * 10)
-            if boards_needed[value_bucket] > 0:
+            if random.random() > 0.9:
                 outboards.append(board)
                 outvalues.append(value)
-                boards_needed[value_bucket] -= 1
     print(
         "BALANCED BATCH READY: num_boards=",
         len(outboards),
@@ -110,27 +106,16 @@ def calc_loss(m, boards, values):
 
 
 def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
-    test_boards, test_values = generate_playing_batch(100, m_crosses, m_zeroes)
+    train_boards, train_values = generate_balanced_batch(32, m_crosses, m_zeroes)
 
-    test_loss_buckets = calc_loss_buckets(m_student, test_boards, test_values)
-    print(f"\nTEST LOSS BUCKETS: ", [round(l, 2) for l in test_loss_buckets])
-
-    train_boards, train_values = generate_balanced_batch(
-        32, test_loss_buckets, m_crosses, m_zeroes
-    )
-    train_boards_b, train_values_b = train_boards, train_values
-
-    train_loss_buckets = calc_loss_buckets(m_student, train_boards, train_values)
-    print(
-        f"\nTRAIN LOSS BUCKETS: ",
-        [round(l, 2) if l is not None else "None" for l in train_loss_buckets],
-    )
+    for i in range(len(train_boards)):
+       m_student.replay_buffer.maybe_add([train_boards[i], train_values[i]])
 
     # Backward pass
     train_iterations = 25
     for i in range(train_iterations):
         train_loss = 0
-        for board, value in zip(train_boards_b, train_values_b):
+        for board, value in zip(train_boards, train_values):
             m_student.x.set(board)
             m_student.y.set([value])
 
@@ -141,8 +126,7 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
             train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
-        test_loss = calc_loss(m_student, test_boards, test_values)
-        print(f"EPOCH {epoch}/{i}: Train loss={train_loss}\t\tTest loss = {test_loss}")
+        print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
 
 # Returns true if student wins
 def competition(m_crosses, m_zeroes, trainee):

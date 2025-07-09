@@ -1,5 +1,6 @@
 # Player model for TicTacToe board
 from . import ml
+from . import replay_buffer
 import copy
 import math
 
@@ -18,6 +19,8 @@ START_VALUES = [
 # Simple player based on board position value
 class TTTPlayer:
     def __init__(self, file_to_load_from=None):
+
+        self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
 
         self.x = ml.BB(ml.random_matrix(6, 6))
 
