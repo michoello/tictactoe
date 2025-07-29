@@ -1,6 +1,7 @@
 from lib import game
 from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
+from lib import replay_buffer
 import sys
 import os
 from typing import Any
@@ -112,6 +113,10 @@ def calc_loss(m, boards, values):
 
     return sum_loss / len(boards)
 
+replay_buffers = {}
+replay_buffers["crosses"] = replay_buffer.ReplayBuffer(2000)
+replay_buffers["zeroes"] = replay_buffer.ReplayBuffer(2000)
+
 
 def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
     if len(versions_to_train_on) == 0:
@@ -123,6 +128,27 @@ def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
     train_boards, train_values = generate_dumb_batch(32, trainee, versions_to_train_on, prefix)
 
     m_student = tttp.TTTPlayer(model_name(prefix, trainee, version))
+
+    #replay_buffer = m_student.replay_buffer ## TODO
+    replay_buffer = replay_buffers[trainee]
+    replay_boards, replay_values = [], []
+    print("STUDENT REPLAY BUFFER COUNT: ", replay_buffer.count)
+    if replay_buffer.count > 100:
+       for i in range(24):
+          rr = replay_buffer.get_random()
+          replay_boards.append(rr[0])
+          replay_values.append(rr[1])
+
+    replay_added = 0
+    for i in range(len(train_boards)):
+        if replay_buffer.maybe_add([train_boards[i], train_values[i]]):
+           replay_added += 1
+    print("MEMORIZED (ADDED TO BUFFER): ", replay_added, "BOARDS")
+
+    print("OLD MEMORIES TOBE USED", len(replay_boards))
+    for i in range(len(replay_boards)):
+        train_boards.append(replay_boards[i])
+        train_values.append(replay_values[i])
 
     # Backward pass
     train_iterations = 25
@@ -244,7 +270,9 @@ def main():
 
 
         epoch += 1
-        train_single_epoch(epoch, prefix, version, trainee, losing_versions)
+        #versions_to_train_on = losing_versions
+        versions_to_train_on = [version-1]
+        train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on)
 
 
 if __name__ == "__main__":
