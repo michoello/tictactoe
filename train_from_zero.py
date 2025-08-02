@@ -134,7 +134,7 @@ def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
     replay_boards, replay_values = [], []
     print("STUDENT REPLAY BUFFER COUNT: ", replay_buffer.count)
     if replay_buffer.count > 100:
-       for i in range(24):
+       for i in range(16):
           rr = replay_buffer.get_random()
           replay_boards.append(rr[0])
           replay_values.append(rr[1])

@@ -27,19 +27,19 @@ class TTTPlayer:
         self.w1 = ml.BB(ml.random_matrix(36, 64))
         self.b1 = ml.BB(ml.random_matrix(1, 64))
 
-        self.w2 = ml.BB(ml.random_matrix(64, 1))
-        self.b2 = ml.BB(ml.random_matrix(1, 1))
+        self.w2 = ml.BB(ml.random_matrix(64, 32))
+        self.b2 = ml.BB(ml.random_matrix(1, 32))
 
-        # self.w3 = ml.BB(ml.random_matrix(32, 1))
-        # self.b3 = ml.BB(ml.random_matrix(1, 1))
+        self.w3 = ml.BB(ml.random_matrix(32, 1))
+        self.b3 = ml.BB(ml.random_matrix(1, 1))
 
         self.z0 = ml.BBReshape(self.x, 1, 36)
         self.z1 = (self.z0 @ self.w1 + self.b1).sigmoid()
         self.z2 = (self.z1 @ self.w2 + self.b2).sigmoid()
-        # self.z3 = (self.z2 @ self.w3 + self.b3).sigmoid()
+        self.z3 = (self.z2 @ self.w3 + self.b3).sigmoid()
 
         # Predicts who is the winner (1 for crosses, -1 for zeroes)
-        self.prediction = self.z2
+        self.prediction = self.z3
 
         self.y = ml.BB(ml.random_matrix(1, 1))
         # self.loss = self.prediction.mse(self.y)
@@ -88,5 +88,5 @@ class TTTPlayer:
         self.b1.appl(alpha)
         self.w2.appl(alpha)
         self.b2.appl(alpha)
-        # self.w3.appl(alpha)
-        # self.b3.appl(alpha)
+        self.w3.appl(alpha)
+        self.b3.appl(alpha)
