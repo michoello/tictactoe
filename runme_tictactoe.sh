@@ -1,1 +1,1 @@
-python train_tictactoe.py
+python3 train_from_zero.py --save_to_model models/with_replay_buffer/model

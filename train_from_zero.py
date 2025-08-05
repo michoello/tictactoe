@@ -6,17 +6,23 @@ import sys
 import os
 from typing import Any
 import random
-
-
 import argparse
 
-parser = argparse.ArgumentParser(description="Train your model")
-
-parser.add_argument("--init_model", type=str, help="Path to the initial model file")
-parser.add_argument("--save_to_model", type=str, help="Path to save the trained model")
-
+import builtins
+from datetime import datetime
 
 # -------------------------------------------
+# Prepend each line with datetime
+def timestamped_print(*args, sep=' ', end='\n', file=None, flush=False):
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    message = sep.join(str(arg) for arg in args)
+    lines = message.splitlines()
+    timestamped_lines = [f"{timestamp} {line}" for line in lines]
+    final_message = '\n'.join(timestamped_lines)
+    builtins.print(final_message, end=end, file=file, flush=flush)
+
+print = timestamped_print
+
 # Duplicate all output to a file
 class Tee:
     def __init__(self, *streams):
@@ -28,12 +34,14 @@ class Tee:
         for s in self.streams:
             s.flush()
 
-# Open your log file
-logfile = open("output.log", "w")
-
-# Redirect stdout
+logfile = open("output.log", "w")   # TODO: cli arg?
 sys.stdout = Tee(sys.stdout, logfile)
 # -------------------------------------------
+
+
+parser = argparse.ArgumentParser(description="Train your model")
+parser.add_argument("--init_model", type=str, help="Path to the initial model file")
+parser.add_argument("--save_to_model", type=str, help="Path to save the trained model")
 
 args = parser.parse_args()
 
@@ -175,6 +183,10 @@ def model_name(prefix, trainee, version):
    return f"{prefix}-{trainee}-{version}.json"
 
 
+def sorted_sample(n, m):
+    return list(range(n)) if n <= m else sorted(random.sample(range(n), m))
+
+
 # Returns true if student wins over previous version
 # TODO: check ALL prev versions victory
 def versioned_competition(trainee, version, prefix):
@@ -188,7 +200,9 @@ def versioned_competition(trainee, version, prefix):
     # Play against previous versions
     #
     losing_versions = []
-    for v in range(0, version + 1):
+    #for v in range(0, version + 1):
+    total_games = 0
+    for v in sorted_sample(version, 9) + [version]:  # get sample of past versions, and prev one for sure
         opponent_model = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_model)
 
@@ -196,18 +210,20 @@ def versioned_competition(trainee, version, prefix):
            winners = game.competition(m_student, m_opponent, 20)
         else:
            winners = game.competition(m_opponent, m_student, 20)
-        print(f"VERSIONED COMPETITION RESULTS {trainee} VS {opponent_model}: ", winners)
+        print(f"VERSIONED COMPETITION {trainee} VS {opponent_model}: ", winners)
 
         if trainee == "zeroes" and winners[-1] < 12:
            losing_versions.append(v)
-           
-        
         if trainee == "crosses" and winners[1] < 12:
            losing_versions.append(v)
 
+        total_games += 1
+
+    win_ratio = 1 - len(losing_versions)/total_games
+
     won_over_prev = version not in losing_versions
     if won_over_prev:
-        print(f"VICTORY! STUDENT {trainee}.v{version} WON over {opponent_model}!!!")
+        print(f"VICTORY! STUDENT {trainee}.v{version} WON over {opponent_model}! VICTORY RATIO {win_ratio}")
 
     #
     # Play against classifier
@@ -218,8 +234,7 @@ def versioned_competition(trainee, version, prefix):
         winners = game.competition(m_student, m_opponent, 20)
     else:
         winners = game.competition(m_opponent, m_student, 20)
-    print(f"CLASSIFIER COMPETITION RESULTS {trainee} v{version} prev{won_over_prev} VS {opponent_model}: ", winners)
-
+    print(f"VICTORY CLASSIFIER COMPETITION {trainee} v{version} won_prev:{won_over_prev}: {winners}, ratio {win_ratio}")
 
     return losing_versions
 
