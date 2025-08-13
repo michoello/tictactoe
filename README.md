@@ -1,3 +1,33 @@
+# 2025-08-12 
+
+The model finally consistently wins over classifier, thanks to the replay buffer added. Running almost 1000 iterations - appr 10 days.
+Ideas to check:
+
+- Check visually how the model plays. Is it looking humanly? No, not really. But better.
+- compare outputs for the same board, but flipped and rotated. If the results are equal, then the model learnt symmetry of the gam, which is a proxy to its adequacy. Logits range to put more emphasis on confident values?
+   - I previously thought it would be useful to introduce "normalized" board (out of 8 equivalent positions), and thus reduce the training by 8 times, but now it feels that having them all gives some room for analysis.
+- try to train predefined epochs of 10 iterations and only compete after epochs are over. Switch to next version despite the results - optionally. Maybe it will help to achieve same results faster.
+- involve multi model training, selection and mutations
+- time to involve C, and maybe GPU even
+
+Log:
+models/with_replay_buffer/output.log
+
+Note: for some reason models started to fill from 0 version again, so few very first versions are overwritten.
+
+Training
+```
+python3 train_from_zero.py --save_to_model models/with_replay_buffer/model
+```
+
+Playing
+```
+python3 generate_games.py --mode play_single_game --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/with_replay_buffer/model-zeroes-941.json
+
+
+python3 generate_games.py --mode play_single_game --crosses_model player:models/with_replay_buffer/model-crosses-900.json --zeroes_model player:models/with_replay_buffer/model-zeroes-941.json
+```
+
 # 2025-06-23
 
 Additional restrictions to amount of victory did not help. The problem is seemingly in the model forgetting what it achieved before.
