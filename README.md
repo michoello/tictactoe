@@ -1,3 +1,10 @@
+# 2025-08-19
+
+Fixed batches work as good as previous "train till wins" approach.
+That opens more flexible approach and possibility to play competition in the future.
+Refactoring is in progress
+
+
 # 2025-08-12 
 
 The model finally consistently wins over classifier, thanks to the replay buffer added. Running almost 1000 iterations - appr 10 days.
