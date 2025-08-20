@@ -74,19 +74,13 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
     return boards, values
 
 
-def generate_dumb_batch(num_boards, trainee, versions_to_train_on, prefix):
-  #version = versions_to_train_on[-1]
+def generate_dumb_batch(num_boards, trainee, version, prefix, m_crosses, m_zeroes):
 
   outboards, outvalues = [], []
   num_games_played = 0
 
-  for version in versions_to_train_on:
-
-    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
-
-    i = 0
-    while i < num_boards: 
+  i = 0
+  while i < num_boards: 
         num_games_played += 1
         boards, values = generate_playing_batch(1, m_crosses, m_zeroes, trainee)
         for board, value in zip(boards, values):
@@ -101,7 +95,7 @@ def generate_dumb_batch(num_boards, trainee, versions_to_train_on, prefix):
   outboards, outvalues = list(boards_shuffled), list(values_shuffled)
 
   print(
-    "BALANCED BATCH READY: num_boards=",
+    "DUMB BATCH READY: num_boards=",
     len(outboards),
     "games_played=",
     num_games_played,
@@ -126,16 +120,12 @@ replay_buffers["crosses"] = replay_buffer.ReplayBuffer(2000)
 replay_buffers["zeroes"] = replay_buffer.ReplayBuffer(2000)
 
 
-def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
-    if len(versions_to_train_on) == 0:
-       versions_to_train_on.append(version)
+def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroes, m_student):
 
     print("-------------------------------------------------")
-    print(f"TRAINING {trainee} {version} EPOCH {epoch} - VERSIONS TO TRAIN ON {versions_to_train_on}")
+    print(f"TRAINING {trainee} {version} EPOCH {epoch} ITER {iter} - VERSIONS TO TRAIN ON {version - 1}")
 
-    train_boards, train_values = generate_dumb_batch(32, trainee, versions_to_train_on, prefix)
-
-    m_student = tttp.TTTPlayer(model_name(prefix, trainee, version))
+    train_boards, train_values = generate_dumb_batch(32, trainee, version - 1, prefix, m_crosses, m_zeroes)
 
     #replay_buffer = m_student.replay_buffer ## TODO
     replay_buffer = replay_buffers[trainee]
@@ -175,9 +165,6 @@ def train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on):
         train_loss = calc_loss(m_student, train_boards, train_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
 
-    student_model = model_name(prefix, trainee, version)
-    m_student.save_to_file(student_model) 
-    print(f"SAVED {student_model}")
 
 def model_name(prefix, trainee, version):
    return f"{prefix}-{trainee}-{version}.json"
@@ -262,32 +249,37 @@ def main():
     trainee = "crosses"
     
     while True:
-
         # Compete and check if student wins now.
         losing_versions = versioned_competition(trainee, version, prefix)
 
         student_won = version not in losing_versions
-        #student_won = len(losing_versions) == 0
-        if student_won:
-           print(f"VICTORY!!! STUDENT {trainee}.v{version} WON!")
-           # If it does, update the version, and start training the other player
-           trainee = "crosses" if trainee == "zeroes" else "zeroes"
-           if trainee == "crosses":
-               # Increment current version and copy last models, they will be trained next
-               # Copy last model into a new version
-               clone_new_version(prefix, version, version + 1)
-               version += 1
-        
-           print(f"VICTORY!!! NOW STARTING TO TRAIN {trainee}.v{version}")
-           print("\n\n")
-           epoch = 0
-           
 
+        print(f"EPOCH {epoch} - STUDENG {trainee}.v{version}", "WINNER" if student_won else "LOSER")
+
+        # Update the version, and start training the other player
+        trainee = "crosses" if trainee == "zeroes" else "zeroes"
+        if trainee == "crosses":
+            # Increment current version and copy last models, they will be trained next
+            # Copy last model into a new version
+            clone_new_version(prefix, version, version + 1)
+            version += 1
 
         epoch += 1
-        #versions_to_train_on = losing_versions
-        versions_to_train_on = [version-1]
-        train_single_epoch(epoch, prefix, version, trainee, versions_to_train_on)
+        print(f"NOW STARTING TO TRAIN {trainee}.v{version}, EPOCH {epoch}\n\n")
+
+        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+
+        student_model = model_name(prefix, trainee, version)
+        m_student = tttp.TTTPlayer(student_model)
+
+        for i in range(10):
+            train_single_epoch(epoch, i, prefix, version, trainee, m_crosses, m_zeroes, m_student)
+
+        m_student.save_to_file(student_model) 
+        print(f"SAVED {student_model}")
+
+
 
 
 if __name__ == "__main__":
