@@ -4,6 +4,8 @@ from lib import ttt_player as tttp
 from lib import replay_buffer
 import sys
 import os
+import time
+import shutil
 from typing import Any
 import random
 import argparse
@@ -13,11 +15,20 @@ from datetime import datetime
 
 # -------------------------------------------
 # Prepend each line with datetime
+prev_ts = -1
 def timestamped_print(*args, sep=' ', end='\n', file=None, flush=False):
+    ts = int(time.time())
+    global prev_ts
+    if prev_ts == -1:
+       prev_ts = ts
+    dif_ts = ts - prev_ts
+    if dif_ts > 1:
+       prev_ts = ts
+
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     message = sep.join(str(arg) for arg in args)
     lines = message.splitlines()
-    timestamped_lines = [f"{timestamp} {line}" for line in lines]
+    timestamped_lines = [f"{dif_ts:5d} - {timestamp} - {line}" for line in lines]
     final_message = '\n'.join(timestamped_lines)
     builtins.print(final_message, end=end, file=file, flush=flush)
 
@@ -177,7 +188,6 @@ def sorted_sample(n, m):
 # Returns true if student wins over previous version
 # TODO: check ALL prev versions victory
 def versioned_competition(trainee, version, prefix):
-
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
     student_model = model_name(prefix, trainee, version)
@@ -187,9 +197,8 @@ def versioned_competition(trainee, version, prefix):
     # Play against previous versions
     #
     losing_versions = []
-    #for v in range(0, version + 1):
     total_games = 0
-    for v in sorted_sample(version, 9) + [version]:  # get sample of past versions, and prev one for sure
+    for v in sorted_sample(version, 4) + [version]:  # get sample of past versions, and prev one for sure
         opponent_model = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_model)
 
@@ -223,15 +232,25 @@ def versioned_competition(trainee, version, prefix):
         winners = game.competition(m_opponent, m_student, 20)
     print(f"VICTORY CLASSIFIER COMPETITION {trainee} v{version} won_prev:{won_over_prev}: {winners}, ratio {win_ratio}")
 
+    # 
+    # Play against previous best version
+    #
+    prv_prefix = "models/with_replay_buffer/model"
+    for prv_v in [version, 200, 400, 900]:
+        opponent_model = model_name(prv_prefix, opponent, prv_v)
+        m_opponent = tttp.TTTPlayer(opponent_model)
+        if trainee == "crosses":
+            winners = game.competition(m_student, m_opponent, 20)
+        else:
+            winners = game.competition(m_opponent, m_student, 20)
+        print(f"PREVIOUS_BEST MODEL COMPETITION {trainee} v{version} VS {opponent_model}: ", winners)
+
     return losing_versions
 
 
 def clone_new_version(prefix, from_version, to_version):
-    m = tttp.TTTPlayer(model_name(prefix, "crosses", from_version))
-    m.save_to_file(model_name(prefix, "crosses", to_version))
-
-    m = tttp.TTTPlayer(model_name(prefix, "zeroes", from_version))
-    m.save_to_file(model_name(prefix, "zeroes", to_version))
+    shutil.copyfile(model_name(prefix, "crosses", from_version), model_name(prefix, "crosses", to_version))
+    shutil.copyfile(model_name(prefix, "zeroes", from_version), model_name(prefix, "zeroes", to_version))
 
 # --------------------------------------------
 def main():
@@ -257,12 +276,18 @@ def main():
         print(f"EPOCH {epoch} - STUDENG {trainee}.v{version}", "WINNER" if student_won else "LOSER")
 
         # Update the version, and start training the other player
-        trainee = "crosses" if trainee == "zeroes" else "zeroes"
-        if trainee == "crosses":
+        if trainee == "zeroes":
+            trainee = "crosses"
+            m_student = m_crosses
+
             # Increment current version and copy last models, they will be trained next
             # Copy last model into a new version
             clone_new_version(prefix, version, version + 1)
             version += 1
+
+        else:
+            trainee = "zeroes"
+            m_student = m_zeroes
 
         epoch += 1
         print(f"NOW STARTING TO TRAIN {trainee}.v{version}, EPOCH {epoch}\n\n")

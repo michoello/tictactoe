@@ -3,6 +3,7 @@ from . import ml
 from . import replay_buffer
 import copy
 import math
+import json
 
 START_VALUES = [
     [None, None, None, None, None, None],
@@ -51,11 +52,21 @@ class TTTPlayer:
     def load_from_file(self, file_name):
         with open(file_name, "r") as file:
             model_dump = file.read()
-            self.loss.load(model_dump)
+
+            model_json = json.loads(model_dump)
+            if isinstance(model_json, list):
+               # Old format
+               self.loss.from_json(model_json)
+            else:
+               self.loss.from_json(model_json["data"])
+
 
     def save_to_file(self, file_name):
         with open(file_name, "w") as file:
-            model_dump = self.loss.save()
+            model_json = {
+                "data": self.loss.to_json()
+            }
+            model_dump = json.dumps(model_json)
             file.write(model_dump)
 
     # For a set of next step boards and coords of next step

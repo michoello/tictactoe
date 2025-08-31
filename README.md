@@ -3,7 +3,12 @@
 Fixed batches work as good as previous "train till wins" approach.
 That opens more flexible approach and possibility to play competition in the future.
 Refactoring is in progress
-
+TODO:
+- serialization to dict to store more params such as version
+- store replay buffer
+- round all weights to 5-7 decimals
+- start encapsulating so we get closer to competition
+- C++ !
 
 # 2025-08-12 
 

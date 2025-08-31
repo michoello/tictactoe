@@ -5,7 +5,6 @@ import random
 
 def random_matrix(m, n):
     return [[random.random() * 2 - 1 for _ in range(n)] for _ in range(m)]
-    # return [[random.random() for _ in range(n)] for _ in range(m)]
 
 
 # Sigmoid activation and its derivative
@@ -121,7 +120,10 @@ class BB:
         results = []
         for arg in self.args:
             if isinstance(arg, list):
-                results.append(arg)
+                # Reduce precision to compress the model and bring a bit of noise
+                rounded = [[round(x, 5) for x in row] for row in arg]
+                # TODO: maybe replace args with new values?
+                results.append(rounded)
             elif isinstance(arg, BB):
                 results.append(arg.to_json())
             else:
