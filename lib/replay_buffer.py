@@ -1,4 +1,5 @@
 import random
+import json
 
 class ReplayBuffer:
     def __init__(self, max_size):
@@ -24,3 +25,16 @@ class ReplayBuffer:
 
     def get_random(self):
         return random.choice(self.buffer)
+
+    def to_json(self):
+        return json.dumps({
+           "count": self.count,
+           "max_size": self.max_size,
+           "buffer": self.buffer,
+        })
+
+    def from_json(self, jsonx):
+        s = json.loads(jsonx)
+        self.count = s["count"]
+        self.max_size = s["max_size"]
+        self.buffer = s["buffer"]

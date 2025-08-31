@@ -126,10 +126,6 @@ def calc_loss(m, boards, values):
 
     return sum_loss / len(boards)
 
-replay_buffers = {}
-replay_buffers["crosses"] = replay_buffer.ReplayBuffer(2000)
-replay_buffers["zeroes"] = replay_buffer.ReplayBuffer(2000)
-
 
 def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroes, m_student):
 
@@ -138,10 +134,9 @@ def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroe
 
     train_boards, train_values = generate_dumb_batch(32, trainee, version - 1, prefix, m_crosses, m_zeroes)
 
-    #replay_buffer = m_student.replay_buffer ## TODO
-    replay_buffer = replay_buffers[trainee]
+    replay_buffer = m_student.replay_buffer
     replay_boards, replay_values = [], []
-    print("STUDENT REPLAY BUFFER COUNT: ", replay_buffer.count)
+    print(f"STUDENT REPLAY {trainee} {version} BUFFER COUNT: {replay_buffer.count}") # - {replay_buffer2.count}")
     if replay_buffer.count > 100:
        for i in range(16):
           rr = replay_buffer.get_random()
@@ -152,7 +147,7 @@ def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroe
     for i in range(len(train_boards)):
         if replay_buffer.maybe_add([train_boards[i], train_values[i]]):
            replay_added += 1
-    print("MEMORIZED (ADDED TO BUFFER): ", replay_added, "BOARDS")
+    print("MEMORIZED (ADDED TO BUFFER): ", replay_added, f" BOARDS")
 
     print("OLD MEMORIES TOBE USED", len(replay_boards))
     for i in range(len(replay_boards)):

@@ -59,12 +59,14 @@ class TTTPlayer:
                self.loss.from_json(model_json)
             else:
                self.loss.from_json(model_json["data"])
+               self.replay_buffer.from_json(model_json["replay_buffer"])
 
 
     def save_to_file(self, file_name):
         with open(file_name, "w") as file:
             model_json = {
-                "data": self.loss.to_json()
+                "data": self.loss.to_json(),
+                "replay_buffer": self.replay_buffer.to_json(),
             }
             model_dump = json.dumps(model_json)
             file.write(model_dump)
