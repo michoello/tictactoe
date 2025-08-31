@@ -59,45 +59,33 @@ args = parser.parse_args()
 print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
-def generate_playing_batch(num_games, m_crosses, m_zeroes, trainee):
+def generate_playing_batch(m_crosses, m_zeroes, m_student):
     boards, values = [], []
 
     g = game.Game(m_crosses, m_zeroes)
-
-    i = 0
-    while True:
-        #steps, winner = g.play_game(0.5, 2)
-        steps, winner = g.play_game(0.3, 5)
-        if trainee == "zeroes" and winner == -1:
-            i += 1
-            #continue
-        if trainee == "crosses" and winner == 1:
-            i += 1
-            #continue
-        for step in steps:
-            # include only 10% of boards
-            if random.random() > 0.9:
-               boards.append(step.board.board)
-               train_reward = [(step.reward + 1) / 2]
-               values.append(train_reward)
-        break
-    #print(f"WHILE GENERATING BATCH FOR TRAINING, THE NUMBER OF GAMES {trainee} WON IS {i}")
+    steps, winner = g.play_game(0.3, 5)  ## 0.5, 2
+    for step in steps:
+        # include only 10% of boards
+        if random.random() > 0.9:
+           boards.append(step.board.board)
+           train_reward = [(step.reward + 1) / 2]
+           values.append(train_reward)
     return boards, values
 
 
-def generate_dumb_batch(num_boards, trainee, version, prefix, m_crosses, m_zeroes):
+def generate_dumb_batch(num_boards, m_crosses, m_zeroes, m_student):
 
   outboards, outvalues = [], []
   num_games_played = 0
 
   i = 0
   while i < num_boards: 
-        num_games_played += 1
-        boards, values = generate_playing_batch(1, m_crosses, m_zeroes, trainee)
-        for board, value in zip(boards, values):
-            outboards.append(board)
-            outvalues.append(value)
-            i += 1
+      num_games_played += 1
+      boards, values = generate_playing_batch(m_crosses, m_zeroes, m_student) 
+      for board, value in zip(boards, values):
+          outboards.append(board)
+          outvalues.append(value)
+          i += 1
 
   # Shuffle the batch
   combined = list(zip(outboards, outvalues))
@@ -105,12 +93,7 @@ def generate_dumb_batch(num_boards, trainee, version, prefix, m_crosses, m_zeroe
   boards_shuffled, values_shuffled = zip(*combined)
   outboards, outvalues = list(boards_shuffled), list(values_shuffled)
 
-  print(
-    "DUMB BATCH READY: num_boards=",
-    len(outboards),
-    "games_played=",
-    num_games_played,
-  )
+  print( f"DUMB BATCH READY: num_boards={len(outboards)} games_played={num_games_played}")
   return outboards, outvalues
 
 
@@ -127,16 +110,13 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroes, m_student):
+def train_single_round(trainee, m_crosses, m_zeroes, m_student):
 
-    print("-------------------------------------------------")
-    print(f"TRAINING {trainee} {version} EPOCH {epoch} ITER {iter} - VERSIONS TO TRAIN ON {version - 1}")
-
-    train_boards, train_values = generate_dumb_batch(32, trainee, version - 1, prefix, m_crosses, m_zeroes)
+    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, m_student)
 
     replay_buffer = m_student.replay_buffer
     replay_boards, replay_values = [], []
-    print(f"STUDENT REPLAY {trainee} {version} BUFFER COUNT: {replay_buffer.count}") # - {replay_buffer2.count}")
+    print(f"STUDENT REPLAY {m_student.file_name} BUFFER COUNT: {replay_buffer.count}")
     if replay_buffer.count > 100:
        for i in range(16):
           rr = replay_buffer.get_random()
@@ -169,7 +149,7 @@ def train_single_epoch(epoch, iter, prefix, version, trainee, m_crosses, m_zeroe
             train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
-        print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
+        print(f"EPOCH {i}: Train loss={train_loss}")
 
 
 def model_name(prefix, trainee, version):
@@ -248,6 +228,19 @@ def clone_new_version(prefix, from_version, to_version):
     shutil.copyfile(model_name(prefix, "zeroes", from_version), model_name(prefix, "zeroes", to_version))
 
 # --------------------------------------------
+def train(m_crosses, m_zeroes, trainee):
+    m_student = m_crosses if trainee == "crosses" else m_zeroes
+    m_opponent = m_zeroes if trainee == "crosses" else m_crosses
+
+    print("-------------------------------------------------")
+    print(f"STARTING TO TRAIN {m_student.file_name}\n\n")
+    for i in range(10):
+        print(f"TRAINING {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
+        train_single_round(trainee, m_crosses, m_zeroes, m_student)
+
+    return m_student
+
+
 def main():
     prefix = args.save_to_model
     
@@ -259,21 +252,31 @@ def main():
 
     clone_new_version(prefix, 0, 1)
     version = 1
-    epoch = 0
     trainee = "crosses"
     
     while True:
+        #
+        # Train
+        #
+        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+
+        m_student = train(m_crosses, m_zeroes, trainee)
+        m_student.save_to_file(m_student.file_name) 
+        print(f"SAVED {m_student.file_name}")
+
+        #
         # Compete and check if student wins now.
+        #
         losing_versions = versioned_competition(trainee, version, prefix)
 
-        student_won = version not in losing_versions
+        print(f"STUDENT {m_student.file_name} ", "LOSER" if version in losing_versions else "WINNER")
 
-        print(f"EPOCH {epoch} - STUDENG {trainee}.v{version}", "WINNER" if student_won else "LOSER")
-
+        #
         # Update the version, and start training the other player
+        #
         if trainee == "zeroes":
             trainee = "crosses"
-            m_student = m_crosses
 
             # Increment current version and copy last models, they will be trained next
             # Copy last model into a new version
@@ -282,24 +285,6 @@ def main():
 
         else:
             trainee = "zeroes"
-            m_student = m_zeroes
-
-        epoch += 1
-        print(f"NOW STARTING TO TRAIN {trainee}.v{version}, EPOCH {epoch}\n\n")
-
-        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
-
-        student_model = model_name(prefix, trainee, version)
-        m_student = tttp.TTTPlayer(student_model)
-
-        for i in range(10):
-            train_single_epoch(epoch, i, prefix, version, trainee, m_crosses, m_zeroes, m_student)
-
-        m_student.save_to_file(student_model) 
-        print(f"SAVED {student_model}")
-
-
 
 
 if __name__ == "__main__":

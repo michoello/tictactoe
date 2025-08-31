@@ -22,6 +22,7 @@ class TTTPlayer:
     def __init__(self, file_to_load_from=None):
 
         self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
+        self.file_name = None
 
         self.x = ml.BB(ml.random_matrix(6, 6))
 
@@ -50,6 +51,7 @@ class TTTPlayer:
             self.load_from_file(file_to_load_from)
 
     def load_from_file(self, file_name):
+        self.file_name = file_name
         with open(file_name, "r") as file:
             model_dump = file.read()
 
