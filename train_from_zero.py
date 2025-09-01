@@ -12,25 +12,36 @@ import argparse
 
 import builtins
 from datetime import datetime
+import re
 
 # -------------------------------------------
 # Prepend each line with datetime
 prev_ts = -1
+_TS_RE = re.compile(r"\[ts:(\d+)\]")
+
 def timestamped_print(*args, sep=' ', end='\n', file=None, flush=False):
     ts = int(time.time())
+
     global prev_ts
     if prev_ts == -1:
-       prev_ts = ts
-    dif_ts = ts - prev_ts
-    if dif_ts > 1:
        prev_ts = ts
 
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     message = sep.join(str(arg) for arg in args)
+    m = _TS_RE.search(message)
+    if m:
+        prev_ts = int(m.group(1))
+        message = _TS_RE.sub("", message, count=1).strip()
+
+    dif_ts = ts - prev_ts
+    if dif_ts > 1:
+       prev_ts = ts
+
     lines = message.splitlines()
     timestamped_lines = [f"{dif_ts:5d} - {timestamp} - {line}" for line in lines]
     final_message = '\n'.join(timestamped_lines)
     builtins.print(final_message, end=end, file=file, flush=flush)
+    return ts
 
 print = timestamped_print
 
@@ -114,27 +125,30 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
 
     train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, m_student)
 
+    #
+    # Get old memories from buffer
+    # 
     replay_buffer = m_student.replay_buffer
     replay_boards, replay_values = [], []
-    print(f"STUDENT REPLAY {m_student.file_name} BUFFER COUNT: {replay_buffer.count}")
     if replay_buffer.count > 100:
        for i in range(16):
           rr = replay_buffer.get_random()
           replay_boards.append(rr[0])
           replay_values.append(rr[1])
 
-    replay_added = 0
     for i in range(len(train_boards)):
-        if replay_buffer.maybe_add([train_boards[i], train_values[i]]):
-           replay_added += 1
-    print("MEMORIZED (ADDED TO BUFFER): ", replay_added, f" BOARDS")
+        replay_buffer.maybe_add([train_boards[i], train_values[i]])
 
-    print("OLD MEMORIES TOBE USED", len(replay_boards))
-    for i in range(len(replay_boards)):
-        train_boards.append(replay_boards[i])
-        train_values.append(replay_values[i])
 
+    train_boards.extend(replay_boards)
+    train_values.extend(replay_values)
+    #for i in range(len(replay_boards)):
+    #    train_boards.append(replay_boards[i])
+    #    train_values.append(replay_values[i])
+
+    #
     # Backward pass
+    #
     train_iterations = 25
     for i in range(train_iterations):
         train_loss = 0
@@ -161,8 +175,7 @@ def sorted_sample(n, m):
 
 
 # Returns true if student wins over previous version
-# TODO: check ALL prev versions victory
-def versioned_competition(trainee, version, prefix):
+def versioned_competition(prefix, version, trainee):
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
     student_model = model_name(prefix, trainee, version)
@@ -173,7 +186,7 @@ def versioned_competition(trainee, version, prefix):
     #
     losing_versions = []
     total_games = 0
-    for v in sorted_sample(version, 4) + [version]:  # get sample of past versions, and prev one for sure
+    for v in sorted_sample(version-1, 4) + [version-1]:  # get sample of past versions, and prev one for sure
         opponent_model = model_name(prefix, opponent, v)
         m_opponent = tttp.TTTPlayer(opponent_model)
 
@@ -228,15 +241,19 @@ def clone_new_version(prefix, from_version, to_version):
     shutil.copyfile(model_name(prefix, "zeroes", from_version), model_name(prefix, "zeroes", to_version))
 
 # --------------------------------------------
-def train(m_crosses, m_zeroes, trainee):
+def train(prefix, version, trainee):
+    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
+    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+
     m_student = m_crosses if trainee == "crosses" else m_zeroes
     m_opponent = m_zeroes if trainee == "crosses" else m_crosses
 
     print("-------------------------------------------------")
     print(f"STARTING TO TRAIN {m_student.file_name}\n\n")
     for i in range(10):
-        print(f"TRAINING {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
+        it_ts = print(f"Start {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
         train_single_round(trainee, m_crosses, m_zeroes, m_student)
+        print(f"[ts:{it_ts}] Finish {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
 
     return m_student
 
@@ -249,42 +266,42 @@ def main():
     m_crosses.save_to_file(model_name(prefix, "crosses", version))
     m_zeroes = tttp.TTTPlayer()
     m_zeroes.save_to_file(model_name(prefix, "zeroes", version))
-
-    clone_new_version(prefix, 0, 1)
-    version = 1
-    trainee = "crosses"
     
     while True:
         #
         # Train
         #
-        m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-        m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+        start_ts = print(f"Training for version {version} started")
+        trainee = "crosses"
+        m_student = train(prefix, version, trainee)
 
-        m_student = train(m_crosses, m_zeroes, trainee)
-        m_student.save_to_file(m_student.file_name) 
+        student_name = model_name(prefix, trainee, version+1)
+        m_student.save_to_file(student_name)
         print(f"SAVED {m_student.file_name}")
 
-        #
-        # Compete and check if student wins now.
-        #
-        losing_versions = versioned_competition(trainee, version, prefix)
+        trainee = "zeroes"
+        m_student = train(prefix, version, trainee)
 
-        print(f"STUDENT {m_student.file_name} ", "LOSER" if version in losing_versions else "WINNER")
+        student_name = model_name(prefix, trainee, version+1)
+        m_student.save_to_file(student_name)
+        print(f"[ts:{start_ts}] Training for version {version} finished. Saved {student_name}")
+
+
+        # Next
+        version += 1
 
         #
-        # Update the version, and start training the other player
+        # Compete and check if student wins now - this is optional and unnecessary here
+        # TODO: extract into a separate tool
         #
-        if trainee == "zeroes":
-            trainee = "crosses"
+        trainee = "crosses"
+        losing_versions = versioned_competition(prefix, version, trainee)
+        print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
 
-            # Increment current version and copy last models, they will be trained next
-            # Copy last model into a new version
-            clone_new_version(prefix, version, version + 1)
-            version += 1
+        trainee = "zeroes"
+        losing_versions = versioned_competition(prefix, version, trainee)
+        print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
 
-        else:
-            trainee = "zeroes"
 
 
 if __name__ == "__main__":
