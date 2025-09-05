@@ -3,16 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <title>Tic Tac Toe 6x6</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: sans-serif; text-align: center; margin-top: 20px; }
-  table { border-collapse: collapse; margin: auto; }
-  td {
-    width: 60px; height: 60px;
-    border: 1px solid #333;
-    text-align: center; vertical-align: middle;
-    font-size: 40px;
-    cursor: pointer;
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 10px;
   }
+
+  table {
+    border-collapse: collapse;
+    margin: auto;
+    width: 90vw;
+    max-width: 600px;
+    table-layout: fixed;
+    background-color: #ccc;
+  }
+
+  td {
+    border: 1px solid #333;
+    width: 16.66%;   /* 1/6 of table width */
+    position: relative;
+    cursor: pointer;
+    background-color: #eee;
+  }
+
+  /* responsive square cells using padding trick */
+  td::before {
+    content: "";
+    display: block;
+    padding-top: 100%; /* makes td square */
+  }
+
+  td span {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 6vw;
+  }
+
+  td span.X { color: blue; }
+  td span.O { color: green; }
 </style>
 </head>
 <body>
@@ -24,13 +57,17 @@ let current = "X";
 
 function createBoard() {
   const table = document.getElementById("board");
+  table.innerHTML = ""; // clear table
   for (let r = 0; r < 6; r++) {
     const row = document.createElement("tr");
     for (let c = 0; c < 6; c++) {
       const cell = document.createElement("td");
       cell.addEventListener("click", () => {
-        if (!cell.textContent) {
-          cell.textContent = current;
+        if (!cell.firstChild) {
+          const span = document.createElement("span");
+          span.textContent = current;
+          span.className = current;
+          cell.appendChild(span);
           current = current === "X" ? "O" : "X";
         }
       });
@@ -44,3 +81,4 @@ createBoard();
 </script>
 </body>
 </html>
+
