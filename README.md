@@ -1,3 +1,11 @@
+# 2025-09-05
+
+Added initial webserver, running on 8080
+
+```
+python web/server.py
+```
+
 # 2025-09-04
 
 Switched to fixed rounds, with replay buffer serialization, rounded weights,
