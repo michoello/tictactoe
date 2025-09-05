@@ -1,3 +1,30 @@
+# 2025-09-04
+
+Switched to fixed rounds, with replay buffer serialization, rounded weights,
+and initial parallel processing.
+Trained 957 versions within 4 days (vs 7 days before), but models are huge now.
+Log shows that the training efficiency is slightly ahead of "train from zero" version,
+but not by far. Saving core versions and log
+
+Interesting that while zeroes are ahead of prev version by winning, crosses are not so much.
+```
+$ cat output_fixed_rounds.log | grep "PREV" | grep "TION crosses" | grep  900 | perl -lnpe 's/.* - //'
+
+PREVIOUS_BEST MODEL COMPETITION crosses v933 VS models/with_replay_buffer/model-zeroes-900.json:  {-1: 3, 0: 0, 1: 17}
+PREVIOUS_BEST MODEL COMPETITION crosses v956 VS models/with_replay_buffer/model-zeroes-900.json:  {-1: 8, 0: 0, 1: 12}
+
+$ cat output_fixed_rounds.log | grep "PREV" | grep "TION zeroes" | grep  900 | perl -lnpe 's/.* - //'
+
+PREVIOUS_BEST MODEL COMPETITION zeroes v953 VS models/with_replay_buffer/model-crosses-900.json:  {-1: 18, 0: 0, 1: 2}
+PREVIOUS_BEST MODEL COMPETITION zeroes v956 VS models/with_replay_buffer/model-crosses-900.json:  {-1: 17, 0: 0, 1: 3}
+
+```
+
+
+TODO:
+- competition!
+- C++ !
+
 # 2025-08-19
 
 Fixed batches work as good as previous "train till wins" approach.

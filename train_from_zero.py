@@ -10,6 +10,7 @@ from typing import Any
 import random
 import argparse
 
+from multiprocessing import Process
 import builtins
 from datetime import datetime
 import re
@@ -249,13 +250,15 @@ def train(prefix, version, trainee):
     m_opponent = m_zeroes if trainee == "crosses" else m_crosses
 
     print("-------------------------------------------------")
-    print(f"STARTING TO TRAIN {m_student.file_name}\n\n")
+    tr_ts = print(f"Start {m_student.file_name}\n\n")
     for i in range(10):
         it_ts = print(f"Start {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
         train_single_round(trainee, m_crosses, m_zeroes, m_student)
         print(f"[ts:{it_ts}] Finish {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
 
-    return m_student
+    student_name = model_name(prefix, trainee, version+1)
+    m_student.save_to_file(student_name)
+    print(f"[ts:{tr_ts}] Saved {student_name}")
 
 
 def main():
@@ -272,19 +275,17 @@ def main():
         # Train
         #
         start_ts = print(f"Training for version {version} started")
-        trainee = "crosses"
-        m_student = train(prefix, version, trainee)
 
-        student_name = model_name(prefix, trainee, version+1)
-        m_student.save_to_file(student_name)
-        print(f"SAVED {m_student.file_name}")
+        processes = [
+            Process(target=train, args=(prefix, version, "crosses",)),
+            Process(target=train, args=(prefix, version, "zeroes",)),
+        ]
+        for p in processes:
+           p.start()
+        for p in processes:
+           p.join()
 
-        trainee = "zeroes"
-        m_student = train(prefix, version, trainee)
-
-        student_name = model_name(prefix, trainee, version+1)
-        m_student.save_to_file(student_name)
-        print(f"[ts:{start_ts}] Training for version {version} finished. Saved {student_name}")
+        print(f"[ts:{start_ts}] Training for version {version} finished")
 
 
         # Next
