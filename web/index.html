@@ -4,46 +4,13 @@
 <meta charset="UTF-8">
 <title>Tic Tac Toe 6x6</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <style>
-  body {
-    font-family: sans-serif;
-    text-align: center;
-    margin: 10px;
-  }
-
-  table {
-    border-collapse: collapse;
-    margin: auto;
-    width: 90vw;
-    max-width: 600px;
-    table-layout: fixed;
-    background-color: #ccc;
-  }
-
-  td {
-    border: 1px solid #333;
-    width: 16.66%;   /* 1/6 of table width */
-    position: relative;
-    cursor: pointer;
-    background-color: #eee;
-  }
-
-  /* responsive square cells using padding trick */
-  td::before {
-    content: "";
-    display: block;
-    padding-top: 100%; /* makes td square */
-  }
-
-  td span {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 6vw;
-  }
-
+  body { font-family: sans-serif; text-align: center; margin: 10px; }
+  table { border-collapse: collapse; margin: auto; width: 90vw; max-width: 600px; table-layout: fixed; background-color: #ccc; }
+  td { border: 1px solid #333; width: 16.66%; position: relative; cursor: pointer; background-color: #eee; }
+  td::before { content: ""; display: block; padding-top: 100%; } /* square cells */
+  td span { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; font-size: 6vw; }
   td span.X { color: blue; }
   td span.O { color: green; }
 </style>
@@ -56,24 +23,39 @@
 let current = "X";
 
 function createBoard() {
-  const table = document.getElementById("board");
-  table.innerHTML = ""; // clear table
+  const table = $("#board");
+  table.empty();
   for (let r = 0; r < 6; r++) {
-    const row = document.createElement("tr");
+    const row = $("<tr></tr>");
     for (let c = 0; c < 6; c++) {
-      const cell = document.createElement("td");
-      cell.addEventListener("click", () => {
-        if (!cell.firstChild) {
-          const span = document.createElement("span");
-          span.textContent = current;
-          span.className = current;
-          cell.appendChild(span);
+      const cell = $("<td></td>");
+      cell.on("click", function() {
+        if (!cell.children().length) {
+          const span = $("<span></span>").text(current).addClass(current);
+          cell.append(span);
+
+          // Send AJAX request with row, column, figure
+          const startTime = performance.now();
+          $.ajax({
+            url: "/click",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ row: r, col: c, figure: current }),
+            success: function(resp) {
+              const endTime = performance.now();
+              console.log("Server response:", resp, "Time:", (endTime - startTime).toFixed(2), "ms");
+            },
+            error: function(err) {
+              console.error("AJAX error:", err);
+            }
+          });
+
           current = current === "X" ? "O" : "X";
         }
       });
-      row.appendChild(cell);
+      row.append(cell);
     }
-    table.appendChild(row);
+    table.append(row);
   }
 }
 

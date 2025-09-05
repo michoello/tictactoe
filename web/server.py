@@ -1,9 +1,12 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import os
+import json
 
 class TicTacToeHandler(BaseHTTPRequestHandler):
+    def address_string(self):
+        return self.client_address[0]  # skip reverse DNS
+
     def do_GET(self):
-        if self.path == "/" or self.path == "/index.html":
+        if self.path in ["/", "/index.html"]:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
@@ -14,16 +17,26 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Not found")
 
-class HelloHandler(BaseHTTPRequestHandler):
- def do_GET(self):
-        self.send_response(200)  # HTTP status 200 OK
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(b"yopta!\n")
-
+    def do_POST(self):
+        if self.path == "/click":
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length)
+            data = json.loads(body)
+            # log on server side
+            print(f"Click received: row={data['row']} col={data['col']} figure={data['figure']}")
+            # respond
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            response = { "status": "ok", "row": data['row'], "col": data['col'], "figure": data['figure'] }
+            self.wfile.write(json.dumps(response).encode("utf-8"))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not found")
 
 if __name__ == "__main__":
     server = HTTPServer(("0.0.0.0", 8080), TicTacToeHandler)
-    #server = HTTPServer(("0.0.0.0", 8080), HelloHandler)
-    print("Server starting on port 8080...")
+    print("Server running on port 8080...")
     server.serve_forever()
+
