@@ -21,6 +21,8 @@
 
 <script>
 let current = "X";
+// 0 = empty, 1 = X, -1 = O
+let boardState = Array.from({length: 6}, () => Array(6).fill(0));
 
 function createBoard() {
   const table = $("#board");
@@ -34,13 +36,21 @@ function createBoard() {
           const span = $("<span></span>").text(current).addClass(current);
           cell.append(span);
 
-          // Send AJAX request with row, column, figure
+          // update board state
+          boardState[r][c] = current === "X" ? 1 : -1;
+
+          // Send AJAX request with row, column, figure, and full board
           const startTime = performance.now();
           $.ajax({
             url: "/click",
             method: "POST",
             contentType: "application/json",
-            data: JSON.stringify({ row: r, col: c, figure: current }),
+            data: JSON.stringify({
+              row: r,
+              col: c,
+              figure: current,
+              board: boardState
+            }),
             success: function(resp) {
               const endTime = performance.now();
               console.log("Server response:", resp, "Time:", (endTime - startTime).toFixed(2), "ms");
@@ -58,6 +68,7 @@ function createBoard() {
     table.append(row);
   }
 }
+
 
 createBoard();
 </script>
