@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import random
 
 class TicTacToeHandler(BaseHTTPRequestHandler):
     def address_string(self):
@@ -26,14 +27,18 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             # log on server side
             print(f"Click: row={data['row']} col={data['col']} figure={data['figure']}")
             print("Board state:")
-            for row in data["board"]:
+            board = data["board"]
+            for row in board:
                 print(row)
+
+            empties = [(r, c) for r in range(len(board)) for c in range(len(board[r])) if board[r][c] == 0]
+            ply = random.choice(empties)
 
             # respond
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            response = { "status": "ok", "received": data }
+            response = { "status": "ok", "row": ply[0], "col": ply[1] } # "received": data }
             self.wfile.write(json.dumps(response).encode("utf-8"))
         else:
             self.send_response(404)

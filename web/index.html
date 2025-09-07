@@ -24,22 +24,32 @@ let current = "X";
 // 0 = empty, 1 = X, -1 = O
 let boardState = Array.from({length: 6}, () => Array(6).fill(0));
 
+function setCell(r, c, figure) {
+  const cell = $("#board")
+    .find("td")
+    .filter(function () {
+      return $(this).data("row") === r && $(this).data("col") === c;
+    });
+
+  if (cell.length && !cell.children().length) {
+    const span = $("<span></span>").text(figure).addClass(figure);
+    cell.append(span);
+    boardState[r][c] = figure === "X" ? 1 : -1;
+  }
+}
+
 function createBoard() {
   const table = $("#board");
   table.empty();
   for (let r = 0; r < 6; r++) {
     const row = $("<tr></tr>");
     for (let c = 0; c < 6; c++) {
-      const cell = $("<td></td>");
+      const cell = $("<td></td>").data("row", r).data("col", c);
+
       cell.on("click", function() {
         if (!cell.children().length) {
-          const span = $("<span></span>").text(current).addClass(current);
-          cell.append(span);
+          setCell(r, c, current);
 
-          // update board state
-          boardState[r][c] = current === "X" ? 1 : -1;
-
-          // Send AJAX request with row, column, figure, and full board
           const startTime = performance.now();
           $.ajax({
             url: "/click",
@@ -54,13 +64,17 @@ function createBoard() {
             success: function(resp) {
               const endTime = performance.now();
               console.log("Server response:", resp, "Time:", (endTime - startTime).toFixed(2), "ms");
+              nr = resp["row"]
+              nc = resp["col"]
+              setCell(nr, nc, "O");
             },
             error: function(err) {
               console.error("AJAX error:", err);
             }
           });
 
-          current = current === "X" ? "O" : "X";
+          //current = current === "X" ? "O" : "X";
+          current = "X";
         }
       });
       row.append(cell);
