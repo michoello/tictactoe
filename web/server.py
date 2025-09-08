@@ -1,6 +1,15 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import random
+from lib import tttc, tttp, pickup_model
+from lib import game
+
+import argparse
+
+parser = argparse.ArgumentParser(description="Web Server running a model")
+parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
+args = parser.parse_args()
+
 
 class TicTacToeHandler(BaseHTTPRequestHandler):
     def address_string(self):
@@ -31,8 +40,17 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             for row in board:
                 print(row)
 
-            empties = [(r, c) for r in range(len(board)) for c in range(len(board[r])) if board[r][c] == 0]
-            ply = random.choice(empties)
+            # Choosing the best next step with model!
+            ply = -1 # zeroes go next
+            boards = game.Board(board).all_next_steps(ply)
+            if len(boards) == 0:
+                print("sorry")
+
+            boards = [(b[0].board, b[1], b[2]) for b in boards]
+            values = self.server.m_zeroes.get_next_step_values(boards)
+            exploration_rate = 0.0
+            step_no = 100 # to eliminate randomness
+            ply = game.choose_next_step(values, -1, step_no, exploration_rate)
 
             # respond
             self.send_response(200)
@@ -46,8 +64,17 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Not found")
 
 
+class TicTacToeServer(HTTPServer):
+    def __init__(self, server_address, RequestHandlerClass, zeroes_model):
+        super().__init__(server_address, RequestHandlerClass)
+        self.m_zeroes = zeroes_model
+
+
+
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", 8080), TicTacToeHandler)
+    print("YOOOOO", args.zeroes_model.split(":"))
+    zeroes_model = pickup_model(*args.zeroes_model.split(":"))
+    server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, zeroes_model)
     print("Server running on port 8080...")
     server.serve_forever()
 

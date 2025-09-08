@@ -1,3 +1,23 @@
+# 2025-09-08
+
+Made a server that really plays (for zeroes only).
+And the way it plays looks really dumb lol!
+Lots of work still ahead.
+
+```
+python3 -m web.server --zeroes_model player:models/fixed_rounds/model-zeroes-956.json
+```
+
+Also an idea for competition:
+
+- We have 8 instances of models: 4 for crosses and 4 zeroes
+- They split into pairs randomly, trained, and then compete everyone with everyone.
+- Then they are ranked and SECOND best models are removed, and replaced with new untrained models.
+  - Either completely new or mutated
+- Process repeats.
+
+This brings kind of evolution in the process.
+
 # 2025-09-05
 
 Added initial webserver, running on 8080
