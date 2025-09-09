@@ -10,6 +10,8 @@ from typing import Any
 import random
 import argparse
 
+from utils import run_parallel
+
 from multiprocessing import Process
 import builtins
 from datetime import datetime
@@ -225,7 +227,8 @@ def versioned_competition(prefix, version, trainee):
     # Play against previous best version
     #
     prv_prefix = "models/with_replay_buffer/model"
-    for prv_v in [version, 200, 400, 900]:
+    #for prv_v in [version, 200, 400, 900]:
+    for prv_v in [200, 400, 900]:
         opponent_model = model_name(prv_prefix, opponent, prv_v)
         m_opponent = tttp.TTTPlayer(opponent_model)
         if trainee == "crosses":
@@ -276,14 +279,13 @@ def main():
         #
         start_ts = print(f"Training for version {version} started")
 
-        processes = [
-            Process(target=train, args=(prefix, version, "crosses",)),
-            Process(target=train, args=(prefix, version, "zeroes",)),
+        tasks = [
+          (train, [prefix, version, "crosses"]),
+          (train, [prefix, version, "zeroes"]),
         ]
-        for p in processes:
-           p.start()
-        for p in processes:
-           p.join()
+
+        results = run_parallel(tasks, max_workers=2)
+
 
         print(f"[ts:{start_ts}] Training for version {version} finished")
 
@@ -295,6 +297,8 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
+        start_ts = print(f"Competition for version {version} started")
+
         trainee = "crosses"
         losing_versions = versioned_competition(prefix, version, trainee)
         print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
@@ -302,6 +306,10 @@ def main():
         trainee = "zeroes"
         losing_versions = versioned_competition(prefix, version, trainee)
         print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
+
+        print(f"[ts:{start_ts}] Competition for version {version} finished")
+
+        sys.exit(0)
 
 
 

@@ -32,23 +32,26 @@ def run_parallel(tasks: List[Tuple[Callable, List[Any]]], max_workers: int) -> L
 
 import time
 
-def add(a, b):
+
+if __name__ == "__main__":
+
+  def add(a, b):
     print("add ", a, b)
     time.sleep(1)
     print("added ", a, b)
     return a + b
 
-def mul(a, b):
+  def mul(a, b):
     print("mul ", a, b)
     time.sleep(2)
     print("muled ", a, b)
     return a * b
 
-tasks = [
+  tasks = [
     (add, [1, 2]),
     (mul, [3, 4]),
     (add, [10, 20]),
-]
+  ]
 
-results = run_parallel(tasks, max_workers=2)
-print(results)  # [3, 12, 30]
+  results = run_parallel(tasks, max_workers=2)
+  print(results)  # [3, 12, 30]
