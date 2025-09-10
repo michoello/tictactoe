@@ -1,7 +1,11 @@
 from lib import game
 from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
+from lib import pickup_model
 from lib import replay_buffer
+
+from utils import run_parallel
+
 import sys
 import os
 import time
@@ -10,7 +14,6 @@ from typing import Any
 import random
 import argparse
 
-from utils import run_parallel
 
 from multiprocessing import Process
 import builtins
@@ -124,9 +127,12 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
+BATCH_SIZE=32
+TRAIN_ITERATIONS = 25
+
 def train_single_round(trainee, m_crosses, m_zeroes, m_student):
 
-    train_boards, train_values = generate_dumb_batch(32, m_crosses, m_zeroes, m_student)
+    train_boards, train_values = generate_dumb_batch(BATCH_SIZE, m_crosses, m_zeroes, m_student)
 
     #
     # Get old memories from buffer
@@ -142,19 +148,14 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
     for i in range(len(train_boards)):
         replay_buffer.maybe_add([train_boards[i], train_values[i]])
 
-
     train_boards.extend(replay_boards)
     train_values.extend(replay_values)
-    #for i in range(len(replay_boards)):
-    #    train_boards.append(replay_boards[i])
-    #    train_values.append(replay_values[i])
 
     #
     # Backward pass
     #
-    train_iterations = 25
-    for i in range(train_iterations):
-        train_loss = 0
+    for i in range(TRAIN_ITERATIONS):
+        #train_loss = 0
         for board, value in zip(train_boards, train_values):
             m_student.x.set(board)
             m_student.y.set([value])
@@ -163,7 +164,7 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
             m_student.apply_gradient()
 
             loss = m_student.loss.val()
-            train_loss = train_loss + loss[0][0]
+            #train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
         print(f"EPOCH {i}: Train loss={train_loss}")
@@ -177,6 +178,23 @@ def sorted_sample(n, m):
     return list(range(n)) if n <= m else sorted(random.sample(range(n), m))
 
 
+NUM_GAMES=10
+
+def fight(trainee, student_model, m_student, opponent_type, opponent_path):
+   print(f"FIGHT! {student_model} vs {opponent_path}: starting")
+   m_opponent = pickup_model(opponent_type, opponent_path)
+   print(f"FIGHT! {student_model} vs {opponent_path}: loaded")
+
+   if trainee == "crosses":
+      m_crosses, m_zeroes = m_student, m_opponent
+   else:
+      m_crosses, m_zeroes = m_opponent, m_student
+
+   winners = game.competition(m_crosses, m_zeroes, NUM_GAMES)
+   print(f"FIGHT! {student_model} vs {opponent_path}: {winners}")
+
+   return winners
+
 # Returns true if student wins over previous version
 def versioned_competition(prefix, version, trainee):
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
@@ -184,58 +202,36 @@ def versioned_competition(prefix, version, trainee):
     student_model = model_name(prefix, trainee, version)
     m_student = tttp.TTTPlayer(student_model)
 
-    #
-    # Play against previous versions
-    #
-    losing_versions = []
-    total_games = 0
-    for v in sorted_sample(version-1, 4) + [version-1]:  # get sample of past versions, and prev one for sure
-        opponent_model = model_name(prefix, opponent, v)
-        m_opponent = tttp.TTTPlayer(opponent_model)
+    # Collect the opponents to play against
+    opponents = []
+    # get sample of past versions, and prev one for sure
+    for v in sorted_sample(version-1, 4) + [version-1]:
+        opponents.append(["player", model_name(prefix, opponent, v)])
 
-        if trainee == "crosses":
-           winners = game.competition(m_student, m_opponent, 20)
-        else:
-           winners = game.competition(m_opponent, m_student, 20)
-        print(f"VERSIONED COMPETITION {trainee} VS {opponent_model}: ", winners)
+    # play with classifier - our first baseline
+    opponents.append(["classifier", "models/model_victory_only.json"])
 
-        if trainee == "zeroes" and winners[-1] < 12:
-           losing_versions.append(v)
-        if trainee == "crosses" and winners[1] < 12:
-           losing_versions.append(v)
-
-        total_games += 1
-
-    win_ratio = 1 - len(losing_versions)/total_games
-
-    won_over_prev = version not in losing_versions
-    if won_over_prev:
-        print(f"VICTORY! STUDENT {trainee}.v{version} WON over {opponent_model}! VICTORY RATIO {win_ratio}")
-
-    #
-    # Play against classifier
-    #
-    opponent_model = "models/model_victory_only.json"
-    m_opponent = tttc.TTTClass(opponent_model)
-    if trainee == "crosses":
-        winners = game.competition(m_student, m_opponent, 20)
-    else:
-        winners = game.competition(m_opponent, m_student, 20)
-    print(f"VICTORY CLASSIFIER COMPETITION {trainee} v{version} won_prev:{won_over_prev}: {winners}, ratio {win_ratio}")
-
-    # 
-    # Play against previous best version
-    #
+    # play against "replay buffer version", first stable
     prv_prefix = "models/with_replay_buffer/model"
-    #for prv_v in [version, 200, 400, 900]:
     for prv_v in [200, 400, 900]:
-        opponent_model = model_name(prv_prefix, opponent, prv_v)
-        m_opponent = tttp.TTTPlayer(opponent_model)
-        if trainee == "crosses":
-            winners = game.competition(m_student, m_opponent, 20)
-        else:
-            winners = game.competition(m_opponent, m_student, 20)
-        print(f"PREVIOUS_BEST MODEL COMPETITION {trainee} v{version} VS {opponent_model}: ", winners)
+        opponents.append(["player", model_name(prv_prefix, opponent, prv_v)])
+
+    # This parallelization does not help yet, but let's keep for future improvements
+    tasks = []
+    for opponent_model in opponents:
+        tasks.append((fight, [trainee, student_model, m_student, *opponent_model]))
+
+    all_winners = run_parallel(tasks, max_workers=2)
+
+    losing_versions = []
+    for winners in all_winners:
+        if trainee == "zeroes" and winners[-1] < winners[1]:
+           losing_versions.append(opponent_model)
+        if trainee == "crosses" and winners[1] < winners[-1]:
+           losing_versions.append(opponent_model)
+
+    win_ratio = 1 - len(losing_versions)/len(opponents) 
+    print(f"Competitions of {student_model} completed. Victory ratio is {win_ratio}")
 
     return losing_versions
 
@@ -245,6 +241,7 @@ def clone_new_version(prefix, from_version, to_version):
     shutil.copyfile(model_name(prefix, "zeroes", from_version), model_name(prefix, "zeroes", to_version))
 
 # --------------------------------------------
+NUM_ROUNDS = 5 
 def train(prefix, version, trainee):
     m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
     m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
@@ -254,7 +251,7 @@ def train(prefix, version, trainee):
 
     print("-------------------------------------------------")
     tr_ts = print(f"Start {m_student.file_name}\n\n")
-    for i in range(10):
+    for i in range(NUM_ROUNDS):
         it_ts = print(f"Start {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
         train_single_round(trainee, m_crosses, m_zeroes, m_student)
         print(f"[ts:{it_ts}] Finish {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
@@ -278,17 +275,12 @@ def main():
         # Train
         #
         start_ts = print(f"Training for version {version} started")
-
         tasks = [
           (train, [prefix, version, "crosses"]),
           (train, [prefix, version, "zeroes"]),
         ]
-
         results = run_parallel(tasks, max_workers=2)
-
-
         print(f"[ts:{start_ts}] Training for version {version} finished")
-
 
         # Next
         version += 1
@@ -297,19 +289,13 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
-        start_ts = print(f"Competition for version {version} started")
+        if version % 5 == 0:
+           start_ts = print(f"Competition for version {version} started")
+           versioned_competition(prefix, version, "crosses")
+           versioned_competition(prefix, version, "zeroes")
+           print(f"[ts:{start_ts}] Competition for version {version} finished")
 
-        trainee = "crosses"
-        losing_versions = versioned_competition(prefix, version, trainee)
-        print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
-
-        trainee = "zeroes"
-        losing_versions = versioned_competition(prefix, version, trainee)
-        print(f"COMPETITION {trainee} version {version}: ", "LOSER" if version in losing_versions else "WINNER")
-
-        print(f"[ts:{start_ts}] Competition for version {version} finished")
-
-        sys.exit(0)
+        #sys.exit(0)
 
 
 

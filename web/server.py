@@ -42,21 +42,35 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
             # Choosing the best next step with model!
             ply = -1 # zeroes go next
-            boards = game.Board(board).all_next_steps(ply)
-            if len(boards) == 0:
+            winner, xyo = game.Board(board).check_winner()
+            response = { "status": "ok" } 
+            if not winner:
+
+              boards = game.Board(board).all_next_steps(ply)
+              if len(boards) == 0:
                 print("sorry")
 
-            boards = [(b[0].board, b[1], b[2]) for b in boards]
-            values = self.server.m_zeroes.get_next_step_values(boards)
-            exploration_rate = 0.0
-            step_no = 100 # to eliminate randomness
-            ply = game.choose_next_step(values, -1, step_no, exploration_rate)
+              boards = [(b[0].board, b[1], b[2]) for b in boards]
+              values = self.server.m_zeroes.get_next_step_values(boards)
+              exploration_rate = 0.0
+              step_no = 100 # to eliminate randomness
+              x, y = game.choose_next_step(values, -1, step_no, exploration_rate)
+
+              response["row"] = x
+              response["col"] = y
+
+              board[x][y] = -1 # zero
+              winner, xyo = game.Board(board).check_winner()
 
             # respond
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            response = { "status": "ok", "row": ply[0], "col": ply[1] } # "received": data }
+
+            if winner: 
+               response["winner"] = winner
+               response["xyo"] = xyo
+
             self.wfile.write(json.dumps(response).encode("utf-8"))
         else:
             self.send_response(404)

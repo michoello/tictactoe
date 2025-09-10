@@ -13,6 +13,7 @@
   td span { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: center; font-size: 6vw; }
   td span.X { color: blue; }
   td span.O { color: green; }
+  td span.V { color: red; }
 </style>
 </head>
 <body>
@@ -24,23 +25,23 @@ let current = "X";
 // 0 = empty, 1 = X, -1 = O
 let boardState = Array.from({length: 6}, () => Array(6).fill(0));
 
-function setCell(r, c, figure) {
+function setCell(r, c, figure, cellClass=figure) {
   const cell = $("#board")
     .find("td")
     .filter(function () {
       return $(this).data("row") === r && $(this).data("col") === c;
     });
 
-  if (cell.length && !cell.children().length) {
-    const span = $("<span></span>").text(figure).addClass(figure);
-    cell.append(span);
-    boardState[r][c] = figure === "X" ? 1 : -1;
-  }
+  const span = $("<span></span>").text(figure).addClass(cellClass);
+  cell.append(span);
+  boardState[r][c] = figure === "X" ? 1 : -1;
 }
 
 function createBoard() {
   const table = $("#board");
   table.empty();
+  table.data("done", false);
+
   for (let r = 0; r < 6; r++) {
     const row = $("<tr></tr>");
     for (let c = 0; c < 6; c++) {
@@ -48,6 +49,12 @@ function createBoard() {
 
       cell.on("click", function() {
         if (!cell.children().length) {
+
+		  if (table.data("done")) {
+		     console.log("Game is over.");
+		     return;
+		  }
+
           setCell(r, c, current);
 
           const startTime = performance.now();
@@ -64,9 +71,18 @@ function createBoard() {
             success: function(resp) {
               const endTime = performance.now();
               console.log("Server response:", resp, "Time:", (endTime - startTime).toFixed(2), "ms");
-              nr = resp["row"]
-              nc = resp["col"]
-              setCell(nr, nc, "O");
+
+			  if ("row" in resp) {
+                setCell(resp.row, resp.col, "O");
+			  }
+			  if ("winner" in resp) {
+				table.data("done", true);
+				console.log("Victory: ", resp.winner);
+                for (let [x, y] of resp.xyo) {
+                   figure = resp.winner === 1 ? "X" : "O";
+                   setCell(x, y, figure, "V");
+                }
+			  }
             },
             error: function(err) {
               console.error("AJAX error:", err);
