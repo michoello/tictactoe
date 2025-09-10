@@ -1,3 +1,9 @@
+# 2025-09-09
+
+Although...
+ sometimes the model even wins (when crosses are defensive):
+![Game board](docs/Imaloser.jpg)
+
 # 2025-09-08
 
 Made a server that really plays (for zeroes only).
