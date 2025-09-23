@@ -1,3 +1,19 @@
+# 2025-09-22
+
+Rounds can be shortened down to 2 (may be even 1, did not try)
+The model still learns, and makes 3000 versions in two days, which
+are comparable in power to previsouly more than week of training.
+Win? A little, but they stop improving unfortunately. Need to add
+competition, and for that temporarily switch to C++
+
+```
+python3 -m web.server --zeroes_model player:models/try_again/model-zeroes-2400.json
+```
+
+Also added colors to web page, and it become apparent that model is not
+expressive enough. It is either "crossy" in mood, or "zeroi", but never
+sharp colored.
+
 # 2025-09-09
 
 Although...

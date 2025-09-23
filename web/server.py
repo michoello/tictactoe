@@ -5,6 +5,7 @@ from lib import tttc, tttp, pickup_model
 from lib import game
 
 import argparse
+import math
 
 parser = argparse.ArgumentParser(description="Web Server running a model")
 parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
@@ -16,16 +17,14 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
         return self.client_address[0]  # skip reverse DNS
 
     def do_GET(self):
-        if self.path in ["/", "/index.html"]:
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            with open("web/index.html", "rb") as f:
-                self.wfile.write(f.read())
+        if self.path.startswith("/tictactoe"):
+          self.send_response(200)
+          self.send_header("Content-type", "text/html")
+          self.end_headers()
+          with open("web/index.html", "rb") as f:
+            self.wfile.write(f.read())
         else:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Not found")
+          self.send_error(404, "gtfo por favor")
 
     def do_POST(self):
         if self.path == "/click":
@@ -58,6 +57,8 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
               response["row"] = x
               response["col"] = y
+              response["values"] = [[round(v or -1, 2) for v in row] for row in values]
+         
 
               board[x][y] = -1 # zero
               winner, xyo = game.Board(board).check_winner()

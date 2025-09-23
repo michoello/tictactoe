@@ -25,16 +25,62 @@ let current = "X";
 // 0 = empty, 1 = X, -1 = O
 let boardState = Array.from({length: 6}, () => Array(6).fill(0));
 
-function setCell(r, c, figure, cellClass=figure) {
-  const cell = $("#board")
-    .find("td")
-    .filter(function () {
-      return $(this).data("row") === r && $(this).data("col") === c;
-    });
+const params = new URLSearchParams(window.location.search);
 
+let bgColor = params.has("color");
+
+function findCell(r, c) {
+  return $("#board")
+        .find("td")
+        .filter(function () {
+                return $(this).data("row") === r && $(this).data("col") === c;
+        });
+}
+
+function setCell(r, c, figure, cellClass=figure) {
   const span = $("<span></span>").text(figure).addClass(cellClass);
-  cell.append(span);
+  findCell(r, c).append(span);
   boardState[r][c] = figure === "X" ? 1 : -1;
+}
+
+function valueToRGB(v) {
+  let r, g, b;
+
+  if (v < 0.5) {
+      // Interpolate between light green (0, 255, 128) and gray (128, 128, 128)
+      let t = v / 0.5; // 0 → 0, 0.5 → 1
+      r = (1 - t) * 0   + t * 128;
+      g = (1 - t) * 255 + t * 128;
+      b = (1 - t) * 128 + t * 128;
+    } else {
+    // Interpolate between gray (128, 128, 128) and light blue (128, 200, 255)
+    let t = (v - 0.5) / 0.5; // 0.5 → 0, 1 → 1
+    r = (1 - t) * 128 + t * 128;
+    g = (1 - t) * 128 + t * 200;
+    b = (1 - t) * 128 + t * 255;
+  }
+
+  return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+}
+
+
+
+function colorCell(r, c, v) {
+  if (!bgColor) {
+     return;
+  }
+  //const shade = Math.round(255 * v);
+  //let color = `rgb(${shade}, ${shade}, ${shade})`;
+  let color = valueToRGB(v);
+  if (v < 0) {
+    //color = `rgb(184, 115, 51)`;
+    color = `rgb(192, 192, 192)`;
+    findCell(r, c).css({
+			"background": "linear-gradient(145deg, #d0d0d0, #c0c0c0 40%, #d5d5d5 60%, #c0c0c0)",
+    });
+  } else {
+    findCell(r, c).css("background-color", color);
+  }
 }
 
 function createBoard() {
@@ -50,10 +96,10 @@ function createBoard() {
       cell.on("click", function() {
         if (!cell.children().length) {
 
-		  if (table.data("done")) {
-		     console.log("Game is over.");
-		     return;
-		  }
+          if (table.data("done")) {
+             console.log("Game is over.");
+             return;
+          }
 
           setCell(r, c, current);
 
@@ -72,17 +118,26 @@ function createBoard() {
               const endTime = performance.now();
               console.log("Server response:", resp, "Time:", (endTime - startTime).toFixed(2), "ms");
 
-			  if ("row" in resp) {
+              if ("row" in resp) {
                 setCell(resp.row, resp.col, "O");
-			  }
-			  if ("winner" in resp) {
-				table.data("done", true);
-				console.log("Victory: ", resp.winner);
+              }
+
+              if ("values" in resp) {
+                for (let row = 0; row < 6; row++) {
+                  for (let col = 0; col < 6; col++) {
+                    colorCell(row, col, resp.values[row][col]);
+                  }
+                }
+              }
+
+              if ("winner" in resp) {
+                table.data("done", true);
+                console.log("Victory: ", resp.winner);
                 for (let [x, y] of resp.xyo) {
                    figure = resp.winner === 1 ? "X" : "O";
                    setCell(x, y, figure, "V");
                 }
-			  }
+              }
             },
             error: function(err) {
               console.error("AJAX error:", err);
