@@ -74,17 +74,21 @@ class TestHelloWorld(unittest.TestCase):
 
         self.assertEqual(y.val(), [[15, 18, 21]])
 
-        loss = y.mse(ml.BB([[0, 0, 0]]))
-        self.assertEqual(loss.val(), [[225, 324, 441]])
+        loss = y.mse(ml.BB([[3, 4, 5]]))
+        self.assertEqual(loss.val(), [[144, 196, 256]])
 
         loss.dif()
-        self.assertEqual(loss.dval(), [[15, 18, 21]])
+        self.assertEqual(loss.dval(), [[12, 14, 16]])
 
+        # Check the gradient of weights, apply it and check that loss values decreased
+        self.assertTrue(roughlyEqual(w.dval(), [[12, 14, 16], [24, 28, 32]]))
         w.appl(0.01)
-        self.assertTrue(roughlyEqual(loss.val(), [[203.06, 292.41, 398.00]]))
+        self.assertTrue(roughlyEqual(loss.val(), [[129.96, 176.89, 231.04]]))
 
-        x.appl(0.01)
-        self.assertTrue(roughlyEqual(loss.val(), [[195.02, 284.87, 391.68]]))
+        # Check the gradient of inputs, apply it and check that loss values decreased
+        self.assertTrue(roughlyEqual(x.dval(), [[172, 298]]))
+        x.appl(0.001)
+        self.assertTrue(roughlyEqual(loss.val(), [[84.42, 113.07, 145.9]]))
 
     def test_bce_loss(self):
         x = ml.BB([[0.1, -0.2]])
