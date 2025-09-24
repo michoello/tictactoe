@@ -101,9 +101,16 @@ class TestHelloWorld(unittest.TestCase):
         loss = y.bce(ml.BB([[0, 1, 0.468]]))
         self.assertTrue(roughlyEqual(loss.val(), [[0.75, 0.739, 0.691]], 3))
 
+        # First calculate the grad for `y`, just to check values
+        y.dif([[1, 1, 1]])
+        self.assertTrue(roughlyEqual(y.dval(), [[ 0.2492, 0.2495, 0.2489 ]], 4))
+
+        # Not let's check the grad starting from the `loss`, the real one
         loss.dif()
-        # self.assertTrue(roughlyEqual(loss.dval(), [[ 0.527, -0.522, -0.000]], 3))
         self.assertTrue(roughlyEqual(loss.dval(), [[2.116, -2.094, -0.002]], 3))
+
+        # Now check that `y` grads are very diffferent
+        self.assertTrue(roughlyEqual(y.dval(), [[ 0.527, -0.522, -0.0004 ]], 3))
 
         w.appl(1.0)
         # Check that loss decreased
