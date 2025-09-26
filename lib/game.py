@@ -230,10 +230,10 @@ def print_scores(values):
             bg_color = "\033[100m" if (i + j) % 2 == 0 else "\033[40m"
             score = round(value * 100) if value is not None else "  "
             if value is not None:
-               score = round(value * 100)
-               print(bg_color + f" {score:02}" + "\033[0m", end="")
+                score = round(value * 100)
+                print(bg_color + f" {score:02}" + "\033[0m", end="")
             else:
-               print(bg_color + f"   " + "\033[0m", end="")
+                print(bg_color + f"   " + "\033[0m", end="")
 
         print()
 

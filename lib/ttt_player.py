@@ -57,12 +57,11 @@ class TTTPlayer:
 
             model_json = json.loads(model_dump)
             if isinstance(model_json, list):
-               # Old format
-               self.loss.from_json(model_json)
+                # Old format
+                self.loss.from_json(model_json)
             else:
-               self.loss.from_json(model_json["data"])
-               self.replay_buffer.from_json(model_json["replay_buffer"])
-
+                self.loss.from_json(model_json["data"])
+                self.replay_buffer.from_json(model_json["replay_buffer"])
 
     def save_to_file(self, file_name):
         with open(file_name, "w") as file:

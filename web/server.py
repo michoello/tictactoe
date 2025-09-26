@@ -18,13 +18,13 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/tictactoe"):
-          self.send_response(200)
-          self.send_header("Content-type", "text/html")
-          self.end_headers()
-          with open("web/index.html", "rb") as f:
-            self.wfile.write(f.read())
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            with open("web/index.html", "rb") as f:
+                self.wfile.write(f.read())
         else:
-          self.send_error(404, "gtfo por favor")
+            self.send_error(404, "gtfo por favor")
 
     def do_POST(self):
         if self.path == "/click":
@@ -40,37 +40,38 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 print(row)
 
             # Choosing the best next step with model!
-            ply = -1 # zeroes go next
+            ply = -1  # zeroes go next
             winner, xyo = game.Board(board).check_winner()
-            response = { "status": "ok" } 
+            response = {"status": "ok"}
             if not winner:
 
-              boards = game.Board(board).all_next_steps(ply)
-              if len(boards) == 0:
-                print("sorry")
+                boards = game.Board(board).all_next_steps(ply)
+                if len(boards) == 0:
+                    print("sorry")
 
-              boards = [(b[0].board, b[1], b[2]) for b in boards]
-              values = self.server.m_zeroes.get_next_step_values(boards)
-              exploration_rate = 0.0
-              step_no = 100 # to eliminate randomness
-              x, y = game.choose_next_step(values, -1, step_no, exploration_rate)
+                boards = [(b[0].board, b[1], b[2]) for b in boards]
+                values = self.server.m_zeroes.get_next_step_values(boards)
+                exploration_rate = 0.0
+                step_no = 100  # to eliminate randomness
+                x, y = game.choose_next_step(values, -1, step_no, exploration_rate)
 
-              response["row"] = x
-              response["col"] = y
-              response["values"] = [[round(v or -1, 2) for v in row] for row in values]
-         
+                response["row"] = x
+                response["col"] = y
+                response["values"] = [
+                    [round(v or -1, 2) for v in row] for row in values
+                ]
 
-              board[x][y] = -1 # zero
-              winner, xyo = game.Board(board).check_winner()
+                board[x][y] = -1  # zero
+                winner, xyo = game.Board(board).check_winner()
 
             # respond
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
 
-            if winner: 
-               response["winner"] = winner
-               response["xyo"] = xyo
+            if winner:
+                response["winner"] = winner
+                response["xyo"] = xyo
 
             self.wfile.write(json.dumps(response).encode("utf-8"))
         else:
@@ -85,11 +86,9 @@ class TicTacToeServer(HTTPServer):
         self.m_zeroes = zeroes_model
 
 
-
 if __name__ == "__main__":
     print("YOOOOO", args.zeroes_model.split(":"))
     zeroes_model = pickup_model(*args.zeroes_model.split(":"))
     server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, zeroes_model)
     print("Server running on port 8080...")
     server.serve_forever()
-

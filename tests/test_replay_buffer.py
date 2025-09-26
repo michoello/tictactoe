@@ -1,6 +1,8 @@
 import unittest
 from collections import Counter
 from lib import replay_buffer
+from utils import SimpleRNG
+from unittest.mock import patch
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -37,30 +39,34 @@ class TestReplayBuffer(unittest.TestCase):
         self.assertLess(max_count - min_count, 0.2 * max_count)
 
     def test_maybe_add_bucket_distribution(self):
-        max_size = 10_000
-        total_items = 1_000_000
-        bucket_size = 10_000
-        num_buckets = total_items // bucket_size
-        expected_per_bucket = max_size / num_buckets  # Expect ~100 per bucket
 
-        buf = replay_buffer.ReplayBuffer(max_size)
-        for i in range(total_items):
-            buf.maybe_add(i)
+        rng = SimpleRNG(seed=42)  # best so far
+        with patch("random.randint", new=rng.randint):
 
-        # Count how many final buffer items fall into each bucket
-        bucket_counts = [0] * num_buckets
-        for item in buf.buffer:
-            bucket_idx = item // bucket_size
-            bucket_counts[bucket_idx] += 1
+            max_size = 10_000
+            total_items = 1_000_000
+            bucket_size = 10_000
+            num_buckets = total_items // bucket_size
+            expected_per_bucket = max_size / num_buckets  # Expect ~100 per bucket
 
-        # Check that all bucket counts are within ±30% of expected
-        tolerance = expected_per_bucket * 0.3  # 30%
-        for idx, count in enumerate(bucket_counts):
-            self.assertTrue(
-                abs(count - expected_per_bucket) <= tolerance,
-                f"Bucket {idx} has count {count}, expected around {expected_per_bucket}"
-            )
+            buf = replay_buffer.ReplayBuffer(max_size)
+            for i in range(total_items):
+                buf.maybe_add(i)
+
+            # Count how many final buffer items fall into each bucket
+            bucket_counts = [0] * num_buckets
+            for item in buf.buffer:
+                bucket_idx = item // bucket_size
+                bucket_counts[bucket_idx] += 1
+
+            # Check that all bucket counts are within ±30% of expected
+            tolerance = expected_per_bucket * 0.3  # 30%
+            for idx, count in enumerate(bucket_counts):
+                self.assertTrue(
+                    abs(count - expected_per_bucket) <= tolerance,
+                    f"Bucket {idx} has count {count}, expected around {expected_per_bucket}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description="Train your model")
 
 parser.add_argument("--init_model", type=str, help="Path to the initial model file")
 parser.add_argument("--save_to_model", type=str, help="Path to save the trained model")
-#parser.add_argument("--trainee", choices=["crosses", "zeroes"], help="Choose whom to train: 'crosses' or 'zeroes'")
+# parser.add_argument("--trainee", choices=["crosses", "zeroes"], help="Choose whom to train: 'crosses' or 'zeroes'")
 
 
 # -------------------------------------------
@@ -19,12 +19,15 @@ parser.add_argument("--save_to_model", type=str, help="Path to save the trained 
 class Tee:
     def __init__(self, *streams):
         self.streams = streams
+
     def write(self, data):
         for s in self.streams:
             s.write(data)
+
     def flush(self):
         for s in self.streams:
             s.flush()
+
 
 # Open your log file
 logfile = open("output.log", "w")
@@ -109,7 +112,7 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
     train_boards, train_values = generate_balanced_batch(32, m_crosses, m_zeroes)
 
     for i in range(len(train_boards)):
-       m_student.replay_buffer.maybe_add([train_boards[i], train_values[i]])
+        m_student.replay_buffer.maybe_add([train_boards[i], train_values[i]])
 
     # Backward pass
     train_iterations = 25
@@ -128,22 +131,22 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
         train_loss = calc_loss(m_student, train_boards, train_values)
         print(f"EPOCH {epoch}/{i}: Train loss={train_loss}")
 
+
 # Returns true if student wins
 def competition(m_crosses, m_zeroes, trainee):
     winners = game.competition(m_crosses, m_zeroes, 20)
     print("COMPETITION RESULTS: ", winners)
 
     if trainee == "zeroes" and winners[-1] > winners[1] + 2:
-       return True
-        
+        return True
+
     if trainee == "crosses" and winners[1] > winners[-1] + 2:
-       return True
+        return True
     return False
 
 
-
 def model_name(prefix, trainee, version):
-   return f"{prefix}-{trainee}-{version}.json"
+    return f"{prefix}-{trainee}-{version}.json"
 
 
 def versioned_competition(trainee, m_student, version, prefix):
@@ -151,13 +154,12 @@ def versioned_competition(trainee, m_student, version, prefix):
     for v in range(1, version):
         m_opponent = tttp.TTTPlayer(model_name(prefix, opponent, v))
         if trainee == "zeroes":
-           m_crosses, m_zeroes = m_opponent, m_student
+            m_crosses, m_zeroes = m_opponent, m_student
         else:
-           m_crosses, m_zeroes = m_student, m_opponent
+            m_crosses, m_zeroes = m_student, m_opponent
 
         winners = game.competition(m_opponent, m_zeroes, 20)
         print(f"COMPETITION RESULTS: for version {v} ", winners)
-
 
 
 # --------------------------------------------
@@ -166,7 +168,7 @@ def main():
     if args.init_model is not None:
         print(f"Init player model: {args.init_model}")
         m_student.load_from_file(args.init_model)
-    
+
     m_crosses = tttc.TTTClass("models/model_victory_only.json")
     m_zeroes = tttc.TTTClass("models/model_victory_only.json")
 
@@ -175,7 +177,7 @@ def main():
     epoch = 0
 
     prefix = args.save_to_model
-    
+
     while True:
         epoch += 1
         print("-------------------------------------------------")
@@ -185,39 +187,36 @@ def main():
 
         # Now we will generate next batch using our student as one of the players
         if trainee == "zeroes":
-           m_zeroes = m_student
+            m_zeroes = m_student
         if trainee == "crosses":
-           m_crosses = m_student
-
+            m_crosses = m_student
 
         versioned_competition(trainee, m_student, version, prefix)
 
         # Compete and check if student wins now.
         student_won = competition(m_crosses, m_zeroes, trainee)
         if student_won:
-           # If it does, save the model version, and start training the other player
-           model_file = model_name(prefix, trainee, version)
+            # If it does, save the model version, and start training the other player
+            model_file = model_name(prefix, trainee, version)
 
-           print(f"STUDENT {trainee} WON! SAVING {model_file} AND SWITCHING")
-           m_student.save_to_file(model_file) 
+            print(f"STUDENT {trainee} WON! SAVING {model_file} AND SWITCHING")
+            m_student.save_to_file(model_file)
 
-           trainee = "zeroes" if trainee == "crosses" else "crosses"
-           if trainee == "zeroes":
-              version += 1
-           epoch = 0
+            trainee = "zeroes" if trainee == "crosses" else "crosses"
+            if trainee == "zeroes":
+                version += 1
+            epoch = 0
 
-           if trainee == "crosses":
-               # TODO: make it straight, too ugly now
-               if version == 1:
-                   m_student = tttp.TTTPlayer()
-               else:
-                   m_student = m_crosses
-           else:
-               m_student = m_zeroes
-           #m_student = m_crosses if trainee == "crosses" else m_zeroes
-
+            if trainee == "crosses":
+                # TODO: make it straight, too ugly now
+                if version == 1:
+                    m_student = tttp.TTTPlayer()
+                else:
+                    m_student = m_crosses
+            else:
+                m_student = m_zeroes
+            # m_student = m_crosses if trainee == "crosses" else m_zeroes
 
 
 if __name__ == "__main__":
     main()
-
