@@ -100,6 +100,12 @@ class TestHelloWorld(unittest.TestCase):
         # Now check that `y` grads are very diffferent
         self.assertTrue(roughlyEqual(y.dval(), [[0.527, -0.522, -0.0004]], 3))
 
+        
+        self.assertTrue(roughlyEqual(w.dval(), [
+             [0.0527, -0.052, -4.543/100000],
+             [-0.105, 0.104, 9.086/100000]
+        ], 3))
+
         w.appl(1.0)
         # Check that loss decreased
         self.assertTrue(roughlyEqual(loss.val(), [[0.736, 0.726, 0.691]]))
