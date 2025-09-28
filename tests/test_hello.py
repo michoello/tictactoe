@@ -99,7 +99,6 @@ class TestHelloWorld(unittest.TestCase):
 
         # Now check that `y` grads are very diffferent
         self.assertTrue(roughlyEqual(y.dval(), [[0.527, -0.522, -0.0004]], 3))
-
         
         self.assertTrue(roughlyEqual(w.dval(), [
              [0.0527, -0.052, -4.543/100000],
@@ -107,6 +106,11 @@ class TestHelloWorld(unittest.TestCase):
         ], 3))
 
         w.appl(1.0)
+        self.assertTrue(roughlyEqual(w.val(), [
+            [-0.153, 0.552, 0.3],
+            [-0.495, 0.596, 0.8]
+        ], 3))
+
         # Check that loss decreased
         self.assertTrue(roughlyEqual(loss.val(), [[0.736, 0.726, 0.691]]))
 
@@ -114,6 +118,8 @@ class TestHelloWorld(unittest.TestCase):
         self.assertTrue(roughlyEqual(y.val(), [[0.521, 0.484, 0.468]], 3))
 
         x.appl(0.01)
+        self.assertTrue(roughlyEqual(x.val(), [[0.103, -0.193]], 3))
+
         # Check that updating x also reduces the loss
         self.assertTrue(roughlyEqual(loss.val(), [[0.734, 0.723, 0.691]], 3))
 
