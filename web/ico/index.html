@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+            <meta charset="UTF-8">
+                <title>Letter Favicon Selector</title>
+    </head>
+    <body>
+
+   <h1>Select a letter to set favicon</h1>
+   <div id="letters"></div>
+   <script>
+           const container = document.getElementById('letters');
+             const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+             letters.split("").forEach(letter => {
+                 const a = document.createElement('a');
+                 a.href = "#";
+                 a.textContent = letter;
+                 a.style.margin = "5px";
+                 a.style.fontSize = "20px";
+                 a.style.display = "inline-block";
+
+                 a.addEventListener('click', (e) => {
+                   e.preventDefault();
+
+                   // Remove existing favicon
+                   document.querySelectorAll('link[rel="icon"]').forEach(link => link.remove());
+
+                   // Create new favicon link
+                   const link = document.createElement('link');
+                   link.rel = 'icon';
+                   link.href = `/ico/icons/${letter}.ico`; // adjust path as needed
+                   document.head.appendChild(link);
+                     });
+
+                 container.appendChild(a);
+             });
+    </script>
+</body>
+</html>
