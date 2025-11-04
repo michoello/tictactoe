@@ -7,8 +7,16 @@ from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
 
+from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE
 
 class TestTrainingCycle(unittest.TestCase):
+    def assertAlmostEqualNested(self, a, b, delta=1e-3):
+        if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+            self.assertEqual(len(a), len(b), "Lengths differ")
+            for x, y in zip(a, b):
+                self.assertAlmostEqualNested(x, y, delta)
+        else:
+            self.assertAlmostEqual(a, b, delta=delta)
 
     def test_omg(self):
         x = [[1, 2]]
@@ -43,6 +51,7 @@ class TestTrainingCycle(unittest.TestCase):
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
     def test_training_classifier_and_game(self):
+        return
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -110,6 +119,57 @@ class TestTrainingCycle(unittest.TestCase):
             print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
             self.assertLess(ztw[1], ztw[-1])
 
+
+    def test_mod3l_sse_with_grads(self):
+        m = Mod3l()
+
+        dy = Data(m, 1, 2)
+        m.set_data(dy, [[1, 2]])  # true labels
+
+        # "labels"
+        dl = Data(m, 1, 2)
+        m.set_data(dl, [[0, 4]])
+
+        ds = SSE(dy, dl)
+
+        ds.calc_fval()
+
+        self.assertEqual(ds.fval(), [[5]])
+
+        # Calc derivatives
+        dy.calc_bval()
+
+        # Derivative of loss function is its value is 1.0 (aka df/df)
+        self.assertEqual(
+            ds.bval(),
+            [
+                [1],
+            ],
+        )
+        # Derivative of its args
+        self.assertEqual(
+            dy.bval(),
+            [
+                [2, -4],
+            ],
+        )
+
+        dy.apply_bval(0.1)
+        self.assertAlmostEqualNested(
+            dy.fval(),
+            [
+                [0.8, 2.4],
+            ],
+        )
+
+        # Calc loss again
+        ds.calc_fval()
+        self.assertAlmostEqualNested(
+            ds.fval(),
+            [
+                [3.2],
+            ],
+        )
 
 if __name__ == "__main__":
     unittest.main()

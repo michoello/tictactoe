@@ -1,3 +1,10 @@
+# 2025-11-03
+
+After more than a month of works in `python_cpp` repo,
+tha smart library is oficially ready alpha
+and integrated here! Integration is two files in listinvert subdir.
+First test added.
+
 # 2025-09-22
 
 Rounds can be shortened down to 2 (may be even 1, did not try)
