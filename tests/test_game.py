@@ -50,7 +50,7 @@ class TestTrainingCycle(unittest.TestCase):
         # Check that yy (which is xx @ ww) is also updated
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
-    def test_training_classifier_and_game(self):
+    def test_training_player_and_game(self):
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -152,6 +152,26 @@ class TestTrainingCycle(unittest.TestCase):
                 [3.2],
             ],
         )
+
+    def test_training_player_single_iter(self):
+        rng = SimpleRNG(seed=1)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            m = ttt.TTTPlayer()
+
+            train_boards, train_winners = game.generate_batch(3)
+            m.x.set(train_boards[0])
+            m.y.set(train_winners)
+
+            self.assertAlmostEqualNested(m.loss.val(), [[0.005717]], 1e-6)
+            m.loss.dif()
+            m.apply_gradient()
+            self.assertAlmostEqualNested(m.loss.val(), [[0.005709]], 1e-6)
+
+
 
 if __name__ == "__main__":
     unittest.main()
