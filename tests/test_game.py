@@ -64,11 +64,8 @@ class TestTrainingCycle(unittest.TestCase):
             m.save_to_file(init_model)
 
             print("Training")
-            best_test_loss = 10**1000
+            total_epochs = 25  # can be as little as 10, but let's keep it as this
             test_boards, test_winners = game.generate_batch(20)
-
-            total_epochs = 100
-            good_enough_reached = False
             for epoch in range(total_epochs):
                 train_boards, train_winners = game.generate_batch(20)
 
@@ -85,12 +82,8 @@ class TestTrainingCycle(unittest.TestCase):
                         m.y.set([winner])
                         test_loss = test_loss + m.loss.val()[0][0]
 
-                    if test_loss < best_test_loss:
-                        m.save_to_file(trained_model)
-                        print(f"SAVED: {epoch} {test_loss} {i}")
-                        best_test_loss = test_loss
-
                 if epoch % 5 == 0:
+                    m.save_to_file(trained_model)
                     print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
 
