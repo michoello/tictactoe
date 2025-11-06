@@ -2,7 +2,7 @@ import unittest
 from lib import ml
 from lib import game
 import tempfile
-from lib import ttt_classifier as ttt
+from lib import ttt_player as ttt
 from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
@@ -51,7 +51,6 @@ class TestTrainingCycle(unittest.TestCase):
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
     def test_training_classifier_and_game(self):
-        return
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -61,7 +60,7 @@ class TestTrainingCycle(unittest.TestCase):
             init_model = tempfile.mktemp()
             trained_model = tempfile.mktemp()
 
-            m = ttt.TTTClass()
+            m = ttt.TTTPlayer()
             m.save_to_file(init_model)
 
             print("Training")
@@ -73,8 +72,7 @@ class TestTrainingCycle(unittest.TestCase):
             for epoch in range(total_epochs):
                 train_boards, train_winners = game.generate_batch(20)
 
-                for i in range(20):
-
+                for i in range(2):
                     for board, winner in zip(train_boards, train_winners):
                         m.x.set(board)
                         m.y.set([winner])
@@ -89,25 +87,16 @@ class TestTrainingCycle(unittest.TestCase):
 
                     if test_loss < best_test_loss:
                         m.save_to_file(trained_model)
+                        print(f"SAVED: {epoch} {test_loss} {i}")
                         best_test_loss = test_loss
 
-                if epoch % 5 == 0 or best_test_loss < 2.9:
+                if epoch % 5 == 0:
                     print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
-                    if best_test_loss < 2.9:
-                        # good enough - sometimes it does not re
-                        good_enough_reached = True
-                        break
 
-            if not good_enough_reached:
-                print("!!!!!!!!!!!!!")
-                print(
-                    "Did not train till good test loss. TODO: find out why this is happening (bad init weights?) "
-                )
-                print("Test will prob fail. Rerun it then")
 
             print("Playing...")
-            random_model = ttt.TTTClass(init_model)
-            trained_model = ttt.TTTClass(trained_model)
+            random_model = ttt.TTTPlayer(init_model)
+            trained_model = ttt.TTTPlayer(trained_model)
 
             # ctw = crosses_trained_winners
             ctw = game.competition(trained_model, random_model, 20)
