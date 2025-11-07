@@ -7,7 +7,13 @@ from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
 
-from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE
+from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
+
+def DData(mod3l, rows, cols, values):
+    res = Data(mod3l, rows, cols)
+    mod3l.set_data(res, values)
+    return res
+
 
 class TestTrainingCycle(unittest.TestCase):
     def assertAlmostEqualNested(self, a, b, delta=1e-3):
@@ -172,6 +178,76 @@ class TestTrainingCycle(unittest.TestCase):
             self.assertAlmostEqualNested(m.loss.val(), [[0.005709]], 1e-6)
 
 
+    def test_py_cpp_models_compare(self):
+        rng = SimpleRNG(seed=1)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            m_py = ttt.TTTPlayer()
+
+        rng = SimpleRNG(seed=1)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            m = Mod3l()
+            x = DData(m, 6, 6, ml.random_matrix(6, 6)) 
+            w1 = DData(m, 36, 64, ml.random_matrix(36, 64))
+            b1 = DData(m, 1, 64, ml.random_matrix(1, 64))
+
+            w2 = DData(m, 64, 32, ml.random_matrix(64, 32))
+            b2 = DData(m, 1, 32, ml.random_matrix(1, 32))
+
+            w3 = DData(m, 32, 1, ml.random_matrix(32, 1))
+            b3 = DData(m, 1, 1, ml.random_matrix(1, 1))
+
+            z0 = Reshape(x, 1, 36)
+            z1 = Sigmoid(Add(MatMul(z0, w1), b1))
+            z2 = Sigmoid(Add(MatMul(z1, w2), b2))
+            z3 = Sigmoid(Add(MatMul(z2, w3), b3))
+
+            y = DData(m, 1, 1, ml.random_matrix(1, 1))
+            loss = BCE(z3, y)
+
+            loss.calc_fval()
+
+        self.assertAlmostEqualNested(m_py.x.val(), x.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z1.val(), z1.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.val(), z3.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.val(), loss.fval(), 1e-6)
+
+        m_py.loss.dif()
+
+        w1.calc_bval()
+        b3.calc_bval()
+        self.assertAlmostEqualNested(m_py.loss.dval(), z3.bval(), 1e-6)
+        return
+
+        # TODO: make the rest work:
+        print("111", m_py.b3.dval())
+        print("222", b3.bval())
+
+
+        b1.calc_bval()
+        w2.calc_bval()
+        b2.calc_bval()
+        w3.calc_bval()
+        b3.calc_bval()
+
+        m_py.apply_gradient()
+
+
+        w1.apply_bval(0.01)
+        b1.apply_bval(0.01)
+        w2.apply_bval(0.01)
+        b2.apply_bval(0.01)
+        w3.apply_bval(0.01)
+        b3.apply_bval(0.01)
+        loss.calc_fval()
+        self.assertAlmostEqualNested(m_py.loss.val(), loss.fval(), 1e-6)
 
 if __name__ == "__main__":
     unittest.main()
