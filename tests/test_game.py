@@ -207,7 +207,10 @@ class TestTrainingCycle(unittest.TestCase):
             z0 = Reshape(x, 1, 36)
             z1 = Sigmoid(Add(MatMul(z0, w1), b1))
             z2 = Sigmoid(Add(MatMul(z1, w2), b2))
-            z3 = Sigmoid(Add(MatMul(z2, w3), b3))
+            #z3 = Sigmoid(Add(MatMul(z2, w3), b3))
+            zm = MatMul(z2, w3)
+            za = Add(zm, b3)
+            z3 = Sigmoid(za)
 
             y = DData(m, 1, 1, ml.random_matrix(1, 1))
             loss = BCE(z3, y)
@@ -222,13 +225,30 @@ class TestTrainingCycle(unittest.TestCase):
         m_py.loss.dif()
 
         w1.calc_bval()
+        w3.calc_bval()
         b3.calc_bval()
-        self.assertAlmostEqualNested(m_py.loss.dval(), z3.bval(), 1e-6)
-        return
 
+        # The "flow" or "operational" blocks have this discrepancy a bit between
+        # old python and new cpp implementations:
+        self.assertAlmostEqualNested(m_py.loss.dval(), z3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.dval(), za.bval(), 1e-6)
+
+        # But the weights back values (grads) are consistent:
+        self.assertAlmostEqualNested(m_py.w3.dval(), w3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b3.dval(), b3.bval(), 1e-6)
+
+
+        return
         # TODO: make the rest work:
-        print("111", m_py.b3.dval())
-        print("222", b3.bval())
+        #print()
+        #print("111 #pyz3", m_py.z3.dval())
+        #print("222 z3", z3.bval())
+        #print("222 za", za.bval())
+        #print("222 zm", zm.bval())
+        #print("222 b3", b3.bval())
+        #print("222 z2", z2.bval())
+        #print("222 w3", w3.bval())
+        #print("111 #pyw3", m_py.w3.dval())
 
 
         b1.calc_bval()
