@@ -225,7 +225,10 @@ class TestTrainingCycle(unittest.TestCase):
         m_py.loss.dif()
 
         w1.calc_bval()
+        w2.calc_bval()
         w3.calc_bval()
+        b1.calc_bval()
+        b2.calc_bval()
         b3.calc_bval()
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
@@ -237,28 +240,14 @@ class TestTrainingCycle(unittest.TestCase):
         self.assertAlmostEqualNested(m_py.w3.dval(), w3.bval(), 1e-6)
         self.assertAlmostEqualNested(m_py.b3.dval(), b3.bval(), 1e-6)
 
+        self.assertAlmostEqualNested(m_py.w2.dval(), w2.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b2.dval(), b2.bval(), 1e-6)
 
-        return
-        # TODO: make the rest work:
-        #print()
-        #print("111 #pyz3", m_py.z3.dval())
-        #print("222 z3", z3.bval())
-        #print("222 za", za.bval())
-        #print("222 zm", zm.bval())
-        #print("222 b3", b3.bval())
-        #print("222 z2", z2.bval())
-        #print("222 w3", w3.bval())
-        #print("111 #pyw3", m_py.w3.dval())
+        self.assertAlmostEqualNested(m_py.w1.dval(), w1.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b1.dval(), b1.bval(), 1e-6)
 
-
-        b1.calc_bval()
-        w2.calc_bval()
-        b2.calc_bval()
-        w3.calc_bval()
-        b3.calc_bval()
-
+        # Now apply grads and check that thee results match
         m_py.apply_gradient()
-
 
         w1.apply_bval(0.01)
         b1.apply_bval(0.01)
@@ -266,6 +255,7 @@ class TestTrainingCycle(unittest.TestCase):
         b2.apply_bval(0.01)
         w3.apply_bval(0.01)
         b3.apply_bval(0.01)
+
         loss.calc_fval()
         self.assertAlmostEqualNested(m_py.loss.val(), loss.fval(), 1e-6)
 
