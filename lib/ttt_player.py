@@ -5,6 +5,8 @@ import copy
 import math
 import json
 
+from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
+
 START_VALUES = [
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
@@ -17,13 +19,44 @@ START_VALUES = [
 # START_VALUES = [ [None]*6 for _ in range(6)]
 
 
+def DData(mod3l, rows, cols, values):
+    res = Data(mod3l, rows, cols)
+    mod3l.set_data(res, values)
+    return res
+
+
 # Simple player based on board position value
 class TTTPlayer:
-    def __init__(self, file_to_load_from=None):
+    def __init__(self, file_to_load_from=None, enable_cpp=False):
 
-        self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
-        self.file_name = None
+      self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
+      self.file_name = None
+      self.enable_cpp = enable_cpp
+      if enable_cpp:
+           self.m = Mod3l()
+           self.x = DData(self.m, 6, 6, ml.random_matrix(6, 6)) 
+           self.w1 = DData(self.m, 36, 64, ml.random_matrix(36, 64))
+           self.b1 = DData(self.m, 1, 64, ml.random_matrix(1, 64))
 
+           self.w2 = DData(self.m, 64, 32, ml.random_matrix(64, 32))
+           self.b2 = DData(self.m, 1, 32, ml.random_matrix(1, 32))
+
+           self.w3 = DData(self.m, 32, 1, ml.random_matrix(32, 1))
+           self.b3 = DData(self.m, 1, 1, ml.random_matrix(1, 1))
+
+           self.z0 = Reshape(self.x, 1, 36)
+           self.z1 = Sigmoid(Add(MatMul(self.z0, self.w1), self.b1))
+           self.z2 = Sigmoid(Add(MatMul(self.z1, self.w2), self.b2))
+           # this 3 lines instead of 1 is only for the test showcase
+           #z3 = Sigmoid(Add(MatMul(z2, w3), b3))
+           self.zm = MatMul(self.z2, self.w3)
+           self.za = Add(self.zm, self.b3)
+           self.z3 = Sigmoid(self.za)
+
+           self.y = DData(self.m, 1, 1, ml.random_matrix(1, 1))
+           self.loss = BCE(self.z3, self.y)
+
+      else:
         self.x = ml.BB(ml.random_matrix(6, 6))
 
         self.w1 = ml.BB(ml.random_matrix(36, 64))
@@ -47,8 +80,8 @@ class TTTPlayer:
         # self.loss = self.prediction.mse(self.y)
         self.loss = self.prediction.bce(self.y)
 
-        if file_to_load_from is not None:
-            self.load_from_file(file_to_load_from)
+      if file_to_load_from is not None:
+        self.load_from_file(file_to_load_from)
 
     def load_from_file(self, file_name):
         self.file_name = file_name
@@ -85,22 +118,30 @@ class TTTPlayer:
 
     def apply_gradient(self):
 
-        norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
+      norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
 
-        alpha = 0.01
-        # TODO: interesting! explore more
-        # w1norm = norm(self.w1.val())
-        # w1dnorm = norm(self.w1.dval())
-        # alpha = 0.01
-        # if w1dnorm / w1norm < 0.01:
-        #    alpha = 0.1
-        # if w1dnorm / w1norm > 1000:
-        #    alpha = 0.001
-        # alpha = 0.0001
-
+      alpha = 0.01
+      # TODO: interesting! explore more
+      # w1norm = norm(self.w1.val())
+      # w1dnorm = norm(self.w1.dval())
+      # alpha = 0.01
+      # if w1dnorm / w1norm < 0.01:
+      #    alpha = 0.1
+      # if w1dnorm / w1norm > 1000:
+      #    alpha = 0.001
+      # alpha = 0.0001
+      if not self.enable_cpp: 
         self.w1.appl(alpha)
         self.b1.appl(alpha)
         self.w2.appl(alpha)
         self.b2.appl(alpha)
         self.w3.appl(alpha)
         self.b3.appl(alpha)
+      else:
+        self.w1.apply_bval(alpha)
+        self.b1.apply_bval(alpha)
+        self.w2.apply_bval(alpha)
+        self.b2.apply_bval(alpha)
+        self.w3.apply_bval(alpha)
+        self.b3.apply_bval(alpha)
+

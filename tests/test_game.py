@@ -193,71 +193,73 @@ class TestTrainingCycle(unittest.TestCase):
         ), patch("random.choice", new=rng.choice), patch(
             "random.shuffle", new=rng.shuffle
         ):
-            m = Mod3l()
-            x = DData(m, 6, 6, ml.random_matrix(6, 6)) 
-            w1 = DData(m, 36, 64, ml.random_matrix(36, 64))
-            b1 = DData(m, 1, 64, ml.random_matrix(1, 64))
+            m_cpp = ttt.TTTPlayer(enable_cpp=True)
+#            m = Mod3l()
+#            x = DData(m, 6, 6, ml.random_matrix(6, 6)) 
+#            w1 = DData(m, 36, 64, ml.random_matrix(36, 64))
+#            b1 = DData(m, 1, 64, ml.random_matrix(1, 64))
+#
+#            w2 = DData(m, 64, 32, ml.random_matrix(64, 32))
+#            b2 = DData(m, 1, 32, ml.random_matrix(1, 32))
+#
+#            w3 = DData(m, 32, 1, ml.random_matrix(32, 1))
+#            b3 = DData(m, 1, 1, ml.random_matrix(1, 1))
+#
+#            z0 = Reshape(x, 1, 36)
+#            z1 = Sigmoid(Add(MatMul(z0, w1), b1))
+#            z2 = Sigmoid(Add(MatMul(z1, w2), b2))
+#            #z3 = Sigmoid(Add(MatMul(z2, w3), b3))
+#            zm = MatMul(z2, w3)
+#            za = Add(zm, b3)
+#            z3 = Sigmoid(za)
+#
+#            y = DData(m, 1, 1, ml.random_matrix(1, 1))
+#            loss = BCE(z3, y)
 
-            w2 = DData(m, 64, 32, ml.random_matrix(64, 32))
-            b2 = DData(m, 1, 32, ml.random_matrix(1, 32))
+            m_cpp.loss.calc_fval()
 
-            w3 = DData(m, 32, 1, ml.random_matrix(32, 1))
-            b3 = DData(m, 1, 1, ml.random_matrix(1, 1))
-
-            z0 = Reshape(x, 1, 36)
-            z1 = Sigmoid(Add(MatMul(z0, w1), b1))
-            z2 = Sigmoid(Add(MatMul(z1, w2), b2))
-            #z3 = Sigmoid(Add(MatMul(z2, w3), b3))
-            zm = MatMul(z2, w3)
-            za = Add(zm, b3)
-            z3 = Sigmoid(za)
-
-            y = DData(m, 1, 1, ml.random_matrix(1, 1))
-            loss = BCE(z3, y)
-
-            loss.calc_fval()
-
-        self.assertAlmostEqualNested(m_py.x.val(), x.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z1.val(), z1.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.val(), z3.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.loss.val(), loss.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.x.val(), m_cpp.x.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z1.val(), m_cpp.z1.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.val(), m_cpp.z3.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
 
         m_py.loss.dif()
 
-        w1.calc_bval()
-        w2.calc_bval()
-        w3.calc_bval()
-        b1.calc_bval()
-        b2.calc_bval()
-        b3.calc_bval()
+        m_cpp.w1.calc_bval()
+        m_cpp.w2.calc_bval()
+        m_cpp.w3.calc_bval()
+        m_cpp.b1.calc_bval()
+        m_cpp.b2.calc_bval()
+        m_cpp.b3.calc_bval()
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
         # old python and new cpp implementations:
-        self.assertAlmostEqualNested(m_py.loss.dval(), z3.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.dval(), za.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.dval(), m_cpp.z3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.dval(), m_cpp.za.bval(), 1e-6)
 
         # But the weights back values (grads) are consistent:
-        self.assertAlmostEqualNested(m_py.w3.dval(), w3.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b3.dval(), b3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w3.dval(), m_cpp.w3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b3.dval(), m_cpp.b3.bval(), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w2.dval(), w2.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b2.dval(), b2.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w2.dval(), m_cpp.w2.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b2.dval(), m_cpp.b2.bval(), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w1.dval(), w1.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b1.dval(), b1.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w1.dval(), m_cpp.w1.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.b1.dval(), m_cpp.b1.bval(), 1e-6)
 
         # Now apply grads and check that thee results match
         m_py.apply_gradient()
+        m_cpp.apply_gradient()
 
-        w1.apply_bval(0.01)
-        b1.apply_bval(0.01)
-        w2.apply_bval(0.01)
-        b2.apply_bval(0.01)
-        w3.apply_bval(0.01)
-        b3.apply_bval(0.01)
-
-        loss.calc_fval()
-        self.assertAlmostEqualNested(m_py.loss.val(), loss.fval(), 1e-6)
+#        w1.apply_bval(0.01)
+#        b1.apply_bval(0.01)
+#        w2.apply_bval(0.01)
+#        b2.apply_bval(0.01)
+#        w3.apply_bval(0.01)
+#        b3.apply_bval(0.01)
+#
+        m_cpp.loss.calc_fval()
+        self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
 
 if __name__ == "__main__":
     unittest.main()

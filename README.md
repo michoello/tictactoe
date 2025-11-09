@@ -1,3 +1,11 @@
+# 2025-07-09
+Made Python and Cpp models match single forward and backward
+To run single test case run this:
+```
+python3 -m unittest tests.test_game.TestTrainingCycle.test_py_cpp_models_compare --verbose
+```
+
+
 # 2025-11-03
 
 After more than a month of works in `python_cpp` repo,
