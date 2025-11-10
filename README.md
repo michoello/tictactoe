@@ -1,4 +1,44 @@
-# 2025-07-09
+# 2025-11-09
+
+Finally full cpp vs python tests! 
+Cpp is 10x faster, but interestingly results are very so slightly different.
+One reason is missing cpp rounding when saving, but not only. Prob some floating
+point calculations subtle differences.
+```
+$ python3 -m unittest tests.test_game.TestTrainingCycle.test_training_player_and_game_py --verbose
+
+test_training_player_and_game_py (tests.test_game.TestTrainingCycle) ... Training
+0.0% - test_loss 15.32004259770106
+20.0% - test_loss 12.156982878027684
+40.0% - test_loss 12.482906431864738
+60.0% - test_loss 12.294150300707992
+80.0% - test_loss 12.104277668682217
+Playing...
+Trained crosses WINNERS cross: 14  zero: 6
+Trained zeroes WINNERS cross: 3  zero: 17
+ok
+----------------------------------------------------------------------
+Ran 1 test in 17.716s
+
+
+$ python3 -m unittest tests.test_game.TestTrainingCycle.test_training_player_and_game_cpp --verbose
+
+test_training_player_and_game_cpp (tests.test_game.TestTrainingCycle) ... Training
+0.0% - test_loss 15.32004280284053
+20.0% - test_loss 12.1569828693072
+40.0% - test_loss 12.482906414777991
+60.0% - test_loss 12.294150290626803
+80.0% - test_loss 12.104277662117799
+Playing...
+Trained crosses WINNERS cross: 14  zero: 6
+Trained zeroes WINNERS cross: 6  zero: 14
+ok
+----------------------------------------------------------------------
+Ran 1 test in 1.760s
+
+```
+
+# 2025-11-08
 Made Python and Cpp models match single forward and backward
 To run single test case run this:
 ```

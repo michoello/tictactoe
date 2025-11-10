@@ -56,7 +56,7 @@ class TestTrainingCycle(unittest.TestCase):
         # Check that yy (which is xx @ ww) is also updated
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
-    def test_training_player_and_game(self):
+    def test_training_player_and_game_py(self):
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -106,6 +106,62 @@ class TestTrainingCycle(unittest.TestCase):
             ztw = game.competition(random_model, trained_model, 20)
             print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
             self.assertLess(ztw[1], ztw[-1])
+
+
+    def test_training_player_and_game_cpp(self):
+        rng = SimpleRNG(seed=45)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            init_model = tempfile.mktemp()
+            trained_model = tempfile.mktemp()
+
+            m = ttt.TTTPlayer(enable_cpp=True)
+            m.save_to_file(init_model)
+
+            print("Training")
+            total_epochs = 25  # can be as little as 10, but let's keep it as this
+            test_boards, test_winners = game.generate_batch(20)
+            for epoch in range(total_epochs):
+                train_boards, train_winners = game.generate_batch(20)
+
+                for i in range(2):
+                    for board, winner in zip(train_boards, train_winners):
+                        m.m.set_data(m.x, board)
+                        m.m.set_data(m.y, [winner])
+                        m.loss.calc_fval()
+                        m.calc_grads()
+                        m.apply_gradient()
+
+                    test_loss = 0
+                    for board, winner in zip(test_boards, test_winners):
+                        m.m.set_data(m.x, board)
+                        m.m.set_data(m.y, [winner])
+
+                        m.loss.calc_fval()
+                        test_loss = test_loss + m.loss.fval()[0][0]
+
+                if epoch % 5 == 0:
+                    m.save_to_file(trained_model)
+                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
+
+
+            print("Playing...")
+            random_model = ttt.TTTPlayer(init_model, enable_cpp=True)
+            trained_model = ttt.TTTPlayer(trained_model, enable_cpp=True)
+
+            # ctw = crosses_trained_winners
+            ctw = game.competition(trained_model, random_model, 20)
+            print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
+            self.assertGreater(ctw[1], ctw[-1])
+
+            # ztw = zeroes_trained_winners
+            ztw = game.competition(random_model, trained_model, 20)
+            print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
+            self.assertLess(ztw[1], ztw[-1])
+
 
 
     def test_mod3l_sse_with_grads(self):

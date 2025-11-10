@@ -146,8 +146,13 @@ class TTTPlayer:
         values = copy.deepcopy(START_VALUES)
         for bxy in boards:
             b, x, y = bxy
-            self.x.set(b)
-            value = self.prediction.val()
+            if self.enable_cpp:
+                self.m.set_data(self.x, b)
+                self.loss.calc_fval()
+                value = self.loss.fval()
+            else:
+                self.x.set(b)
+                value = self.prediction.val()
             values[x][y] = value[0][0]
         return values
 
