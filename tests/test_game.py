@@ -79,7 +79,7 @@ class TestTrainingCycle(unittest.TestCase):
                     for board, winner in zip(train_boards, train_winners):
                         m.x.set(board)
                         m.y.set([winner])
-                        m.loss.dif()
+                        m.calc_grads()
                         m.apply_gradient()
 
                     test_loss = 0
@@ -173,7 +173,7 @@ class TestTrainingCycle(unittest.TestCase):
             m.y.set(train_winners)
 
             self.assertAlmostEqualNested(m.loss.val(), [[0.005717]], 1e-6)
-            m.loss.dif()
+            m.calc_grads()
             m.apply_gradient()
             self.assertAlmostEqualNested(m.loss.val(), [[0.005709]], 1e-6)
 
@@ -194,28 +194,6 @@ class TestTrainingCycle(unittest.TestCase):
             "random.shuffle", new=rng.shuffle
         ):
             m_cpp = ttt.TTTPlayer(enable_cpp=True)
-#            m = Mod3l()
-#            x = DData(m, 6, 6, ml.random_matrix(6, 6)) 
-#            w1 = DData(m, 36, 64, ml.random_matrix(36, 64))
-#            b1 = DData(m, 1, 64, ml.random_matrix(1, 64))
-#
-#            w2 = DData(m, 64, 32, ml.random_matrix(64, 32))
-#            b2 = DData(m, 1, 32, ml.random_matrix(1, 32))
-#
-#            w3 = DData(m, 32, 1, ml.random_matrix(32, 1))
-#            b3 = DData(m, 1, 1, ml.random_matrix(1, 1))
-#
-#            z0 = Reshape(x, 1, 36)
-#            z1 = Sigmoid(Add(MatMul(z0, w1), b1))
-#            z2 = Sigmoid(Add(MatMul(z1, w2), b2))
-#            #z3 = Sigmoid(Add(MatMul(z2, w3), b3))
-#            zm = MatMul(z2, w3)
-#            za = Add(zm, b3)
-#            z3 = Sigmoid(za)
-#
-#            y = DData(m, 1, 1, ml.random_matrix(1, 1))
-#            loss = BCE(z3, y)
-
             m_cpp.loss.calc_fval()
 
         self.assertAlmostEqualNested(m_py.x.val(), m_cpp.x.fval(), 1e-6)
@@ -223,14 +201,8 @@ class TestTrainingCycle(unittest.TestCase):
         self.assertAlmostEqualNested(m_py.z3.val(), m_cpp.z3.fval(), 1e-6)
         self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
 
-        m_py.loss.dif()
-
-        m_cpp.w1.calc_bval()
-        m_cpp.w2.calc_bval()
-        m_cpp.w3.calc_bval()
-        m_cpp.b1.calc_bval()
-        m_cpp.b2.calc_bval()
-        m_cpp.b3.calc_bval()
+        m_py.calc_grads()
+        m_cpp.calc_grads()
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
         # old python and new cpp implementations:
@@ -251,15 +223,29 @@ class TestTrainingCycle(unittest.TestCase):
         m_py.apply_gradient()
         m_cpp.apply_gradient()
 
-#        w1.apply_bval(0.01)
-#        b1.apply_bval(0.01)
-#        w2.apply_bval(0.01)
-#        b2.apply_bval(0.01)
-#        w3.apply_bval(0.01)
-#        b3.apply_bval(0.01)
-#
         m_cpp.loss.calc_fval()
         self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
+
+        m_py_file = tempfile.mktemp()
+        m_py.save_to_file(m_py_file)
+
+        # After saving and reload the model loss is almost the same (note 1e-3)
+        m_py2 = ttt.TTTPlayer(m_py_file)
+        self.assertAlmostEqualNested(m_py.loss.val(), m_py2.loss.val(), 1e-3)
+
+        m_cpp_file = tempfile.mktemp()
+        m_cpp.save_to_file(m_cpp_file)
+        m_cpp2 = ttt.TTTPlayer(m_cpp_file, enable_cpp=True)
+        # Since cpp model does not store the inputs, we copy them from first cpp model
+        m_cpp2.m.set_data(m_cpp2.x, m_cpp.x.fval())
+        m_cpp2.m.set_data(m_cpp2.y, m_cpp.y.fval())
+        m_cpp2.loss.calc_fval()
+        self.assertAlmostEqualNested(m_cpp.loss.fval(), m_cpp2.loss.fval(), 1e-3)
+
+        # The outputs are now a bit different between py and cpp, because of rounding
+        # (both weights and the inputs)
+        # TODO: rounding
+        self.assertAlmostEqualNested(m_cpp2.loss.fval(), m_py2.loss.val(), 1e-3)
 
 if __name__ == "__main__":
     unittest.main()

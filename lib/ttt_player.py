@@ -35,6 +35,7 @@ class TTTPlayer:
       if enable_cpp:
            self.m = Mod3l()
            self.x = DData(self.m, 6, 6, ml.random_matrix(6, 6)) 
+
            self.w1 = DData(self.m, 36, 64, ml.random_matrix(36, 64))
            self.b1 = DData(self.m, 1, 64, ml.random_matrix(1, 64))
 
@@ -93,13 +94,47 @@ class TTTPlayer:
                 # Old format
                 self.loss.from_json(model_json)
             else:
-                self.loss.from_json(model_json["data"])
+                if model_json.get("cpp", False):
+                    self.enable_cpp = True
+                    data = model_json["data"]
+                    self.m.set_data(self.w1, data["w1"])
+                    self.m.set_data(self.w2, data["w2"])
+                    self.m.set_data(self.w3, data["w3"])
+                    self.m.set_data(self.b1, data["b1"])
+                    self.m.set_data(self.b2, data["b2"])
+                    self.m.set_data(self.b3, data["b3"])
+                else:
+                    self.loss.from_json(model_json["data"])
                 self.replay_buffer.from_json(model_json["replay_buffer"])
+
+    def calc_grads(self):
+        if self.enable_cpp:
+           self.w1.calc_bval()
+           self.w2.calc_bval()
+           self.w3.calc_bval()
+           self.b1.calc_bval()
+           self.b2.calc_bval()
+           self.b3.calc_bval()
+        else:
+           self.loss.dif()
+            
 
     def save_to_file(self, file_name):
         with open(file_name, "w") as file:
+            if self.enable_cpp:
+               data_json = {
+                  "w1": self.w1.fval(),
+                  "w2": self.w2.fval(),
+                  "w3": self.w3.fval(),
+                  "b1": self.b1.fval(),
+                  "b2": self.b2.fval(),
+                  "b3": self.b3.fval(),
+               }
+            else:
+               data_json = self.loss.to_json()
             model_json = {
-                "data": self.loss.to_json(),
+                "cpp": self.enable_cpp,
+                "data": data_json,
                 "replay_buffer": self.replay_buffer.to_json(),
             }
             model_dump = json.dumps(model_json)
