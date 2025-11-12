@@ -2,13 +2,21 @@
 
 Switched train from zero py to cpp model.
 It took 13 hours to produce 14000 versions of models with same code.
-Funnily enough, the quality deteriorates at some point, so the versions near
-3000 are probably the best.
+Funnily enough, the quality deteriorates at some point.
+
+Added 'human plays O' mode, and looks like crosses model is very dumb :(
 
 ```
 python3 -m web.server --zeroes_model player:models/cpp/model-zeroes-3000.json
-
+python3 -m web.server \
+   --crosses_model player:models/cpp/model-crosses-13000.json \
+   --zeroes_model player:models/cpp/model-zeroes-3000.json
 ```
+
+(13000 is the best according to training logs. 
+
+However, maybe there are some bugs, because the zeroes - sometimes - start to behave really bad,
+though normally are kind of ok.
 
 # 2025-11-09
 

@@ -8,6 +8,7 @@ import argparse
 import math
 
 parser = argparse.ArgumentParser(description="Web Server running a model")
+parser.add_argument("--crosses_model", type=str, help="Type and path of crosses model")
 parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
 args = parser.parse_args()
 
@@ -41,6 +42,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
             data = json.loads(body)
+            figure = data['figure']  # what humanb plays
 
             # log on server side
             print(f"Click: row={data['row']} col={data['col']} figure={data['figure']}")
@@ -60,10 +62,14 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                     print("sorry")
 
                 boards = [(b[0].board, b[1], b[2]) for b in boards]
-                values = self.server.m_zeroes.get_next_step_values(boards)
+                if figure == "X":
+                  values = self.server.m_crosses.get_next_step_values(boards)
+                else:
+                  values = self.server.m_zeroes.get_next_step_values(boards)
                 exploration_rate = 0.0
                 step_no = 100  # to eliminate randomness
-                x, y = game.choose_next_step(values, -1, step_no, exploration_rate)
+                ply = -1 if figure == "X" else 1  ## next ply - zero if human plays cross, and otherwise
+                x, y = game.choose_next_step(values, ply, step_no, exploration_rate)
 
                 response["row"] = x
                 response["col"] = y
@@ -71,7 +77,10 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                     [round(v or -1, 2) for v in row] for row in values
                 ]
 
-                board[x][y] = -1  # zero
+                if figure == "X":
+                  board[x][y] = -1  # zero
+                else:
+                  board[x][y] = 1  # cross
                 winner, xyo = game.Board(board).check_winner()
 
             # respond
@@ -91,14 +100,15 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
 
 class TicTacToeServer(HTTPServer):
-    def __init__(self, server_address, RequestHandlerClass, zeroes_model):
+    def __init__(self, server_address, RequestHandlerClass, crosses_model, zeroes_model):
         super().__init__(server_address, RequestHandlerClass)
+        self.m_crosses = crosses_model
         self.m_zeroes = zeroes_model
 
 
 if __name__ == "__main__":
-    print("YOOOOO", args.zeroes_model.split(":"))
+    crosses_model = pickup_model(*args.crosses_model.split(":"))
     zeroes_model = pickup_model(*args.zeroes_model.split(":"))
-    server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, zeroes_model)
+    server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, crosses_model, zeroes_model)
     print("Server running on port 8080...")
     server.serve_forever()
