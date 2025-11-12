@@ -38,9 +38,21 @@ function findCell(r, c) {
 }
 
 function setCell(r, c, figure, cellClass=figure) {
-  const span = $("<span></span>").text(figure).addClass(cellClass);
-  findCell(r, c).append(span);
-  boardState[r][c] = figure === "X" ? 1 : -1;
+  if (figure === "") {
+     findCell(r, c).empty();
+  } else {
+     const span = $("<span></span>").text(figure).addClass(cellClass);
+     findCell(r, c).append(span);
+  }
+
+  cellValue = 0;
+  if (figure === "X") {
+      cellValue = 1;
+  } 
+  if (figure === "O") {
+      cellValue = -1;
+  }
+  boardState[r][c] = cellValue;
 }
 
 function valueToRGB(v) {
@@ -69,17 +81,17 @@ function colorCell(r, c, v) {
   if (!bgColor) {
      return;
   }
-  //const shade = Math.round(255 * v);
-  //let color = `rgb(${shade}, ${shade}, ${shade})`;
-  let color = valueToRGB(v);
+  let color = v != 111 ? valueToRGB(v) : "#eee";
   if (v < 0) {
-    //color = `rgb(184, 115, 51)`;
     color = `rgb(192, 192, 192)`;
     findCell(r, c).css({
 			"background": "linear-gradient(145deg, #d0d0d0, #c0c0c0 40%, #d5d5d5 60%, #c0c0c0)",
     });
   } else {
-    findCell(r, c).css("background-color", color);
+    findCell(r, c).css({
+          "background-color": color,
+          "background": "",
+    });
   }
 }
 
@@ -156,7 +168,25 @@ function createBoard() {
 
 
 createBoard();
+
 </script>
+<br>
+<button id="resetBtn">Reset</button>
+
+<script>
+    document.getElementById('resetBtn').onclick = () => {
+       const table = $("#board");
+       for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+             setCell(r, c, "");
+             colorCell(r, c, 111);  // 111 is for reset
+             table.data("done", false);
+          }
+        }
+    };
+</script>
+
+
 </body>
 </html>
 
