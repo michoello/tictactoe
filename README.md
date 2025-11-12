@@ -1,3 +1,15 @@
+# 2025-11-11
+
+Switched train from zero py to cpp model.
+It took 13 hours to produce 14000 versions of models with same code.
+Funnily enough, the quality deteriorates at some point, so the versions near
+3000 are probably the best.
+
+```
+python3 -m web.server --zeroes_model player:models/cpp/model-zeroes-3000.json
+
+```
+
 # 2025-11-09
 
 Finally full cpp vs python tests! 

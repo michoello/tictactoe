@@ -28,22 +28,37 @@ def DData(mod3l, rows, cols, values):
 # Simple player based on board position value
 class TTTPlayer:
     def __init__(self, file_to_load_from=None, enable_cpp=False):
-
       self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
-      self.file_name = None
-      self.enable_cpp = enable_cpp
-      if enable_cpp:
+
+      model_json = None
+      if file_to_load_from:
+          model_json = self.parse_model_file(file_to_load_from)
+          self.enable_cpp = model_json.get("cpp", False)
+      else:
+          self.enable_cpp = enable_cpp
+
+      if self.enable_cpp:
            self.m = Mod3l()
-           self.x = DData(self.m, 6, 6, ml.random_matrix(6, 6)) 
+           self.x = Data(self.m, 6, 6)
 
-           self.w1 = DData(self.m, 36, 64, ml.random_matrix(36, 64))
-           self.b1 = DData(self.m, 1, 64, ml.random_matrix(1, 64))
+           self.w1 = Data(self.m, 36, 64)
+           self.b1 = Data(self.m, 1, 64)
 
-           self.w2 = DData(self.m, 64, 32, ml.random_matrix(64, 32))
-           self.b2 = DData(self.m, 1, 32, ml.random_matrix(1, 32))
+           self.w2 = Data(self.m, 64, 32)
+           self.b2 = Data(self.m, 1, 32)
 
-           self.w3 = DData(self.m, 32, 1, ml.random_matrix(32, 1))
-           self.b3 = DData(self.m, 1, 1, ml.random_matrix(1, 1))
+           self.w3 = Data(self.m, 32, 1)
+           self.b3 = Data(self.m, 1, 1)
+
+           if not model_json:
+             self.m.set_data(self.x, ml.random_matrix(6, 6)) 
+             self.m.set_data(self.w1, ml.random_matrix(36, 64))
+             self.m.set_data(self.b1, ml.random_matrix(1, 64))
+             self.m.set_data(self.w2, ml.random_matrix(64, 32))
+             self.m.set_data(self.b2, ml.random_matrix(1, 32))
+             self.m.set_data(self.w3, ml.random_matrix(32, 1))
+             self.m.set_data(self.b3, ml.random_matrix(1, 1))
+
 
            self.z0 = Reshape(self.x, 1, 36)
            self.z1 = Sigmoid(Add(MatMul(self.z0, self.w1), self.b1))
@@ -81,15 +96,17 @@ class TTTPlayer:
         # self.loss = self.prediction.mse(self.y)
         self.loss = self.prediction.bce(self.y)
 
-      if file_to_load_from is not None:
-        self.load_from_file(file_to_load_from)
+      if model_json:
+        self.load_from_json(model_json)
+
+    def parse_model_file(self, file_name):
+        with open(file_name, "r") as file:
+            return json.loads(file.read())
 
     def load_from_file(self, file_name):
-        self.file_name = file_name
-        with open(file_name, "r") as file:
-            model_dump = file.read()
+        self.load_from_json(self.parse_model_file(file_name))
 
-            model_json = json.loads(model_dump)
+    def load_from_json(self, model_json):
             if isinstance(model_json, list):
                 # Old format
                 self.loss.from_json(model_json)
@@ -106,6 +123,8 @@ class TTTPlayer:
                 else:
                     self.loss.from_json(model_json["data"])
                 self.replay_buffer.from_json(model_json["replay_buffer"])
+
+
 
     def calc_grads(self):
         if self.enable_cpp:

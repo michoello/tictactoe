@@ -126,10 +126,13 @@ def generate_dumb_batch(num_boards, m_crosses, m_zeroes, m_student):
 def calc_loss(m, boards, values):
     sum_loss = 0
     for board, value in zip(boards, values):
-        m.x.set(board)
-        m.y.set([value])
+        #m.x.set(board)
+        #m.y.set([value])
+        m.m.set_data(m.x, board)
+        m.m.set_data(m.y, [value])
 
-        loss = m.loss.val()
+        m.loss.calc_fval()
+        loss = m.loss.fval()
         sum_loss = sum_loss + loss[0][0]
 
     return sum_loss / len(boards)
@@ -168,13 +171,15 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
     for i in range(TRAIN_ITERATIONS):
         # train_loss = 0
         for board, value in zip(train_boards, train_values):
-            m_student.x.set(board)
-            m_student.y.set([value])
+            m_student.m.set_data(m_student.x, board)
+            m_student.m.set_data(m_student.y, [value])
 
-            m_student.loss.dif()
+            m_student.loss.calc_fval()
+            m_student.calc_grads()
             m_student.apply_gradient()
 
-            loss = m_student.loss.val()
+            m_student.loss.calc_fval()
+            loss = m_student.loss.fval()
             # train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
@@ -192,7 +197,8 @@ def sorted_sample(n, m):
 NUM_GAMES = 10
 
 
-def fight(trainee, student_model, m_student, opponent_type, opponent_path):
+def fight(trainee, student_model, opponent_type, opponent_path):
+    m_student = tttp.TTTPlayer(student_model)
     m_opponent = pickup_model(opponent_type, opponent_path)
 
     if trainee == "crosses":
@@ -211,7 +217,6 @@ def versioned_competition(prefix, version, trainee):
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
     student_model = model_name(prefix, trainee, version)
-    m_student = tttp.TTTPlayer(student_model)
 
     # Collect the opponents to play against
     opponents = []
@@ -226,13 +231,16 @@ def versioned_competition(prefix, version, trainee):
     # prv_prefix = "models/with_replay_buffer/model"
     # prv_prefix = "models/fixed_rounds/model"
     prv_prefix = "models/shorter_rounds/model"
-    for prv_v in [9, 100, 200, 400, 900, 1000, 1132]:
+    for prv_v in [1000, 1100, 1132]:
+        opponents.append(["player", model_name(prv_prefix, opponent, prv_v)])
+    prv_prefix = "models/try_again/model"
+    for prv_v in [1440, 2400]:
         opponents.append(["player", model_name(prv_prefix, opponent, prv_v)])
 
     # This parallelization does not help yet, but let's keep for future improvements
     tasks = []
     for opponent_model in opponents:
-        tasks.append((fight, [trainee, student_model, m_student, *opponent_model]))
+        tasks.append((fight, [trainee, student_model, *opponent_model]))
 
     all_winners = run_parallel(tasks, max_workers=2)
 
@@ -267,21 +275,37 @@ NUM_ROUNDS = 2
 
 
 def train(prefix, version, trainee):
-    m_crosses = tttp.TTTPlayer(model_name(prefix, "crosses", version))
-    m_zeroes = tttp.TTTPlayer(model_name(prefix, "zeroes", version))
+    crosses_name = model_name(prefix, "crosses", version)
+    zeroes_name = model_name(prefix, "zeroes", version)
+    m_crosses = tttp.TTTPlayer(crosses_name)
+    m_zeroes = tttp.TTTPlayer(zeroes_name)
 
-    m_student = m_crosses if trainee == "crosses" else m_zeroes
-    m_opponent = m_zeroes if trainee == "crosses" else m_crosses
+    if trainee == "crosses":
+        m_student, m_opponent = m_crosses, m_zeroes
+        student_name, opponent_name = crosses_name, zeroes_name
+    else:
+        m_student, m_opponent = m_zeroes, m_crosses
+        student_name, opponent_name = zeroes_name, crosses_name
 
     print("-------------------------------------------------")
-    tr_ts = print(f"Start {m_student.file_name}\n\n")
+    tr_ts = print(f"Start {student_name}\n\n")
     for i in range(NUM_ROUNDS):
-        it_ts = print(f"Start {m_student.file_name} vs {m_opponent.file_name} ITER {i}")
+        it_ts = print(f"Start {student_name} vs {opponent_name} ITER {i}")
         train_single_round(trainee, m_crosses, m_zeroes, m_student)
         print(
-            f"[ts:{it_ts}] Finish {m_student.file_name} vs {m_opponent.file_name} ITER {i}"
+            f"[ts:{it_ts}] Finish {student_name} vs {opponent_name} ITER {i}"
         )
 
+    # Delete old files to prevent disk overflow
+    if version > 10 and (version - 5) % 100 != 0:
+       old_student_name = model_name(prefix, trainee, version - 5)
+       print(f"Deleting {old_student_name}")
+       os.remove(old_student_name)
+    else:
+       old_student_name = model_name(prefix, trainee, version - 5)
+       print(f"Not Deleting {old_student_name}")
+
+    # Creating next version
     student_name = model_name(prefix, trainee, version + 1)
     m_student.save_to_file(student_name)
     print(f"[ts:{tr_ts}] Saved {student_name}")
@@ -291,9 +315,9 @@ def main():
     prefix = args.save_to_model
 
     version = 0
-    m_crosses = tttp.TTTPlayer()
+    m_crosses = tttp.TTTPlayer(enable_cpp=True)
     m_crosses.save_to_file(model_name(prefix, "crosses", version))
-    m_zeroes = tttp.TTTPlayer()
+    m_zeroes = tttp.TTTPlayer(enable_cpp=True)
     m_zeroes.save_to_file(model_name(prefix, "zeroes", version))
 
     while True:

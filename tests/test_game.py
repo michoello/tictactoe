@@ -291,7 +291,10 @@ class TestTrainingCycle(unittest.TestCase):
 
         m_cpp_file = tempfile.mktemp()
         m_cpp.save_to_file(m_cpp_file)
-        m_cpp2 = ttt.TTTPlayer(m_cpp_file, enable_cpp=True)
+
+        # Note: no enable_cpp flag -> it restores everything based on file content
+        m_cpp2 = ttt.TTTPlayer(m_cpp_file) 
+
         # Since cpp model does not store the inputs, we copy them from first cpp model
         m_cpp2.m.set_data(m_cpp2.x, m_cpp.x.fval())
         m_cpp2.m.set_data(m_cpp2.y, m_cpp.y.fval())
