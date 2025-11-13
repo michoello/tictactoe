@@ -28,10 +28,12 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            path = self.path
-            if path == "/ico":
-                path = path + "/index.html"
-            path = "web" + path
+
+            if self.path.endswith(".ico"):
+                path = "web" + self.path
+            else:
+                path = "web/ico/index.html"
+            print(self.path, " ", path)
             with open(path, "rb") as f:
                 self.wfile.write(f.read())
         else:
@@ -42,33 +44,31 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
             data = json.loads(body)
-            figure = data['figure']  # what humanb plays
+            human_plays = data['human_plays']  # what human plays
 
             # log on server side
-            print(f"Click: row={data['row']} col={data['col']} figure={data['figure']}")
+            print(f"Click: row={data['row']} col={data['col']} human_plays={data['human_plays']}")
             print("Board state:")
             board = data["board"]
             for row in board:
                 print(row)
 
             # Choosing the best next step with model!
-            ply = -1  # zeroes go next
             winner, xyo = game.Board(board).check_winner()
             response = {"status": "ok"}
             if not winner:
-
+                ply = -1 if human_plays == "X" else 1  ## who goes next
                 boards = game.Board(board).all_next_steps(ply)
                 if len(boards) == 0:
                     print("sorry")
 
                 boards = [(b[0].board, b[1], b[2]) for b in boards]
-                if figure == "X":
+                if human_plays == "O":
                   values = self.server.m_crosses.get_next_step_values(boards)
                 else:
                   values = self.server.m_zeroes.get_next_step_values(boards)
                 exploration_rate = 0.0
                 step_no = 100  # to eliminate randomness
-                ply = -1 if figure == "X" else 1  ## next ply - zero if human plays cross, and otherwise
                 x, y = game.choose_next_step(values, ply, step_no, exploration_rate)
 
                 response["row"] = x
@@ -77,7 +77,12 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                     [round(v or -1, 2) for v in row] for row in values
                 ]
 
-                if figure == "X":
+                print("Figure", human_plays)
+                print("Model produced Values:")
+                for row in response["values"]:
+                    print(row)
+
+                if human_plays == "X":
                   board[x][y] = -1  # zero
                 else:
                   board[x][y] = 1  # cross

@@ -25,7 +25,7 @@
 let boardState = Array.from({length: 6}, () => Array(6).fill(0));
 
 const params = new URLSearchParams(window.location.search);
-let current = params.has("O") ? "O" : "X";
+let human_plays = params.has("O") ? "O" : "X";
 let bgColor = params.has("color");
 
 
@@ -83,10 +83,10 @@ function colorCell(r, c, v) {
   }
   let color = v != 111 ? valueToRGB(v) : "#eee";
   if (v < 0) {
-    color = `rgb(192, 192, 192)`;
-    findCell(r, c).css({
-			"background": "linear-gradient(145deg, #d0d0d0, #c0c0c0 40%, #d5d5d5 60%, #c0c0c0)",
-    });
+    color = `rgb(200, 180, 255)`; // light purple as requested by anna
+    /*findCell(r, c).css({
+		"background": "linear-gradient(145deg, #d0d0d0, #c0c0c0 40%, #d5d5d5 60%, #c0c0c0)",
+    });*/
   }
 
   findCell(r, c).css({
@@ -102,7 +102,7 @@ function getServerResponse(r, c) {
     data: JSON.stringify({
       row: r,
       col: c,
-      figure: current,
+      human_plays: human_plays,
       board: boardState
     }),
     success: function(resp) {
@@ -110,7 +110,7 @@ function getServerResponse(r, c) {
       console.log("Server response:", resp);
 
       if ("row" in resp) {
-        machineFigure = current === 'X' ? "O" : 'X';
+        machineFigure = human_plays === 'X' ? "O" : 'X';
         setCell(resp.row, resp.col, machineFigure);
       }
 
@@ -157,7 +157,7 @@ function createBoard() {
              return;
           }
 
-          setCell(r, c, current);
+          setCell(r, c, human_plays);
           getServerResponse(r, c);
         }
       });
@@ -167,7 +167,7 @@ function createBoard() {
   }
 }
 
-if(current === 'O') {
+if(human_plays === 'O') {
     getServerResponse(-1, -1);
 }
 
@@ -187,7 +187,7 @@ createBoard();
              table.data("done", false);
           }
         }
-        if(current === 'O') {
+        if(human_plays === 'O') {
            getServerResponse(-1, -1);
         }
     };

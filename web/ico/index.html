@@ -26,12 +26,15 @@
                    // Remove existing favicon
                    document.querySelectorAll('link[rel="icon"]').forEach(link => link.remove());
 
+                   const lettedUrl = window.location.origin + window.location.pathname + "?" + letter;
+                   window.history.replaceState({}, "", lettedUrl);
+
                    // Create new favicon link
                    const link = document.createElement('link');
                    link.rel = 'icon';
                    link.href = `/ico/icons/${letter}.ico`; // adjust path as needed
                    document.head.appendChild(link);
-                     });
+                 });
 
                  container.appendChild(a);
              });
