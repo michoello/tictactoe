@@ -168,19 +168,17 @@ class TTTPlayer:
             if self.enable_cpp:
                 self.m.set_data(self.x, b)
                 self.loss.calc_fval()
-                value = self.loss.fval()
+                value = self.z3.fval()
             else:
                 self.x.set(b)
                 value = self.prediction.val()
             values[x][y] = value[0][0]
         return values
 
-    def apply_gradient(self):
+    def apply_gradient(self, alpha = 0.01):
 
-      norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
-
-      alpha = 0.01
       # TODO: interesting! explore more
+      # norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
       # w1norm = norm(self.w1.val())
       # w1dnorm = norm(self.w1.dval())
       # alpha = 0.01

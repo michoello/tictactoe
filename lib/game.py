@@ -268,7 +268,7 @@ def random_step(values, ply):
 
 
 def choose_next_step(values, ply, step_no, exploration_rate):
-    if step_no == 0 or random.random() < exploration_rate:
+    if step_no == 0: # First step is always random to increase diversity
         x, y = random_step(values, ply)
     else:
         x, y = best_step(values, ply)

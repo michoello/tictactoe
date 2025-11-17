@@ -98,7 +98,6 @@ def generate_playing_batch(m_crosses, m_zeroes, m_student):
 
 
 def generate_dumb_batch(num_boards, m_crosses, m_zeroes, m_student):
-
     outboards, outvalues = [], []
     num_games_played = 0
 
@@ -169,25 +168,26 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
     # Backward pass
     #
     for i in range(TRAIN_ITERATIONS):
-        # train_loss = 0
         for board, value in zip(train_boards, train_values):
             m_student.m.set_data(m_student.x, board)
             m_student.m.set_data(m_student.y, [value])
 
             m_student.loss.calc_fval()
             m_student.calc_grads()
-            m_student.apply_gradient()
+            m_student.apply_gradient(0.01)
 
             m_student.loss.calc_fval()
             loss = m_student.loss.fval()
-            # train_loss = train_loss + loss[0][0]
 
         train_loss = calc_loss(m_student, train_boards, train_values)
-        print(f"EPOCH {i}: Train loss={train_loss}")
+        if i % 10 == 0:
+            print(f"EPOCH {i}: Train loss={train_loss}")
 
 
-def model_name(prefix, trainee, version):
-    return f"{prefix}-{trainee}-{version}.json"
+def model_name(prefix, family, trainee, version):
+    if family is None:
+        return f"{prefix}-{trainee}-{version}.json"
+    return f"{prefix}-{trainee}-{family}.{version}.json"
 
 
 def sorted_sample(n, m):
@@ -213,10 +213,10 @@ def fight(trainee, student_model, opponent_type, opponent_path):
 
 
 # Returns true if student wins over previous version
-def versioned_competition(prefix, version, trainee):
+def versioned_competition(prefix, family, version, trainee):
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
-    student_model = model_name(prefix, trainee, version)
+    student_model = model_name(prefix, family, trainee, version)
 
     # Collect the opponents to play against
     opponents = []
@@ -230,12 +230,15 @@ def versioned_competition(prefix, version, trainee):
     # play against "replay buffer version", first stable
     # prv_prefix = "models/with_replay_buffer/model"
     # prv_prefix = "models/fixed_rounds/model"
-    prv_prefix = "models/shorter_rounds/model"
-    for prv_v in [1000, 1100, 1132]:
-        opponents.append(["player", model_name(prv_prefix, opponent, prv_v)])
+    #prv_prefix = "models/shorter_rounds/model"
+    #for prv_v in [1000, 1100, 1132]:
+    #    opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
     prv_prefix = "models/try_again/model"
     for prv_v in [1440, 2400]:
-        opponents.append(["player", model_name(prv_prefix, opponent, prv_v)])
+        opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
+    prv_prefix = "models/cpp/model"
+    for prv_v in [1000, 3000, 13000]:
+        opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
 
     # This parallelization does not help yet, but let's keep for future improvements
     tasks = []
@@ -259,14 +262,14 @@ def versioned_competition(prefix, version, trainee):
     )
 
 
-def clone_new_version(prefix, from_version, to_version):
+def clone_new_version(prefix, family, from_version, to_version):
     shutil.copyfile(
-        model_name(prefix, "crosses", from_version),
-        model_name(prefix, "crosses", to_version),
+        model_name(prefix, family, "crosses", from_version),
+        model_name(prefix, family, "crosses", to_version),
     )
     shutil.copyfile(
-        model_name(prefix, "zeroes", from_version),
-        model_name(prefix, "zeroes", to_version),
+        model_name(prefix, family, "zeroes", from_version),
+        model_name(prefix, family, "zeroes", to_version),
     )
 
 
@@ -274,18 +277,20 @@ def clone_new_version(prefix, from_version, to_version):
 NUM_ROUNDS = 2
 
 
-def train(prefix, version, trainee):
-    crosses_name = model_name(prefix, "crosses", version)
-    zeroes_name = model_name(prefix, "zeroes", version)
+def train(prefix, family_cross, family_zero, version, trainee):
+    crosses_name = model_name(prefix, family_cross, "crosses", version)
+    zeroes_name = model_name(prefix, family_zero, "zeroes", version)
     m_crosses = tttp.TTTPlayer(crosses_name)
     m_zeroes = tttp.TTTPlayer(zeroes_name)
 
     if trainee == "crosses":
         m_student, m_opponent = m_crosses, m_zeroes
         student_name, opponent_name = crosses_name, zeroes_name
+        student_family = family_cross
     else:
         m_student, m_opponent = m_zeroes, m_crosses
         student_name, opponent_name = zeroes_name, crosses_name
+        student_family = family_zero
 
     print("-------------------------------------------------")
     tr_ts = print(f"Start {student_name}\n\n")
@@ -297,16 +302,16 @@ def train(prefix, version, trainee):
         )
 
     # Delete old files to prevent disk overflow
-    if version > 10 and (version - 5) % 100 != 0:
-       old_student_name = model_name(prefix, trainee, version - 5)
+    old_version = version - 5
+    old_student_name = model_name(prefix, student_family, trainee, old_version)
+    if old_version > 2 and old_version % 100 != 0:
        print(f"Deleting {old_student_name}")
        os.remove(old_student_name)
     else:
-       old_student_name = model_name(prefix, trainee, version - 5)
        print(f"Not Deleting {old_student_name}")
 
     # Creating next version
-    student_name = model_name(prefix, trainee, version + 1)
+    student_name = model_name(prefix, student_family, trainee, version + 1)
     m_student.save_to_file(student_name)
     print(f"[ts:{tr_ts}] Saved {student_name}")
 
@@ -314,21 +319,27 @@ def train(prefix, version, trainee):
 def main():
     prefix = args.save_to_model
 
+    families = ['a', 'b', 'c', 'd']
     version = 0
-    m_crosses = tttp.TTTPlayer(enable_cpp=True)
-    m_crosses.save_to_file(model_name(prefix, "crosses", version))
-    m_zeroes = tttp.TTTPlayer(enable_cpp=True)
-    m_zeroes.save_to_file(model_name(prefix, "zeroes", version))
+    for family in families:
+       m_crosses = tttp.TTTPlayer(enable_cpp=True)
+       m_crosses.save_to_file(model_name(prefix, family, "crosses", version))
+       m_zeroes = tttp.TTTPlayer(enable_cpp=True)
+       m_zeroes.save_to_file(model_name(prefix, family, "zeroes", version))
+
 
     while True:
         #
         # Train
         #
+        cross_families = random.sample(families, len(families))
+        zero_families = random.sample(families, len(families))
+
         start_ts = print(f"Training for version {version} started")
-        tasks = [
-            (train, [prefix, version, "crosses"]),
-            (train, [prefix, version, "zeroes"]),
-        ]
+        tasks = []
+        for family_cross, family_zero in zip(cross_families, zero_families):
+            tasks.append((train, [prefix, family_cross, family_zero, version, "crosses"]))
+            tasks.append((train, [prefix, family_cross, family_zero, version, "zeroes"]))
         results = run_parallel(tasks, max_workers=2)
         print(f"[ts:{start_ts}] Training for version {version} finished")
 
@@ -339,13 +350,15 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
-        if version % 20 == 0:
-            start_ts = print(f"Competition for version {version} started")
-            versioned_competition(prefix, version, "crosses")
-            versioned_competition(prefix, version, "zeroes")
+        if version % 100 == 0:
+            start_ts = print(f"Competitions for version {version} started")
+            for family in families:
+              versioned_competition(prefix, family, version, "crosses")
+              versioned_competition(prefix, family, version, "zeroes")
             print(f"[ts:{start_ts}] Competition for version {version} finished")
 
-        # sys.exit(0)
+        if version == 4001:
+           sys.exit(0)
 
 
 if __name__ == "__main__":

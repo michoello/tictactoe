@@ -1,3 +1,24 @@
+# 2025-11-16
+
+Found an amazingly dumb bug: when cpp model infer the score for the board,
+it outputs loss instead of final layer. 
+But it still played decently, at least a subset of positions. How did it even work?
+Looks like evolutionary mechanics is in play.
+Fixed.
+
+Other changes:
+- Added multimodel training in parallel
+- Updated the game generation: first step is fully random, then fully model driven
+-
+
+Results are confusing. Xs are not that bad actually, while zeroes seem hopeless
+```
+python3 -m web.server \
+  --crosses_model player:models/cpp3/model-crosses-d.3300.json \
+  --zeroes_model player:models/cpp3/model-zeroes-a.2800.json
+```
+ 
+
 # 2025-11-11
 
 Switched train from zero py to cpp model.

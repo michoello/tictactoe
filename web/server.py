@@ -62,13 +62,15 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 if len(boards) == 0:
                     print("sorry")
 
+                # Step number is count of zeroes on the board
+                step_no = sum([1 for row in board for x in row if x == -1])
+
                 boards = [(b[0].board, b[1], b[2]) for b in boards]
                 if human_plays == "O":
                   values = self.server.m_crosses.get_next_step_values(boards)
                 else:
                   values = self.server.m_zeroes.get_next_step_values(boards)
                 exploration_rate = 0.0
-                step_no = 100  # to eliminate randomness
                 x, y = game.choose_next_step(values, ply, step_no, exploration_rate)
 
                 response["row"] = x
