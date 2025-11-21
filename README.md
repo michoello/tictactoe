@@ -2,10 +2,11 @@
 
 Adding toroid 5 in a row to check whatever happens
 ```
-python3 generate_games.py --mode play_single_game --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/with_replay_buffer/model-zeroes-941.json
+python3 generate_games.py --mode play_single_game --crosses_model player:models/cpp3.001/model-crosses-d.4000.json --zeroes_model player:models/cpp3.001/model-zeroes-d.4000.json
 
+python3 generate_games.py --mode play_single_game --game_type 5_tor --crosses_model random: --zeroes_model random:
 
-python3 generate_games.py --mode play_many_games --crosses_model random: --zeroes_model random:
+python3 generate_games.py --mode play_many_games --num_game 10 --game_type 5_tor --crosses_model random: --zeroes_model random:
 
 ```
 

@@ -6,19 +6,25 @@ from enum import Enum
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
+class GameType(Enum):
+    TICTACTOE_6_6_4 = 1
+    TICTACTOE_6_6_5_TOR = 2
+
+
 
 class Board:
 
     # values: list[list[float]]
 
-    def __init__(self, board=None):
+    def __init__(self, board=None, game_type=GameType.TICTACTOE_6_6_4):
         if not board:
             self.board = copy.deepcopy(START_BOARD)
         else:
             self.board = board
+        self.game_type = game_type
 
     def copy(self):
-        return Board(copy.deepcopy(self.board))
+        return Board(copy.deepcopy(self.board), self.game_type)
 
     # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
@@ -35,6 +41,12 @@ class Board:
     # Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
     # and None if board is invalid
     def check_winner(self):
+        if self.game_type==GameType.TICTACTOE_6_6_4:
+            return self.check_winner_tictactoe_6_6_4()
+        else:
+            return self.check_winner_tictactoe_6_6_5_tor()
+
+    def check_winner_tictactoe_6_6_4(self):
         b = self.board
 
         lll = [
@@ -62,6 +74,39 @@ class Board:
                         xyo = xyo + [(i, j)] + xy
 
         return winner, sorted(set(xyo))
+
+
+    def check_winner_tictactoe_6_6_5_tor(self):
+        b = self.board
+
+        lll = [
+            [(0, 1), (0, 2), (0, 3), (0, 4)],
+            [(1, 0), (2, 0), (3, 0), (4, 0)],
+            [(1, 1), (2, 2), (3, 3), (4, 4)],
+            [(-1, 1), (-2, 2), (-3, 3), (-4, 4)],
+        ]
+
+        g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+
+        xyo = []
+        winner = 0
+        for i in range(6):
+            for j in range(6):
+                cur = b[i][j]
+                if cur == 0:
+                    continue
+
+                for ll in lll:
+                    xy = [( (i + lx)%6, (j + ly)%6 ) for lx, ly in ll]
+                    if all([g(x, y) == cur for x, y in xy]):
+                        if winner != 0 and winner != cur:
+                            return None, [] # double winners, wrong
+                        winner = cur
+                        xyo = xyo + [(i, j)] + xy
+
+        return winner, sorted(set(xyo))
+
+
 
     def print_board(self):
 
@@ -110,9 +155,6 @@ class Step:
     values: list[list[float]]
     reward: Optional[float] = None
 
-class GameType(Enum):
-    TICTACTOE_6_6_4 = 1
-    TICTACTOE_6_6_5_TOR = 2
 
 class Game:
     def __init__(self, model_crosses, model_zeroes, game_type=GameType.TICTACTOE_6_6_4):
@@ -122,7 +164,7 @@ class Game:
 
 
     def play_game(self):
-        board = Board()
+        board = Board(game_type=self.game_type)
 
         steps = []
 
@@ -201,6 +243,7 @@ def generate_batch(n):
 
 
 # Generate sequence of boards for a single random game
+# TODO: delete, use play_game with TTTRandom models
 def generate_random_game():
     boards = [START_BOARD]
 
@@ -275,9 +318,9 @@ def choose_next_step(values, ply, step_no):
     return x, y
 
 
-def competition(m_crosses, m_zeroes, num_games):
+def competition(m_crosses, m_zeroes, num_games, game_type=GameType.TICTACTOE_6_6_4):
     winners = {-1: 0, 0: 0, 1: 0}
-    g = Game(m_crosses, m_zeroes)
+    g = Game(m_crosses, m_zeroes, game_type)
     #counts = [
     #   [0,0,0,0,0,0],
     #   [0,0,0,0,0,0],
