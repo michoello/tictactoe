@@ -142,7 +142,6 @@ class Game:
                 ply=ply,
                 x=x,
                 y=y,
-                # board=board.copy().board,
                 board=board.copy(),
                 values=copy.deepcopy(values),
             )
@@ -150,19 +149,18 @@ class Game:
             steps.append(ss)
 
             winner, _ = board.check_winner()
-
             if winner != 0:
                 break
 
             ply = -ply
             m = self.model_crosses if ply == 1 else self.model_zeroes
-            step_no = step_no + 1
+            if ply == 1:
+                step_no = step_no + 1
 
         # Set desired rewards to the boards
         reward = winner
         for step in reversed(steps):
             step.reward = reward
-
             reward = reward * 0.9
 
         return steps, winner

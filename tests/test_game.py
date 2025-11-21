@@ -6,6 +6,7 @@ from lib import ttt_player as ttt
 from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
+from lib import ratings
 
 from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
@@ -305,6 +306,17 @@ class TestTrainingCycle(unittest.TestCase):
         # (both weights and the inputs)
         # TODO: rounding
         self.assertAlmostEqualNested(m_cpp2.loss.fval(), m_py2.loss.val(), 1e-3)
+
+
+    def test_ratings(self):
+         rats = ratings.elo_ratings([ ('a', 1, 'b', 0) ])
+         self.assertAlmostEqual(rats['a'], 1510)
+         self.assertAlmostEqual(rats['b'], 1490)
+
+         rats = ratings.elo_ratings([ ('a', 50, 'b', 50) ])
+         self.assertAlmostEqual(rats['a'], 1500, delta=1)
+         self.assertAlmostEqual(rats['b'], 1500, delta=1)
+
 
 if __name__ == "__main__":
     unittest.main()

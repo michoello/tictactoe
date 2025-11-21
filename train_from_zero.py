@@ -3,9 +3,12 @@ from lib import ttt_classifier as tttc
 from lib import ttt_player as tttp
 from lib import pickup_model
 from lib import replay_buffer
+from lib import ratings
 
+from zoneinfo import ZoneInfo
 from utils import run_parallel
 
+import math
 import sys
 import os
 import time
@@ -33,7 +36,7 @@ def timestamped_print(*args, sep=" ", end="\n", file=None, flush=False):
     if prev_ts == -1:
         prev_ts = ts
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(ZoneInfo('America/Los_Angeles')).strftime("%Y-%m-%d %H:%M:%S")
     message = sep.join(str(arg) for arg in args)
     m = _TS_RE.search(message)
     if m:
@@ -174,7 +177,7 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
 
             m_student.loss.calc_fval()
             m_student.calc_grads()
-            m_student.apply_gradient(0.01)
+            m_student.apply_gradient(0.001)
 
             m_student.loss.calc_fval()
             loss = m_student.loss.fval()
@@ -194,11 +197,11 @@ def sorted_sample(n, m):
     return list(range(n)) if n <= m else sorted(random.sample(range(n), m))
 
 
-NUM_GAMES = 10
+NUM_GAMES = 20
 
 
-def fight(trainee, student_model, opponent_type, opponent_path):
-    m_student = tttp.TTTPlayer(student_model)
+def fight(trainee, student_path, opponent_type, opponent_path):
+    m_student = tttp.TTTPlayer(student_path)
     m_opponent = pickup_model(opponent_type, opponent_path)
 
     if trainee == "crosses":
@@ -207,7 +210,7 @@ def fight(trainee, student_model, opponent_type, opponent_path):
         m_crosses, m_zeroes = m_opponent, m_student
 
     winners = game.competition(m_crosses, m_zeroes, NUM_GAMES)
-    print(f"FIGHT! {student_model} vs {opponent_path}: {winners}")
+    print(f"FIGHT! {student_path} vs {opponent_path}: {winners}")
 
     return winners
 
@@ -233,12 +236,15 @@ def versioned_competition(prefix, family, version, trainee):
     #prv_prefix = "models/shorter_rounds/model"
     #for prv_v in [1000, 1100, 1132]:
     #    opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
-    prv_prefix = "models/try_again/model"
-    for prv_v in [1440, 2400]:
-        opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
+    #prv_prefix = "models/try_again/model"
+    #for prv_v in [1440, 2400]:
+    #    opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
     prv_prefix = "models/cpp/model"
     for prv_v in [1000, 3000, 13000]:
         opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
+    prv_prefix = "models/cpp3.001/model"
+    for prv_v in [4000]:
+        opponents.append(["player", model_name(prv_prefix, "d", opponent, prv_v)])
 
     # This parallelization does not help yet, but let's keep for future improvements
     tasks = []
@@ -293,7 +299,7 @@ def train(prefix, family_cross, family_zero, version, trainee):
         student_family = family_zero
 
     print("-------------------------------------------------")
-    tr_ts = print(f"Start {student_name}\n\n")
+    tr_ts = print(f"Start {student_name}")
     for i in range(NUM_ROUNDS):
         it_ts = print(f"Start {student_name} vs {opponent_name} ITER {i}")
         train_single_round(trainee, m_crosses, m_zeroes, m_student)
@@ -307,13 +313,39 @@ def train(prefix, family_cross, family_zero, version, trainee):
     if old_version > 2 and old_version % 100 != 0:
        print(f"Deleting {old_student_name}")
        os.remove(old_student_name)
-    else:
-       print(f"Not Deleting {old_student_name}")
 
     # Creating next version
     student_name = model_name(prefix, student_family, trainee, version + 1)
     m_student.save_to_file(student_name)
     print(f"[ts:{tr_ts}] Saved {student_name}")
+
+
+def cross_competition(prefix, families, version):
+    start_ts = print(f"Cross competition {version} started")
+    matches = []
+    for i in range(len(families)):
+        for j in range(len(families)):
+            crosses_path = model_name(prefix, families[i], "crosses", version)
+            zeroes_path = model_name(prefix, families[j], "zeroes", version)
+            m_crosses = tttp.TTTPlayer(crosses_path)
+            m_zeroes = tttp.TTTPlayer(zeroes_path)
+            winners = game.competition(m_crosses, m_zeroes, NUM_GAMES)
+            print(f"TGIFH: {crosses_path} vs {zeroes_path}: {winners}")
+            matches.append([crosses_path, winners[1], zeroes_path, winners[-1]])
+     
+    print("CrossCompete results")
+    results = ratings.second_best(ratings.scores(matches))
+    for cross, zero in zip(*results):
+       print(f"X: {cross} \t O: {zero}")
+
+    #cross_togo, zero_togo = results[0][-1][0], results[1][-1][0]
+    cross_togo = model_name(prefix, "c", "crosses", version)
+    zero_togo = model_name(prefix, "c", "zeroes", version)
+    print(f"Resetting 'c' players: {cross_togo}, {zero_togo}")
+    tttp.TTTPlayer(enable_cpp=True).save_to_file(cross_togo)
+    tttp.TTTPlayer(enable_cpp=True).save_to_file(zero_togo)
+
+    print(f"[ts:{start_ts}] Cross competition {version} finished")
 
 
 def main():
@@ -356,6 +388,8 @@ def main():
               versioned_competition(prefix, family, version, "crosses")
               versioned_competition(prefix, family, version, "zeroes")
             print(f"[ts:{start_ts}] Competition for version {version} finished")
+
+            cross_competition(prefix, families, version)
 
         if version == 4001:
            sys.exit(0)

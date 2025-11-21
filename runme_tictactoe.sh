@@ -1,1 +1,1 @@
-python3 train_from_zero.py --save_to_model models/cpp3/model
+python3 train_from_zero.py --save_to_model models/cpp4/model

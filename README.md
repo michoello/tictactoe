@@ -1,3 +1,22 @@
+# 2025-11-20
+
+The idea of resetting *second* player is not working, too much randomness.
+One of the crosses models (d), had some long run and even outrun cpp/13000, but
+then declined to second place, was reset and never hit that height :(
+
+Zeroes even worse, kept rollling, and never were even close.
+
+Changing it to resetting the last one. Also 100 games per competition is overkill,
+20 should be sufficient. Does not help either. Need frsh ideas
+Some of them:
+- Generate data by rotation and reflection. The model clearly does not
+  generalize, so let's leverage symmetry
+- Try toroid board, 5 in a line. It makes all cells equal, thus
+  even more room for symmentry through shifts.
+- Use convolution.
+- Use human for training.
+- Read book. E.g. Multi-Agent Reinforcement Learning: Foundations and Modern Approaches
+
 # 2025-11-16
 
 Found an amazingly dumb bug: when cpp model infer the score for the board,
