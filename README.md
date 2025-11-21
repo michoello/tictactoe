@@ -1,5 +1,17 @@
 # 2025-11-20
 
+Adding toroid 5 in a row to check whatever happens
+```
+python3 generate_games.py --mode play_single_game --crosses_model classifier:models/model_victory_only.json --zeroes_model player:models/with_replay_buffer/model-zeroes-941.json
+
+
+python3 generate_games.py --mode play_many_games --crosses_model random: --zeroes_model random:
+
+```
+
+
+# 2025-11-19
+
 The idea of resetting *second* player is not working, too much randomness.
 One of the crosses models (d), had some long run and even outrun cpp/13000, but
 then declined to second place, was reset and never hit that height :(
@@ -14,7 +26,7 @@ Some of them:
 - Try toroid board, 5 in a line. It makes all cells equal, thus
   even more room for symmentry through shifts.
 - Use convolution.
-- Use human for training.
+- Use human for training (when i play, store the game, especially when I won)
 - Read book. E.g. Multi-Agent Reinforcement Learning: Foundations and Modern Approaches
 
 # 2025-11-16

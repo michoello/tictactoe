@@ -61,8 +61,8 @@ if args.mode == "play_single_game":
     m_crosses = pickup_model(*args.crosses_model.split(":"))
     m_zeroes = pickup_model(*args.zeroes_model.split(":"))
 
-    g = game.Game(m_crosses, m_zeroes)
-    steps, winner = g.play_game(0.5, 2)
+    g = game.Game(m_crosses, m_zeroes,  game.GameType.TICTACTOE_6_6_5_TOR)
+    steps, winner = g.play_game()
     for ss in steps:
         print("Step", ss.step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
         game.print_scores(ss.values)
@@ -75,7 +75,7 @@ if args.mode == "play_many_games":
     m_crosses = pickup_model(*args.crosses_model.split(":"))
     m_zeroes = pickup_model(*args.zeroes_model.split(":"))
 
-    num_games = 100
+    num_games = 1000
     winners = game.competition(m_crosses, m_zeroes, num_games)
 
     print(

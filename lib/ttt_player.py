@@ -4,6 +4,7 @@ from . import replay_buffer
 import copy
 import math
 import json
+import random
 
 from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
@@ -23,6 +24,16 @@ def DData(mod3l, rows, cols, values):
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
     return res
+
+
+class TTTRandom:
+    def get_next_step_values(self, boards):
+        values = copy.deepcopy(START_VALUES)
+        for bxy in boards:
+            b, x, y = bxy
+            values[x][y] = random.random()
+        return values
+
 
 
 # Simple player based on board position value

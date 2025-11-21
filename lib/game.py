@@ -2,7 +2,7 @@ import random
 import copy
 from dataclasses import dataclass
 from typing import Optional
-
+from enum import Enum
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
@@ -110,13 +110,18 @@ class Step:
     values: list[list[float]]
     reward: Optional[float] = None
 
+class GameType(Enum):
+    TICTACTOE_6_6_4 = 1
+    TICTACTOE_6_6_5_TOR = 2
 
 class Game:
-    def __init__(self, model_crosses, model_zeroes):
+    def __init__(self, model_crosses, model_zeroes, game_type=GameType.TICTACTOE_6_6_4):
+        self.game_type = game_type
         self.model_crosses = model_crosses
         self.model_zeroes = model_zeroes
 
-    def play_game(self, exploration_rate, exploration_steps=-1):
+
+    def play_game(self):
         board = Board()
 
         steps = []
@@ -132,9 +137,7 @@ class Game:
             boards = [(b[0].board, b[1], b[2]) for b in boards]
 
             values = m.get_next_step_values(boards)
-            if exploration_steps > 0 and step_no >= exploration_steps:
-                exploration_rate = 0
-            x, y = choose_next_step(values, ply, step_no, exploration_rate)
+            x, y = choose_next_step(values, ply, step_no)
             board.board[x][y] = ply
 
             ss = Step(
@@ -145,7 +148,6 @@ class Game:
                 board=board.copy(),
                 values=copy.deepcopy(values),
             )
-
             steps.append(ss)
 
             winner, _ = board.check_winner()
@@ -265,7 +267,7 @@ def random_step(values, ply):
     return chosen
 
 
-def choose_next_step(values, ply, step_no, exploration_rate):
+def choose_next_step(values, ply, step_no):
     if step_no == 0: # First step is always random to increase diversity
         x, y = random_step(values, ply)
     else:
@@ -276,8 +278,23 @@ def choose_next_step(values, ply, step_no, exploration_rate):
 def competition(m_crosses, m_zeroes, num_games):
     winners = {-1: 0, 0: 0, 1: 0}
     g = Game(m_crosses, m_zeroes)
+    #counts = [
+    #   [0,0,0,0,0,0],
+    #   [0,0,0,0,0,0],
+    #   [0,0,0,0,0,0],
+    #   [0,0,0,0,0,0],
+    #   [0,0,0,0,0,0],
+    #   [0,0,0,0,0,0],
+    #]
     for f in range(num_games):
-        _, winner = g.play_game(0.5, 2)
+        steps, winner = g.play_game()
         winners[winner] = winners[winner] + 1
+        #for i, row in enumerate(steps[-1].board.board):
+        #    for j, cell in enumerate(row):
+        #         if cell == -1:
+        #            counts[i][j] += 1
+
+    #for i, row in enumerate(counts):
+    #   print(row)
 
     return winners
