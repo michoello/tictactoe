@@ -168,28 +168,40 @@ class Game:
         self.board = Board(game_type=self.game_type)
 
 
-    def play_game(self):
-        self.board.reset()
+    def best_greedy_step(self, values, ply, step_no):
+        # First step is always random to increase diversity
+        if step_no == 0: 
+            return self.random_step(values)
 
-        if self.game_mode == "greedy":
-            steps, winner = self.play_greedy()
-        else:
-            steps, winner = self.play_minimax()
-        return steps, winner
+        best = -100 if ply == 1 else 100
+        best_xy = (-1, -1)
+        for row in range(6):
+          for col in range(6):
+            if (v := values[row][col]) is None:
+                continue
+            if ply == 1 and v > best:
+                best = v
+                best_xy = (row, col)
+            if ply == -1 and v < best:
+                best = v
+                best_xy = (row, col)
+        return best_xy
+
+    def best_minimax_step(self, values, ply, step_no):
+        print("NOT IMPLEMENTED")
+        return self.best_greedy_step(values, ply, step_no)
 
 
-    def play_minimax(self):
-        print("Not implemented")
-        steps, winner = self.play_greedy()
-        return steps, winner
-
-
-    def choose_next_step(self, values, ply, step_no):
-        if step_no == 0: # First step is always random to increase diversity
-            x, y = random_step(values, ply)
-        else:
-            x, y = best_step(values, ply)
-        return x, y
+    def random_step(self, values):
+        # Reservoir sampling
+        count, chosen = 0, None
+        for row in range(6):
+          for col in range(6):
+            if values[row][col] is not None:
+                count = count + 1
+                if random.random() < 1 / count:
+                    chosen = (row, col)
+        return chosen
 
 
     def make_next_step(self, ply, step_no):
@@ -200,13 +212,17 @@ class Game:
         boards = [(b[0].board, b[1], b[2]) for b in boards]
 
         m = self.model_x if ply == 1 else self.model_o
-
         values = m.get_next_step_values(boards)
-        x, y = self.choose_next_step(values, ply, step_no)
+
+        if self.game_mode == "minimax":
+           x, y = self.best_minimax_step(values, ply, step_no)
+        else:
+           x, y = self.best_greedy_step(values, ply, step_no)
+
         return x, y, values
 
 
-    def play_greedy(self):
+    def play_game(self):
         steps, step_no, ply, winner = [], 0, 1, 0
         while True:
             x, y, values = self.make_next_step(ply, step_no)
@@ -310,33 +326,7 @@ def print_scores(values):
         print()
 
 
-def best_step(values, ply):
-    best = -100 if ply == 1 else 100
-    best_xy = (-1, -1)
-    for row in range(6):
-        for col in range(6):
-            if (v := values[row][col]) is None:
-                continue
-            if ply == 1 and v > best:
-                best = v
-                best_xy = (row, col)
-            if ply == -1 and v < best:
-                best = v
-                best_xy = (row, col)
-    return best_xy
 
-
-# TODO: don't use values, use board here
-def random_step(values, ply):
-    # Reservoir sampling
-    count, chosen = 0, None
-    for row in range(6):
-        for col in range(6):
-            if values[row][col] is not None:
-                count = count + 1
-                if random.random() < 1 / count:
-                    chosen = (row, col)
-    return chosen
 
 
 
