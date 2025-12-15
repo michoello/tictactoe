@@ -10,18 +10,21 @@ class GameType(Enum):
     TICTACTOE_6_6_4 = 1
     TICTACTOE_6_6_5_TOR = 2
 
-
-
 class Board:
-
     # values: list[list[float]]
 
     def __init__(self, board=None, game_type=GameType.TICTACTOE_6_6_4):
         if not board:
-            self.board = copy.deepcopy(START_BOARD)
+            self.reset()
         else:
-            self.board = board
+            self.set(board)
         self.game_type = game_type
+
+    def reset(self):
+        self.board = copy.deepcopy(START_BOARD)
+
+    def set(self, board):
+        self.board = board
 
     def copy(self):
         return Board(copy.deepcopy(self.board), self.game_type)
@@ -166,10 +169,13 @@ class Game:
 
 
     def play_game(self):
+        self.board.reset()
+
         if self.game_mode == "greedy":
-            return self.play_greedy()
+            steps, winner = self.play_greedy()
         else:
-            return self.play_minimax()
+            steps, winner = self.play_minimax()
+        return steps, winner
 
 
     def play_minimax(self):
@@ -201,7 +207,7 @@ class Game:
 
 
     def play_greedy(self):
-        steps, step_no, ply, winner = [], 0, 1, None 
+        steps, step_no, ply, winner = [], 0, 1, 0
         while True:
             x, y, values = self.make_next_step(ply, step_no)
             if x is None and y is None:
@@ -335,26 +341,11 @@ def random_step(values, ply):
 
 
 
-def competition(m_crosses, m_zeroes, num_games, game_type=GameType.TICTACTOE_6_6_4):
+def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4):
     winners = {-1: 0, 0: 0, 1: 0}
-    g = Game(m_crosses, m_zeroes, game_type)
-    #counts = [
-    #   [0,0,0,0,0,0],
-    #   [0,0,0,0,0,0],
-    #   [0,0,0,0,0,0],
-    #   [0,0,0,0,0,0],
-    #   [0,0,0,0,0,0],
-    #   [0,0,0,0,0,0],
-    #]
+    g = Game(model_x, model_o, game_type)
     for f in range(num_games):
         steps, winner = g.play_game()
         winners[winner] = winners[winner] + 1
-        #for i, row in enumerate(steps[-1].board.board):
-        #    for j, cell in enumerate(row):
-        #         if cell == -1:
-        #            counts[i][j] += 1
-
-    #for i, row in enumerate(counts):
-    #   print(row)
 
     return winners
