@@ -168,7 +168,17 @@ class Game:
         self.board = Board(game_type=self.game_type)
 
 
-    def best_greedy_step(self, values, ply, step_no):
+    def best_greedy_step(self, board, ply, step_no):
+
+        boards = board.all_next_steps(ply)
+        if len(boards) == 0:
+            return None, None, None
+
+        boards = [(b[0].board, b[1], b[2]) for b in boards]
+
+        m = self.model_x if ply == 1 else self.model_o
+        values = m.get_next_step_values(boards)
+
         # First step is always random to increase diversity
         if step_no == 0: 
             return self.random_step(values)
@@ -185,11 +195,12 @@ class Game:
             if ply == -1 and v < best:
                 best = v
                 best_xy = (row, col)
-        return best_xy
+        return best_xy[0], best_xy[1], values
 
-    def best_minimax_step(self, values, ply, step_no):
+
+    def best_minimax_step(self, board, ply, step_no):
         print("NOT IMPLEMENTED")
-        return self.best_greedy_step(values, ply, step_no)
+        return self.best_greedy_step(board, ply, step_no)
 
 
     def random_step(self, values):
@@ -201,23 +212,14 @@ class Game:
                 count = count + 1
                 if random.random() < 1 / count:
                     chosen = (row, col)
-        return chosen
+        return chosen[0], chosen[1], values
 
 
     def make_next_step(self, ply, step_no):
-        boards = self.board.all_next_steps(ply)
-        if len(boards) == 0:
-            return None, None
-
-        boards = [(b[0].board, b[1], b[2]) for b in boards]
-
-        m = self.model_x if ply == 1 else self.model_o
-        values = m.get_next_step_values(boards)
-
         if self.game_mode == "minimax":
-           x, y = self.best_minimax_step(values, ply, step_no)
+           x, y, values = self.best_minimax_step(self.board, ply, step_no)
         else:
-           x, y = self.best_greedy_step(values, ply, step_no)
+           x, y, values = self.best_greedy_step(self.board, ply, step_no)
 
         return x, y, values
 
