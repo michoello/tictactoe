@@ -1,9 +1,12 @@
 import unittest
 from unittest.mock import patch
 
+import string
+import random
 from utils import SimpleRNG
 from lib import ml
 from utils import roughlyEqual
+from utils import compress, decompress
 
 
 class TestSimpleRNG(unittest.TestCase):
@@ -38,6 +41,15 @@ class TestSimpleRNG(unittest.TestCase):
                 )
             )
 
+    def test_compress_decompress(self):
+        s = 'hello'
+        self.assertEqual(decompress(compress(s)), s)
+
+        s = 'asdcjhalskjdh lqercAW #fcasdcj;lkjh ca!32v cadk bjbasdc #$adc'
+        self.assertEqual(decompress(compress(s)), s)
+        
+        s = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(1000))
+        self.assertEqual(decompress(compress(s)), s)
 
 if __name__ == "__main__":
     unittest.main()

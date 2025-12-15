@@ -5,6 +5,7 @@ import copy
 import math
 import json
 import random
+from utils import compress, decompress
 
 from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
@@ -133,7 +134,11 @@ class TTTPlayer:
                     self.m.set_data(self.b3, data["b3"])
                 else:
                     self.loss.from_json(model_json["data"])
-                self.replay_buffer.from_json(model_json["replay_buffer"])
+
+                if "replay_buffer" in model_json:
+                    self.replay_buffer.from_json(model_json["replay_buffer"])
+                else:
+                    self.replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
 
 
 
@@ -150,22 +155,25 @@ class TTTPlayer:
             
 
     def save_to_file(self, file_name):
+        def rounded(mtx):
+            return [[round(x, 5) for x in row] for row in mtx]
+
         with open(file_name, "w") as file:
             if self.enable_cpp:
                data_json = {
-                  "w1": self.w1.fval(),
-                  "w2": self.w2.fval(),
-                  "w3": self.w3.fval(),
-                  "b1": self.b1.fval(),
-                  "b2": self.b2.fval(),
-                  "b3": self.b3.fval(),
+                  "w1": rounded(self.w1.fval()),
+                  "w2": rounded(self.w2.fval()),
+                  "w3": rounded(self.w3.fval()),
+                  "b1": rounded(self.b1.fval()),
+                  "b2": rounded(self.b2.fval()),
+                  "b3": rounded(self.b3.fval()),
                }
             else:
                data_json = self.loss.to_json()
             model_json = {
                 "cpp": self.enable_cpp,
                 "data": data_json,
-                "replay_buffer": self.replay_buffer.to_json(),
+                "replay_buffer_zip": compress(self.replay_buffer.to_json()),
             }
             model_dump = json.dumps(model_json)
             file.write(model_dump)

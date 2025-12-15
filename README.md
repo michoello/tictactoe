@@ -1,3 +1,8 @@
+# 2025-12-14
+
+Added few optimizations to reduce file size from 1.5M to 200K. Nothing special.
+Tried to train with 8 families to not much difference.
+
 # 2025-11-20
 
 Adding toroid 5 in a row to check whatever happens

@@ -90,7 +90,7 @@ def generate_playing_batch(m_crosses, m_zeroes, m_student):
     boards, values = [], []
 
     g = game.Game(m_crosses, m_zeroes)
-    steps, winner = g.play_game(0.3, 5)  ## 0.5, 2
+    steps, winner = g.play_game()
     for step in steps:
         # include only 10% of boards
         if random.random() > 0.9:
@@ -280,7 +280,7 @@ def clone_new_version(prefix, family, from_version, to_version):
 
 
 # --------------------------------------------
-NUM_ROUNDS = 2
+NUM_ROUNDS = 4
 
 
 def train(prefix, family_cross, family_zero, version, trainee):
@@ -351,7 +351,7 @@ def cross_competition(prefix, families, version):
 def main():
     prefix = args.save_to_model
 
-    families = ['a', 'b', 'c', 'd']
+    families = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     version = 0
     for family in families:
        m_crosses = tttp.TTTPlayer(enable_cpp=True)
