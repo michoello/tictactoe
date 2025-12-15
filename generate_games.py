@@ -15,10 +15,11 @@ import argparse
 parser = argparse.ArgumentParser(description="Play your model")
 
 parser.add_argument("--mode", type=str, help="how to run this script")
-parser.add_argument("--crosses_model", type=str, help="Type and path of crosses model")
-parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
+parser.add_argument("--model_x", type=str, help="Type and path of crosses model")
+parser.add_argument("--model_o", type=str, help="Type and path of zeroes model")
 parser.add_argument("--game_type", type=str, help="4 or 5_tor")
 parser.add_argument("--num_games", type=int, default=100, help="how many games to play")
+parser.add_argument("--game_mode", type=str, help="greedy or minimax")
 args = parser.parse_args()
 
 
@@ -61,10 +62,13 @@ if args.mode == "many_games":
 game_type = args.game_type
 game_type = game.GameType.TICTACTOE_6_6_5_TOR if game_type == "5_tor" else game.GameType.TICTACTOE_6_6_4
 
+game_mode = args.game_mode
+
+
 if args.mode == "play_single_game":
-    m_crosses = pickup_model(*args.crosses_model.split(":"))
-    m_zeroes = pickup_model(*args.zeroes_model.split(":"))
-    g = game.Game(m_crosses, m_zeroes, game_type)
+    model_x = pickup_model(*args.model_x.split(":"))
+    model_o = pickup_model(*args.model_o.split(":"))
+    g = game.Game(model_x, model_o, game_type, game_mode)
     steps, winner = g.play_game()
     for ss in steps:
         print("Step", ss.step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
@@ -75,10 +79,10 @@ if args.mode == "play_single_game":
 
 
 if args.mode == "play_many_games":
-    m_crosses = pickup_model(*args.crosses_model.split(":"))
-    m_zeroes = pickup_model(*args.zeroes_model.split(":"))
+    model_x = pickup_model(*args.model_x.split(":"))
+    model_o = pickup_model(*args.model_o.split(":"))
     num_games = args.num_games
-    winners = game.competition(m_crosses, m_zeroes, num_games, game_type)
+    winners = game.competition(model_x, model_o, num_games, game_type)
 
     print(
         f"Crosses: {winners[1]}, Zeroes: {winners[-1]}, Ties: {winners[0]} out of {num_games}"

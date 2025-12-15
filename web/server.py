@@ -54,24 +54,22 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 print(row)
 
             # Choosing the best next step with model!
-            winner, xyo = game.Board(board).check_winner()
+
+            g = game.Game(self.server.model_x, self.server.model_o) ## TODO: , game_type, game_mode)
+            g.board.board = board  ## TODO: make it less java
+
+            winner, xyo = g.board.check_winner()
+
             response = {"status": "ok"}
             if not winner:
                 ply = -1 if human_plays == "X" else 1  ## who goes next
-                boards = game.Board(board).all_next_steps(ply)
-                if len(boards) == 0:
-                    print("sorry")
 
-                # Step number is count of zeroes on the board
+                # Step number is count of O's on the board. TODO: move it inside Game()
                 step_no = sum([1 for row in board for x in row if x == -1])
-
-                boards = [(b[0].board, b[1], b[2]) for b in boards]
-                if human_plays == "O":
-                  values = self.server.m_crosses.get_next_step_values(boards)
-                else:
-                  values = self.server.m_zeroes.get_next_step_values(boards)
-                exploration_rate = 0.0
-                x, y = game.choose_next_step(values, ply, step_no, exploration_rate)
+           
+                x, y, values = g.make_next_step(ply, step_no)
+                if x is None or y is None:
+                    print("sorry")
 
                 response["row"] = x
                 response["col"] = y
@@ -84,11 +82,8 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 for row in response["values"]:
                     print(row)
 
-                if human_plays == "X":
-                  board[x][y] = -1  # zero
-                else:
-                  board[x][y] = 1  # cross
-                winner, xyo = game.Board(board).check_winner()
+                board[x][y] = ply 
+                winner, xyo = g.board.check_winner()
 
             # respond
             self.send_response(200)
@@ -109,8 +104,8 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 class TicTacToeServer(HTTPServer):
     def __init__(self, server_address, RequestHandlerClass, crosses_model, zeroes_model):
         super().__init__(server_address, RequestHandlerClass)
-        self.m_crosses = crosses_model
-        self.m_zeroes = zeroes_model
+        self.model_x = crosses_model
+        self.model_o = zeroes_model
 
 
 if __name__ == "__main__":

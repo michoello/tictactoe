@@ -157,47 +157,72 @@ class Step:
 
 
 class Game:
-    def __init__(self, model_crosses, model_zeroes, game_type=GameType.TICTACTOE_6_6_4):
+    def __init__(self, model_x, model_o, game_type=GameType.TICTACTOE_6_6_4, game_mode="greedy"):
         self.game_type = game_type
-        self.model_crosses = model_crosses
-        self.model_zeroes = model_zeroes
+        self.game_mode = game_mode
+        self.model_x = model_x
+        self.model_o = model_o
+        self.board = Board(game_type=self.game_type)
 
 
     def play_game(self):
-        board = Board(game_type=self.game_type)
+        if self.game_mode == "greedy":
+            return self.play_greedy()
+        else:
+            return self.play_minimax()
 
-        steps = []
 
-        step_no, ply, m = 0, 1, self.model_crosses
-        winner = None
+    def play_minimax(self):
+        print("Not implemented")
+        steps, winner = self.play_greedy()
+        return steps, winner
+
+
+    def choose_next_step(self, values, ply, step_no):
+        if step_no == 0: # First step is always random to increase diversity
+            x, y = random_step(values, ply)
+        else:
+            x, y = best_step(values, ply)
+        return x, y
+
+
+    def make_next_step(self, ply, step_no):
+        boards = self.board.all_next_steps(ply)
+        if len(boards) == 0:
+            return None, None
+
+        boards = [(b[0].board, b[1], b[2]) for b in boards]
+
+        m = self.model_x if ply == 1 else self.model_o
+
+        values = m.get_next_step_values(boards)
+        x, y = self.choose_next_step(values, ply, step_no)
+        return x, y, values
+
+
+    def play_greedy(self):
+        steps, step_no, ply, winner = [], 0, 1, None 
         while True:
-
-            boards = board.all_next_steps(ply)
-            if len(boards) == 0:
-                break
-
-            boards = [(b[0].board, b[1], b[2]) for b in boards]
-
-            values = m.get_next_step_values(boards)
-            x, y = choose_next_step(values, ply, step_no)
-            board.board[x][y] = ply
+            x, y, values = self.make_next_step(ply, step_no)
+            if x is None and y is None:
+                break  ## the board is full, no more steps
+            self.board.board[x][y] = ply
 
             ss = Step(
                 step_no=step_no,
                 ply=ply,
                 x=x,
                 y=y,
-                board=board.copy(),
+                board=self.board.copy(),
                 values=copy.deepcopy(values),
             )
             steps.append(ss)
 
-            winner, _ = board.check_winner()
+            winner, _ = self.board.check_winner()
             if winner != 0:
                 break
 
             ply = -ply
-            m = self.model_crosses if ply == 1 else self.model_zeroes
             if ply == 1:
                 step_no = step_no + 1
 
@@ -211,8 +236,6 @@ class Game:
 
 
 # ----------------------------------
-
-
 def generate_random_board():
     size = 6 * 6
     num_zeroes = random.randint(
@@ -310,12 +333,6 @@ def random_step(values, ply):
     return chosen
 
 
-def choose_next_step(values, ply, step_no):
-    if step_no == 0: # First step is always random to increase diversity
-        x, y = random_step(values, ply)
-    else:
-        x, y = best_step(values, ply)
-    return x, y
 
 
 def competition(m_crosses, m_zeroes, num_games, game_type=GameType.TICTACTOE_6_6_4):
