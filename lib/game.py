@@ -223,6 +223,7 @@ class Game:
 
 
     def play_game(self):
+        self.board.reset()
         steps, step_no, ply, winner = [], 0, 1, 0
         while True:
             x, y, values = self.make_next_step(ply, step_no)
