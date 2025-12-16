@@ -167,7 +167,6 @@ class Game:
         self.model_o = model_o
         self.board = Board(game_type=self.game_type)
 
-    # yo
     def best_greedy_step(self, board, ply, step_no):
 
         boards = board.all_next_steps(ply)
