@@ -24,13 +24,13 @@ class Board:
         self.game_type = game_type
 
     def reset(self):
-        self.board = copy.deepcopy(START_BOARD)
+        self.state = copy.deepcopy(START_BOARD)
 
     def set(self, board):
-        self.board = board
+        self.state = board
 
     def copy(self):
-        return Board(copy.deepcopy(self.board), self.game_type)
+        return Board(copy.deepcopy(self.state), self.game_type)
 
     # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
@@ -38,9 +38,9 @@ class Board:
         boards = []
         for row in range(6):
             for col in range(6):
-                if self.board[row][col] == 0:
+                if self.state[row][col] == 0:
                     next_board = self.copy()  # copy.deepcopy(board)
-                    next_board.board[row][col] = ply
+                    next_board.state[row][col] = ply
                     boards.append((next_board, row, col))
         return boards
 
@@ -53,7 +53,7 @@ class Board:
             return self.check_winner_tictactoe_6_6_5_tor()
 
     def check_winner_tictactoe_6_6_4(self):
-        b = self.board
+        b = self.state
 
         lll = [
             [(0, 1), (0, 2), (0, 3)],
@@ -83,7 +83,7 @@ class Board:
 
 
     def check_winner_tictactoe_6_6_5_tor(self):
-        b = self.board
+        b = self.state
 
         lll = [
             [(0, 1), (0, 2), (0, 3), (0, 4)],
@@ -135,7 +135,7 @@ class Board:
 
         winner, xyo = self.check_winner()
 
-        for i, row in enumerate(self.board):
+        for i, row in enumerate(self.state):
             for j, cell in enumerate(row):
 
                 bg = "grey" if (i + j) % 2 == 0 else "black"
@@ -182,7 +182,7 @@ class Game:
         
         values = copy.deepcopy(DEFAULT_VALUES) 
         for board, row, col in boards:
-            value = m.get_next_step_value(board.board)
+            value = m.get_next_step_value(board.state)
             values[row][col] = value
             if value is None:
                 continue
@@ -209,7 +209,7 @@ class Game:
 
     def make_next_step(self, ply, step_no):
         if self.game_mode == "minimax":
-           x, y, values = self.best_minimax_step(self.board, ply, step_no)
+           x, y, values = self.best_minimax_step(self.state, ply, step_no)
         else:
            # First step is always random to increase diversity
            if step_no == 0: 
@@ -227,7 +227,7 @@ class Game:
             x, y, values = self.make_next_step(ply, step_no)
             if x is None and y is None:
                 break  ## the board is full, no more steps
-            self.board.board[x][y] = ply
+            self.board.state[x][y] = ply
 
             ss = Step(
                 step_no=step_no,

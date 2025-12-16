@@ -58,6 +58,7 @@ class TestTrainingCycle(unittest.TestCase):
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
     def test_training_player_and_game_py(self):
+        #return
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
