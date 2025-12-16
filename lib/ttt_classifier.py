@@ -58,12 +58,14 @@ class TTTClass:
     # calculates value and stores it in the coords of next step.
     def get_next_step_values(self, boards):
         values = copy.deepcopy(START_VALUES)
-        for bxy in boards:
-            b, x, y = bxy
-            self.x.set(b)
-            value = self.prediction.val()
-            values[x][y] = value[0][0]
+        for board, x, y in boards:
+            values[x][y] = self.get_next_step_value(b)
         return values
+
+    def get_next_step_value(self, board):
+        self.x.set(board)
+        return self.prediction.val()[0][0]
+
 
     def apply_gradient(self):
 

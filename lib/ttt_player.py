@@ -30,11 +30,12 @@ def DData(mod3l, rows, cols, values):
 class TTTRandom:
     def get_next_step_values(self, boards):
         values = copy.deepcopy(START_VALUES)
-        for bxy in boards:
-            b, x, y = bxy
-            values[x][y] = random.random()
+        for board, x, y in boards:
+            values[x][y] = self.get_next_step_value(b)
         return values
 
+    def get_next_step_value(self, board):
+        return random.random()
 
 
 # Simple player based on board position value
@@ -193,6 +194,24 @@ class TTTPlayer:
                 value = self.prediction.val()
             values[x][y] = value[0][0]
         return values
+
+
+    def get_next_step_values(self, boards):
+        values = copy.deepcopy(START_VALUES)
+        for board, x, y in boards:
+            values[x][y] = self.get_next_step_value(board)
+        return values
+
+    def get_next_step_value(self, board):
+            if self.enable_cpp:
+                self.m.set_data(self.x, board)
+                self.loss.calc_fval()
+                value = self.z3.fval()
+            else:
+                self.x.set(board)
+                value = self.prediction.val()
+            return value[0][0]
+
 
     def apply_gradient(self, alpha = 0.01):
 

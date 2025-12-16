@@ -6,6 +6,9 @@ from enum import Enum
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
+DEFAULT_VALUES = [[0 for _ in range(6)] for _ in range(6)]
+
+
 class GameType(Enum):
     TICTACTOE_6_6_4 = 1
     TICTACTOE_6_6_5_TOR = 2
@@ -167,58 +170,52 @@ class Game:
         self.model_o = model_o
         self.board = Board(game_type=self.game_type)
 
-    def best_greedy_step(self, board, ply, step_no):
+    def best_greedy_step(self, board, ply):
 
         boards = board.all_next_steps(ply)
         if len(boards) == 0:
             return None, None, None
 
-        boards = [(b[0].board, b[1], b[2]) for b in boards]
-
-        m = self.model_x if ply == 1 else self.model_o
-        values = m.get_next_step_values(boards)
-
-        # First step is always random to increase diversity
-        if step_no == 0: 
-            return self.random_step(values)
-
         best = -100 if ply == 1 else 100
         best_xy = (-1, -1)
-        for row in range(6):
-          for col in range(6):
-            if (v := values[row][col]) is None:
+        m = self.model_x if ply == 1 else self.model_o
+        
+        values = copy.deepcopy(DEFAULT_VALUES) 
+        for board, row, col in boards:
+            value = m.get_next_step_value(board.board)
+            values[row][col] = value
+            if value is None:
                 continue
-            if ply == 1 and v > best:
-                best = v
+
+            if ply == 1 and value > best:
+                best = value
                 best_xy = (row, col)
-            if ply == -1 and v < best:
-                best = v
+            if ply == -1 and value < best:
+                best = value
                 best_xy = (row, col)
+
         return best_xy[0], best_xy[1], values
 
 
-    def best_minimax_step(self, board, ply, step_no):
+    def best_minimax_step(self, board, ply):
         print("NOT IMPLEMENTED")
-        return self.best_greedy_step(board, ply, step_no)
+        return self.best_greedy_step(board, ply)
 
 
-    def random_step(self, values):
-        # Reservoir sampling
-        count, chosen = 0, None
-        for row in range(6):
-          for col in range(6):
-            if values[row][col] is not None:
-                count = count + 1
-                if random.random() < 1 / count:
-                    chosen = (row, col)
-        return chosen[0], chosen[1], values
+    def random_step(self):
+        cell = random.randint(0, 36)
+        return int(cell / 6), int(cell % 6), copy.deepcopy(DEFAULT_VALUES) 
 
 
     def make_next_step(self, ply, step_no):
         if self.game_mode == "minimax":
            x, y, values = self.best_minimax_step(self.board, ply, step_no)
         else:
-           x, y, values = self.best_greedy_step(self.board, ply, step_no)
+           # First step is always random to increase diversity
+           if step_no == 0: 
+              return self.random_step()
+
+           x, y, values = self.best_greedy_step(self.board, ply)
 
         return x, y, values
 
@@ -337,7 +334,7 @@ def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4)
     winners = {-1: 0, 0: 0, 1: 0}
     g = Game(model_x, model_o, game_type)
     for f in range(num_games):
-        steps, winner = g.play_game()
+        _, winner = g.play_game()
         winners[winner] = winners[winner] + 1
 
     return winners
