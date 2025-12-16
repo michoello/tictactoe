@@ -7,11 +7,11 @@ Tried to train with 8 families to not much difference.
 
 Adding toroid 5 in a row to check whatever happens
 ```
-python3 generate_games.py --mode play_single_game --crosses_model player:models/cpp3.001/model-crosses-d.4000.json --zeroes_model player:models/cpp3.001/model-zeroes-d.4000.json
+python3 generate_games.py --mode play_single_game --model_x player:models/cpp3.001/model-crosses-d.4000.json --model_o player:models/cpp3.001/model-zeroes-d.4000.json
 
-python3 generate_games.py --mode play_single_game --game_type 5_tor --crosses_model random: --zeroes_model random:
+python3 generate_games.py --mode play_single_game --game_type 5_tor --model_x random: --model_o random:
 
-python3 generate_games.py --mode play_many_games --num_game 10 --game_type 5_tor --crosses_model random: --zeroes_model random:
+python3 generate_games.py --mode play_many_games --num_game 10 --game_type 5_tor --model_x random: --model_o random:
 
 ```
 

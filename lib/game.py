@@ -153,12 +153,10 @@ class Board:
 
 @dataclass
 class Step:
-    step_no: int
     ply: int  # 1 for crosses, -1 for zeroes
     x: int
     y: int
     board: list[list[int]]
-    values: list[list[float]]
     reward: Optional[float] = None
 
 
@@ -203,16 +201,21 @@ class Game:
 
 
     def random_step(self):
-        cell = random.randint(0, 36)
+        cell = random.randint(0, 35)
         return int(cell / 6), int(cell % 6), copy.deepcopy(DEFAULT_VALUES) 
 
 
-    def make_next_step(self, ply, step_no):
+    def step_no(self):
+        # Step number is count of O's on the board.
+        return sum([1 for row in self.board.state for x in row if x == -1])
+
+
+    def make_next_step(self, ply):
         if self.game_mode == "minimax":
-           x, y, values = self.best_minimax_step(self.state, ply, step_no)
+           x, y, values = self.best_minimax_step(self.board, ply)
         else:
            # First step is always random to increase diversity
-           if step_no == 0: 
+           if self.step_no() == 0: 
               return self.random_step()
 
            x, y, values = self.best_greedy_step(self.board, ply)
@@ -222,20 +225,18 @@ class Game:
 
     def play_game(self):
         self.board.reset()
-        steps, step_no, ply, winner = [], 0, 1, 0
+        steps, ply, winner = [], 1, 0
         while True:
-            x, y, values = self.make_next_step(ply, step_no)
+            x, y, values = self.make_next_step(ply)
             if x is None and y is None:
                 break  ## the board is full, no more steps
             self.board.state[x][y] = ply
 
             ss = Step(
-                step_no=step_no,
+                board=self.board.copy(),
                 ply=ply,
                 x=x,
                 y=y,
-                board=self.board.copy(),
-                values=copy.deepcopy(values),
             )
             steps.append(ss)
 
@@ -244,8 +245,6 @@ class Game:
                 break
 
             ply = -ply
-            if ply == 1:
-                step_no = step_no + 1
 
         # Set desired rewards to the boards
         reward = winner

@@ -70,12 +70,13 @@ if args.mode == "play_single_game":
     model_o = pickup_model(*args.model_o.split(":"))
     g = game.Game(model_x, model_o, game_type, game_mode)
     steps, winner = g.play_game()
+    step_no = 0
     for ss in steps:
-        print("Step", ss.step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
-        game.print_scores(ss.values)
+        print("Step", step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
         print("  Move:", ss.x, ss.y, " Reward: ", ss.reward)
         ss.board.print_board()
         print()
+        step_no += 1
 
 
 if args.mode == "play_many_games":

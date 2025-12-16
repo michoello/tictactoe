@@ -94,7 +94,7 @@ def generate_playing_batch(m_crosses, m_zeroes, m_student):
     for step in steps:
         # include only 10% of boards
         if random.random() > 0.9:
-            boards.append(step.board.board)
+            boards.append(step.board.state)
             train_reward = [(step.reward + 1) / 2]
             values.append(train_reward)
     return boards, values
