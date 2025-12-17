@@ -1,3 +1,12 @@
+# 2025-12-16
+
+Naive Minimax added (with alpha-beta pruning though). Very slow.
+Lots of room for optimizations and experimentation.
+Perhaps MCTS (Monte Carlo Tree Search) is the next experiment
+```
+python3 generate_games.py --mode play_single_game --model_x player:models/cpp3.001/model-crosses-d.4000.json --model_o player:models/cpp3.001/model-zeroes-d.4000.json --game_mode minimax
+```
+
 # 2025-12-14
 
 Added few optimizations to reduce file size from 1.5M to 200K. Nothing special.

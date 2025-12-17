@@ -6,9 +6,6 @@ from enum import Enum
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
-DEFAULT_VALUES = [[0 for _ in range(6)] for _ in range(6)]
-
-
 class GameType(Enum):
     TICTACTOE_6_6_4 = 1
     TICTACTOE_6_6_5_TOR = 2
@@ -114,14 +111,26 @@ class Board:
 
 
 
-    def print_board(self):
+    def print_board(self, r=None, c=None):
 
-        bgs = {"grey": "\033[100m", "black": "\033[40m"}
+        bgs = {
+            #"grey": "\033[100m", 
+            #"black": "\033[40m",
+            #"yellow": "\033[43m"
+            # 256colors
+            # bash for i in {0..255}; do printf "\033[48;5;%sm %3d \033[0m" "$i" "$i"; done; echo
+			"grey": "\033[48;5;236m",
+            "black": "\033[48;5;234m",
+            "yellow": "\033[38;5;94m",
+        }
+
+ 
 
         fgs = {
             "green": "\033[32m",
-            "blue": "\033[94m",
+            "blue": "\033[36m",
             "red": "\033[31m",
+            "yellow": "\033[33m",
         }
 
         cancel_color = "\033[0m"
@@ -146,6 +155,11 @@ class Board:
                 else:
                     what, fg = "   ", "std"
                 fg = "red" if (i, j) in xyo else fg
+                
+                if i == r and j == c:
+                   #fg = "yellow"
+                   bg = "yellow"
+
                 cprint(fg, bg, what)
 
             print()
@@ -178,10 +192,8 @@ class Game:
         best_xy = (-1, -1)
         m = self.model_x if ply == 1 else self.model_o
         
-        values = copy.deepcopy(DEFAULT_VALUES) 
         for board, row, col in boards:
             value = m.get_next_step_value(board.state)
-            values[row][col] = value
             if value is None:
                 continue
 
@@ -192,17 +204,49 @@ class Game:
                 best = value
                 best_xy = (row, col)
 
-        return best_xy[0], best_xy[1], values
-
+        return best_xy[0], best_xy[1]
 
     def best_minimax_step(self, board, ply):
-        print("NOT IMPLEMENTED")
-        return self.best_greedy_step(board, ply)
+        player = "X" if ply == 1 else "O"
+        depth = 3 
+        alpha, beta = -1000, 1000 # infinity!
+        val, row, col = self.minimax(board, depth, alpha, beta, player)
+        return row, col
 
+
+    def minimax(self, board, depth, alpha, beta, player):
+      #print("MINIMAX ", player, depth)
+      winner, _ = board.check_winner()
+      if depth == 0 or winner != 0:
+          m = self.model_x if player == 'X' else self.model_o 
+          return m.get_next_step_value(board.state), None, None
+
+      boards = board.all_next_steps(1 if player == "X" else -1) #ply)
+      random.shuffle(boards)
+
+      best_val = -float("inf") if player == "X" else float("inf")
+      next_player = "O" if player == "X" else "X"
+      best_row, best_col = None, None
+
+      for board, row, col in boards:
+          val, _, _ = self.minimax(board, depth - 1, alpha, beta, next_player)
+          if player == "X":
+             if val > best_val:
+                best_val, best_row, best_col = val, row, col
+             alpha = max(alpha, best_val)
+          else:
+             if val < best_val:
+                best_val, best_row, best_col = val, row, col
+             beta = min(beta, best_val)
+
+          if beta <= alpha:
+                break
+
+      return best_val, best_row, best_col
 
     def random_step(self):
         cell = random.randint(0, 35)
-        return int(cell / 6), int(cell % 6), copy.deepcopy(DEFAULT_VALUES) 
+        return int(cell / 6), int(cell % 6)
 
 
     def step_no(self):
@@ -211,40 +255,32 @@ class Game:
 
 
     def make_next_step(self, ply):
-        if self.game_mode == "minimax":
-           x, y, values = self.best_minimax_step(self.board, ply)
-        else:
-           # First step is always random to increase diversity
-           if self.step_no() == 0: 
+        # First step is always random to increase diversity
+        if self.step_no() == 0: 
               return self.random_step()
 
-           x, y, values = self.best_greedy_step(self.board, ply)
+        if self.game_mode == "minimax":
+           return self.best_minimax_step(self.board, ply)
 
-        return x, y, values
+        return self.best_greedy_step(self.board, ply)
 
 
     def play_game(self):
         self.board.reset()
         steps, ply, winner = [], 1, 0
         while True:
-            x, y, values = self.make_next_step(ply)
-            if x is None and y is None:
-                break  ## the board is full, no more steps
+            x, y = self.make_next_step(ply)
+            #if x is None and y is None:
+            #    break 
             self.board.state[x][y] = ply
 
-            ss = Step(
-                board=self.board.copy(),
-                ply=ply,
-                x=x,
-                y=y,
-            )
-            steps.append(ss)
-
-            winner, _ = self.board.check_winner()
-            if winner != 0:
-                break
+            steps.append(Step(board=self.board.copy(), ply=ply, x=x, y=y))
 
             ply = -ply
+
+            winner, _ = self.board.check_winner()
+            if len(steps) == 36 or winner != 0:
+                break
 
         # Set desired rewards to the boards
         reward = winner
@@ -322,11 +358,6 @@ def print_scores(values):
                 print(bg_color + f"   " + "\033[0m", end="")
 
         print()
-
-
-
-
-
 
 
 def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4):

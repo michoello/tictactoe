@@ -74,7 +74,7 @@ if args.mode == "play_single_game":
     for ss in steps:
         print("Step", step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
         print("  Move:", ss.x, ss.y, " Reward: ", ss.reward)
-        ss.board.print_board()
+        ss.board.print_board(ss.x, ss.y)
         print()
         step_no += 1
 
