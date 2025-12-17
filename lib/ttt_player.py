@@ -7,7 +7,7 @@ import json
 import random
 from utils import compress, decompress
 
-from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
+from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
 START_VALUES = [
     [None, None, None, None, None, None],
@@ -145,12 +145,7 @@ class TTTPlayer:
 
     def calc_grads(self):
         if self.enable_cpp:
-           self.w1.calc_bval()
-           self.w2.calc_bval()
-           self.w3.calc_bval()
-           self.b1.calc_bval()
-           self.b2.calc_bval()
-           self.b3.calc_bval()
+           pass  # it is now calculate under the hood whenver needed
         else:
            self.loss.dif()
             
@@ -162,12 +157,12 @@ class TTTPlayer:
         with open(file_name, "w") as file:
             if self.enable_cpp:
                data_json = {
-                  "w1": rounded(self.w1.fval()),
-                  "w2": rounded(self.w2.fval()),
-                  "w3": rounded(self.w3.fval()),
-                  "b1": rounded(self.b1.fval()),
-                  "b2": rounded(self.b2.fval()),
-                  "b3": rounded(self.b3.fval()),
+                  "w1": rounded(value(self.w1.fval())),
+                  "w2": rounded(value(self.w2.fval())),
+                  "w3": rounded(value(self.w3.fval())),
+                  "b1": rounded(value(self.b1.fval())),
+                  "b2": rounded(value(self.b2.fval())),
+                  "b3": rounded(value(self.b3.fval())),
                }
             else:
                data_json = self.loss.to_json()
@@ -187,8 +182,7 @@ class TTTPlayer:
             b, x, y = bxy
             if self.enable_cpp:
                 self.m.set_data(self.x, b)
-                self.loss.calc_fval()
-                value = self.z3.fval()
+                value = value(self.z3.fval())
             else:
                 self.x.set(b)
                 value = self.prediction.val()
@@ -205,13 +199,14 @@ class TTTPlayer:
     def get_next_step_value(self, board):
             if self.enable_cpp:
                 self.m.set_data(self.x, board)
-                self.loss.calc_fval()
-                value = self.z3.fval()
+                step_value = value(self.z3.fval())
             else:
                 self.x.set(board)
-                value = self.prediction.val()
-            return value[0][0]
+                step_value = self.prediction.val()
+            return step_value[0][0]
 
+    def get_loss_value(self):
+        return value(self.loss.fval())[0][0]
 
     def apply_gradient(self, alpha = 0.01):
 

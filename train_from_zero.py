@@ -127,15 +127,13 @@ def generate_dumb_batch(num_boards, m_crosses, m_zeroes, m_student):
 
 def calc_loss(m, boards, values):
     sum_loss = 0
-    for board, value in zip(boards, values):
+    for board, state_value in zip(boards, values):
         #m.x.set(board)
         #m.y.set([value])
         m.m.set_data(m.x, board)
-        m.m.set_data(m.y, [value])
+        m.m.set_data(m.y, [state_value])
 
-        m.loss.calc_fval()
-        loss = m.loss.fval()
-        sum_loss = sum_loss + loss[0][0]
+        sum_loss = sum_loss + m.get_loss_value()
 
     return sum_loss / len(boards)
 
@@ -171,16 +169,14 @@ def train_single_round(trainee, m_crosses, m_zeroes, m_student):
     # Backward pass
     #
     for i in range(TRAIN_ITERATIONS):
-        for board, value in zip(train_boards, train_values):
+        for board, state_value in zip(train_boards, train_values):
             m_student.m.set_data(m_student.x, board)
-            m_student.m.set_data(m_student.y, [value])
+            m_student.m.set_data(m_student.y, [state_value])
 
-            m_student.loss.calc_fval()
             m_student.calc_grads()
             m_student.apply_gradient(0.001)
 
-            m_student.loss.calc_fval()
-            loss = m_student.loss.fval()
+            loss = m_student.get_loss_value()
 
         train_loss = calc_loss(m_student, train_boards, train_values)
         if i % 10 == 0:
@@ -382,7 +378,9 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
-        if version % 100 == 0:
+        #if version % 100 == 0:
+        if version % 2 == 0:
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\nSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             start_ts = print(f"Competitions for version {version} started")
             for family in families:
               versioned_competition(prefix, family, version, "crosses")

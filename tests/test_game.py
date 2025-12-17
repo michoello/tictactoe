@@ -8,7 +8,7 @@ from utils import SimpleRNG
 from unittest.mock import patch
 from lib import ratings
 
-from listinvert import invert, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
+from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
 def DData(mod3l, rows, cols, values):
     res = Data(mod3l, rows, cols)
@@ -133,7 +133,6 @@ class TestTrainingCycle(unittest.TestCase):
                     for board, winner in zip(train_boards, train_winners):
                         m.m.set_data(m.x, board)
                         m.m.set_data(m.y, [winner])
-                        m.loss.calc_fval()
                         m.calc_grads()
                         m.apply_gradient()
 
@@ -142,8 +141,7 @@ class TestTrainingCycle(unittest.TestCase):
                         m.m.set_data(m.x, board)
                         m.m.set_data(m.y, [winner])
 
-                        m.loss.calc_fval()
-                        test_loss = test_loss + m.loss.fval()[0][0]
+                        test_loss = test_loss + value(m.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
                     m.save_to_file(trained_model)
@@ -178,23 +176,19 @@ class TestTrainingCycle(unittest.TestCase):
 
         ds = SSE(dy, dl)
 
-        ds.calc_fval()
 
-        self.assertEqual(ds.fval(), [[5]])
-
-        # Calc derivatives
-        dy.calc_bval()
+        self.assertEqual(value(ds.fval()), [[5]])
 
         # Derivative of loss function is its value is 1.0 (aka df/df)
         self.assertEqual(
-            ds.bval(),
+            value(ds.bval(0)),
             [
                 [1],
             ],
         )
         # Derivative of its args
         self.assertEqual(
-            dy.bval(),
+            value(dy.bval(0)),
             [
                 [2, -4],
             ],
@@ -202,16 +196,15 @@ class TestTrainingCycle(unittest.TestCase):
 
         dy.apply_bval(0.1)
         self.assertAlmostEqualNested(
-            dy.fval(),
+            value(dy.fval()),
             [
                 [0.8, 2.4],
             ],
         )
 
         # Calc loss again
-        ds.calc_fval()
         self.assertAlmostEqualNested(
-            ds.fval(),
+            value(ds.fval()),
             [
                 [3.2],
             ],
@@ -252,37 +245,35 @@ class TestTrainingCycle(unittest.TestCase):
             "random.shuffle", new=rng.shuffle
         ):
             m_cpp = ttt.TTTPlayer(enable_cpp=True)
-            m_cpp.loss.calc_fval()
 
-        self.assertAlmostEqualNested(m_py.x.val(), m_cpp.x.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z1.val(), m_cpp.z1.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.val(), m_cpp.z3.fval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.x.val(), value(m_cpp.x.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.z1.val(), value(m_cpp.z1.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.val(), value(m_cpp.z3.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.val(), value(m_cpp.loss.fval()), 1e-6)
 
         m_py.calc_grads()
         m_cpp.calc_grads()
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
         # old python and new cpp implementations:
-        self.assertAlmostEqualNested(m_py.loss.dval(), m_cpp.z3.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.dval(), m_cpp.za.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.dval(), value(m_cpp.z3.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.dval(), value(m_cpp.za.bval(0)), 1e-6)
 
         # But the weights back values (grads) are consistent:
-        self.assertAlmostEqualNested(m_py.w3.dval(), m_cpp.w3.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b3.dval(), m_cpp.b3.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w3.dval(), value(m_cpp.w3.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.b3.dval(), value(m_cpp.b3.bval(0)), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w2.dval(), m_cpp.w2.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b2.dval(), m_cpp.b2.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w2.dval(), value(m_cpp.w2.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.b2.dval(), value(m_cpp.b2.bval(0)), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w1.dval(), m_cpp.w1.bval(), 1e-6)
-        self.assertAlmostEqualNested(m_py.b1.dval(), m_cpp.b1.bval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.w1.dval(), value(m_cpp.w1.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.b1.dval(), value(m_cpp.b1.bval(0)), 1e-6)
 
         # Now apply grads and check that thee results match
         m_py.apply_gradient()
         m_cpp.apply_gradient()
 
-        m_cpp.loss.calc_fval()
-        self.assertAlmostEqualNested(m_py.loss.val(), m_cpp.loss.fval(), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.val(), value(m_cpp.loss.fval()), 1e-6)
 
         m_py_file = tempfile.mktemp()
         m_py.save_to_file(m_py_file)
@@ -298,15 +289,14 @@ class TestTrainingCycle(unittest.TestCase):
         m_cpp2 = ttt.TTTPlayer(m_cpp_file) 
 
         # Since cpp model does not store the inputs, we copy them from first cpp model
-        m_cpp2.m.set_data(m_cpp2.x, m_cpp.x.fval())
-        m_cpp2.m.set_data(m_cpp2.y, m_cpp.y.fval())
-        m_cpp2.loss.calc_fval()
-        self.assertAlmostEqualNested(m_cpp.loss.fval(), m_cpp2.loss.fval(), 1e-3)
+        m_cpp2.m.set_data(m_cpp2.x, value(m_cpp.x.fval()))
+        m_cpp2.m.set_data(m_cpp2.y, value(m_cpp.y.fval()))
+        self.assertAlmostEqualNested(value(m_cpp.loss.fval()), value(m_cpp2.loss.fval()), 1e-3)
 
         # The outputs are now a bit different between py and cpp, because of rounding
         # (both weights and the inputs)
         # TODO: rounding
-        self.assertAlmostEqualNested(m_cpp2.loss.fval(), m_py2.loss.val(), 1e-3)
+        self.assertAlmostEqualNested(value(m_cpp2.loss.fval()), m_py2.loss.val(), 1e-3)
 
 
     def test_ratings(self):
