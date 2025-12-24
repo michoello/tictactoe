@@ -208,17 +208,19 @@ class Game:
 
     def best_minimax_step(self, board, ply):
         player = "X" if ply == 1 else "O"
-        depth = 3 
+        depth = 2
         alpha, beta = -1000, 1000 # infinity!
         val, row, col = self.minimax(board, depth, alpha, beta, player)
         return row, col
 
 
     def minimax(self, board, depth, alpha, beta, player):
-      #print("MINIMAX ", player, depth)
       winner, _ = board.check_winner()
-      if depth == 0 or winner != 0:
-          m = self.model_x if player == 'X' else self.model_o 
+      if winner != 0:
+          return (winner, None, None)
+      
+      m = self.model_x if player == 'X' else self.model_o 
+      if depth == 0:
           return m.get_next_step_value(board.state), None, None
 
       boards = board.all_next_steps(1 if player == "X" else -1) #ply)
@@ -260,6 +262,7 @@ class Game:
               return self.random_step()
 
         if self.game_mode == "minimax":
+        #if ply == -1:
            return self.best_minimax_step(self.board, ply)
 
         return self.best_greedy_step(self.board, ply)
@@ -270,12 +273,9 @@ class Game:
         steps, ply, winner = [], 1, 0
         while True:
             x, y = self.make_next_step(ply)
-            #if x is None and y is None:
-            #    break 
             self.board.state[x][y] = ply
 
             steps.append(Step(board=self.board.copy(), ply=ply, x=x, y=y))
-
             ply = -ply
 
             winner, _ = self.board.check_winner()
@@ -360,10 +360,11 @@ def print_scores(values):
         print()
 
 
-def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4):
+def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4, game_mode="greedy"):
     winners = {-1: 0, 0: 0, 1: 0}
-    g = Game(model_x, model_o, game_type)
+    g = Game(model_x, model_o, game_type, game_mode)
     for f in range(num_games):
+        print(f"Game {f}")
         _, winner = g.play_game()
         winners[winner] = winners[winner] + 1
 

@@ -378,9 +378,7 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
-        #if version % 100 == 0:
-        if version % 2 == 0:
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\nSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        if version % 100 == 0:
             start_ts = print(f"Competitions for version {version} started")
             for family in families:
               versioned_competition(prefix, family, version, "crosses")
