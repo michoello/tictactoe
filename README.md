@@ -1,3 +1,7 @@
+# 2025-12-26 
+
+Draft MCTS added. Also very slow.
+
 # 2025-12-16
 
 Naive Minimax added (with alpha-beta pruning though). Very slow.
