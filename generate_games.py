@@ -19,7 +19,7 @@ parser.add_argument("--model_x", type=str, help="Type and path of crosses model"
 parser.add_argument("--model_o", type=str, help="Type and path of zeroes model")
 parser.add_argument("--game_type", type=str, help="Game type: 4 or 5_tor")
 parser.add_argument("--num_games", type=int, default=100, help="how many games to play")
-parser.add_argument("--game_mode", type=str, default="greedy", help="Game mode: greedy or minimax")
+parser.add_argument("--game_mode", type=str, default="greedy", help="Game mode: greedy, minimax, mcts")
 args = parser.parse_args()
 
 

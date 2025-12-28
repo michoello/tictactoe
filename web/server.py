@@ -67,7 +67,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 # Step number is count of O's on the board. TODO: move it inside Game()
                 step_no = sum([1 for row in board for x in row if x == -1])
            
-                x, y, values = g.make_next_step(ply, step_no)
+                x, y, values = g.choose_next_step(ply, step_no)
                 if x is None or y is None:
                     print("sorry")
 

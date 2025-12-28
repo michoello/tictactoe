@@ -7,6 +7,8 @@ import math
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
+MCTS_NUM_SIMULATIONS=1000
+
 class GameType(Enum):
     TICTACTOE_6_6_4 = 1
     TICTACTOE_6_6_5_TOR = 2
@@ -25,10 +27,22 @@ class Board:
         self.state = copy.deepcopy(START_BOARD)
 
     def set(self, board):
+        if len(board) != 6:
+            raise ValueError("board must have 6 rows sharp")
+        for row in board:
+            if len(row) != 6:
+               raise ValueError("each row must have 6 cols sharp")
         self.state = board
 
     def copy(self):
         return Board(copy.deepcopy(self.state), self.game_type)
+
+    def asstr(self):
+        s = ''
+        for row in range(6):
+            for col in range(6):
+                s += str(self.state[row][col])
+        return s
 
     # Generates all boards for next single step (ply=1 crosses, ply=-1 zeroes)
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
@@ -280,8 +294,8 @@ class Game:
             m = self.model_x if next_node.ply == 1 else self.model_o
 
             winner, _ = board.check_winner()
-            #if winner == 1 or winner == -1:
-            if winner is not None:
+            if winner == 1 or winner == -1:
+            #if winner is not None:
               next_node.value = winner
             else:
               next_node.value = m.get_next_step_value(board.state)
@@ -325,25 +339,35 @@ class Game:
                 depth = subdepth
         return depth + 1
 
+    def unique_node_count(self, root, accum=None):
+        if accum is None:
+            accum = {}
+        hsh = root.board.asstr()
+        accum[hsh] = 1
+
+        for node in root.tried_nodes:
+            self.unique_node_count(node, accum)
+        return len(accum.keys())
+
 
     def analyze_tree(self, root):
         print("MCTS node count: ", self.node_count(root))
+        print("MCTS uniq count: ", self.unique_node_count(root))
         print("MCTS tree depth: ", self.depth(root))
-
-
 
     def best_mcts_step(self, board, ply):
         player = "X" if ply == 1 else "O"
 
         root = Game.MctsNode(board, None, None, ply)
 
-        num_simulations = 1000
+        # TODO: make it a param
+        num_simulations = MCTS_NUM_SIMULATIONS
         for sim_num in range(num_simulations):
             last_node = self.mcts_run_simulation(root)
             self.mcts_back_propagate(last_node)
 
 
-        self.analyze_tree(root)
+        # self.analyze_tree(root)
 
 
         # Choose the node that got the most visits
@@ -398,7 +422,7 @@ class Game:
         return sum([1 for row in self.board.state for x in row if x == -1])
 
 
-    def make_next_step(self, ply):
+    def choose_next_step(self, ply):
         # First step is always random to increase diversity
         if self.step_no() == 0: 
               return self.random_step()
@@ -406,9 +430,7 @@ class Game:
         if self.game_mode == "minimax":
            return self.best_minimax_step(self.board, ply)
 
-
-        if ply == -1:
-        #if self.game_mode == "mcts":
+        if self.game_mode == "mcts":
            return self.best_mcts_step(self.board, ply)
 
         return self.best_greedy_step(self.board, ply)
@@ -418,7 +440,7 @@ class Game:
         self.board.reset()
         steps, ply, winner = [], 1, 0
         while True:
-            x, y = self.make_next_step(ply)
+            x, y = self.choose_next_step(ply)
             self.board.state[x][y] = ply
 
             steps.append(Step(board=self.board.copy(), ply=ply, x=x, y=y))
@@ -510,7 +532,7 @@ def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4,
     winners = {-1: 0, 0: 0, 1: 0}
     g = Game(model_x, model_o, game_type, game_mode)
     for f in range(num_games):
-        print(f"Game {f}")
+        #print(f"Game {f}")
         _, winner = g.play_game()
         winners[winner] = winners[winner] + 1
 

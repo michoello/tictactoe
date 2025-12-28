@@ -16,7 +16,7 @@ def DData(mod3l, rows, cols, values):
     return res
 
 
-class TestTrainingCycle(unittest.TestCase):
+class MyTestCase(unittest.TestCase):
     def assertAlmostEqualNested(self, a, b, delta=1e-3):
         if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
             self.assertEqual(len(a), len(b), "Lengths differ")
@@ -24,6 +24,9 @@ class TestTrainingCycle(unittest.TestCase):
                 self.assertAlmostEqualNested(x, y, delta)
         else:
             self.assertAlmostEqual(a, b, delta=delta)
+
+
+class TestTrainingCycle(MyTestCase):
 
     def test_omg(self):
         x = [[1, 2]]
@@ -300,13 +303,88 @@ class TestTrainingCycle(unittest.TestCase):
 
 
     def test_ratings(self):
-         rats = ratings.elo_ratings([ ('a', 1, 'b', 0) ])
-         self.assertAlmostEqual(rats['a'], 1510)
-         self.assertAlmostEqual(rats['b'], 1490)
+        rats = ratings.elo_ratings([ ('a', 1, 'b', 0) ])
+        self.assertAlmostEqual(rats['a'], 1510)
+        self.assertAlmostEqual(rats['b'], 1490)
 
-         rats = ratings.elo_ratings([ ('a', 50, 'b', 50) ])
-         self.assertAlmostEqual(rats['a'], 1500, delta=1)
-         self.assertAlmostEqual(rats['b'], 1500, delta=1)
+        rats = ratings.elo_ratings([ ('a', 50, 'b', 50) ])
+        self.assertAlmostEqual(rats['a'], 1500, delta=1)
+        self.assertAlmostEqual(rats['b'], 1500, delta=1)
+
+
+class TestMcts(MyTestCase):
+    def test_terminal_win(self):
+       game.MCTS_NUM_SIMULATIONS=100
+
+       # Models don't matter here as we test terminal states behavior which is fixed
+       model_x = ttt.TTTPlayer(enable_cpp=True)
+       model_o = ttt.TTTPlayer(enable_cpp=True)
+       g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "mcts")
+
+       # Test that MCTS chooses winning move
+       g.board.set([
+           [0, 0,-1,-1, 0,-1],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 1, 0, 0],
+           [0, 0, 0, 0, 1, 0],
+           [0, 0, 0, 0, 0, 1],
+       ])
+
+       # Note the step is not done by this call, it only returns coordinates
+       # X to win
+       row, col = g.choose_next_step(1)
+       self.assertAlmostEqual([row, col], [2, 2])
+
+       # Put O to first row to win
+       row, col = g.choose_next_step(-1)
+       self.assertAlmostEqual([row, col], [0, 4])
+
+    def test_terminal_defense(self):
+
+       # Models DO matter here even with terminal states, as to discover protective
+       # behavior it has to go pretty deep, and it is not always enough to have just 500
+       # simulation. Therefore using fixed random
+       game.MCTS_NUM_SIMULATIONS=500
+       rng = SimpleRNG(seed=2)
+       with patch("random.random", new=rng.random):
+           model_x = ttt.TTTPlayer(enable_cpp=True)
+           model_o = ttt.TTTPlayer(enable_cpp=True)
+       g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "mcts")
+       # ----------------------
+       # Test that MCTS chooses protective move
+
+       # Put X between almost winning Os in row 1:
+       g.board.set([
+           [0, 0,-1,-1, 0,-1],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 1, 0],
+           [0, 0, 0, 0, 0, 1],
+       ])
+       row, col = g.choose_next_step(1)
+       self.assertEqual([row, col], [0, 4])
+
+       # Put O in center to block Xs diagonal:
+       g.board.set([
+           [0, 0,-1,-1, 0, 0],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 1, 0, 0],
+           [0, 0, 0, 0, 1, 0],
+           [0, 0, 0, 0, 0, 1],
+       ])
+       row, col = g.choose_next_step(-1)
+       self.assertEqual([row, col], [2, 2])
+
+       # TODO: add tests
+       # - invariants = num counts of root = sum counts of first layer, and equal to num simulations
+       # - first expansion propagates value (num_counts = 1 in root, value = single child value)
+       # - second simulation adds a value
+       # - puct exploration/exploitation - have to manually tweak priors and mock network values
+       # - test near full board (to check that tree returns early and does not crash)
+       # - test tie
 
 
 if __name__ == "__main__":
