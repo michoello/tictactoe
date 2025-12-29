@@ -178,32 +178,18 @@ class TTTPlayer:
     # calculates value and stores it in the coords of next step.
     def get_next_step_values(self, boards):
         values = copy.deepcopy(START_VALUES)
-        for bxy in boards:
-            b, x, y = bxy
-            if self.enable_cpp:
-                self.m.set_data(self.x, b)
-                value = value(self.z3.fval())
-            else:
-                self.x.set(b)
-                value = self.prediction.val()
-            values[x][y] = value[0][0]
-        return values
-
-
-    def get_next_step_values(self, boards):
-        values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
             values[x][y] = self.get_next_step_value(board)
         return values
 
     def get_next_step_value(self, board):
-            if self.enable_cpp:
-                self.m.set_data(self.x, board)
-                step_value = value(self.z3.fval())
-            else:
-                self.x.set(board)
-                step_value = self.prediction.val()
-            return step_value[0][0]
+        if self.enable_cpp:
+            self.m.set_data(self.x, board)
+            step_value = value(self.z3.fval())
+        else:
+            self.x.set(board)
+            step_value = self.prediction.val()
+        return step_value[0][0]
 
     def get_loss_value(self):
         return value(self.loss.fval())[0][0]

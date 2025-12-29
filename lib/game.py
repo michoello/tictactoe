@@ -77,19 +77,23 @@ class Board:
         g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
 
         xyo = []
-        winner = 0
+        winner = None
+        there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
                 if b[i][j] == 0:
+                    there_are_empty_cells = True
                     continue
 
                 for ll in lll:
                     xy = [(i + lx, j + ly) for lx, ly in ll]
                     if all([g(x, y) == b[i][j] for x, y in xy]):
-                        if winner != 0 and winner != b[i][j]:
+                        if winner is not None and winner != b[i][j]:
                             return None, []
                         winner = b[i][j]
                         xyo = xyo + [(i, j)] + xy
+        if winner is None and not there_are_empty_cells:
+            winner = 0
 
         return winner, sorted(set(xyo))
 
@@ -107,20 +111,24 @@ class Board:
         g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
 
         xyo = []
-        winner = 0
+        winner = None
+        there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
                 cur = b[i][j]
                 if cur == 0:
+                    there_are_empty_cells = True
                     continue
 
                 for ll in lll:
                     xy = [( (i + lx)%6, (j + ly)%6 ) for lx, ly in ll]
                     if all([g(x, y) == cur for x, y in xy]):
-                        if winner != 0 and winner != cur:
+                        if winner is not None and winner != cur:
                             return None, [] # double winners, wrong
                         winner = cur
                         xyo = xyo + [(i, j)] + xy
+        if winner is None and not there_are_empty_cells:
+            winner = 0
 
         return winner, sorted(set(xyo))
 
@@ -237,8 +245,9 @@ class Game:
         ply: int  ## 1 or -1
         all_moves: list[Board] = []
         tried_nodes: list[Board] = []
-        num_visits: int = 0
-        value: float = 0.0
+        state_value: float = 0  # state value taken from model
+        value: float = 0.0      # accumulated value collected from child nodes
+        num_visits: int = 0     # number of times simulation passed through the node
         prior: float = 0.0
         is_terminal = False
 
@@ -250,18 +259,14 @@ class Game:
             self.num_visits = 0
             self.all_moves = self.board.all_next_steps(self.ply)
             self.tried_nodes = []
-            if len(self.all_moves) == 0:
-                self.is_terminal = True
- 
 
     def mcts_get_best_node_to_continue(self, root):
-        tried_nodes = root.tried_nodes
         n_total = root.num_visits
         n_sqrt_total = math.sqrt(n_total)
         c_puct = 1.0 # TODO: experiment with that
         best_puct = -1000 * root.ply # negative infinity for X, positive for O
         best_node = None
-        for node in tried_nodes:
+        for node in root.tried_nodes:
             node_puct = node.value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
             if root.ply == 1 and node_puct > best_puct:
                 best_puct = node_puct
@@ -269,6 +274,7 @@ class Game:
             if root.ply == -1 and node_puct < best_puct:
                 best_puct = node_puct
                 best_node = node
+
         return best_node
  
 
@@ -276,7 +282,7 @@ class Game:
     # Therefore have to softmax them for puct to work
     # TODO: make a policy network and take those priors from there
     def mcts_softmax_priors(self, tried_nodes):
-        priors = [node.value for node in tried_nodes]
+        priors = [node.state_value for node in tried_nodes]
 
         # softmax
         m = max(priors)
@@ -301,11 +307,17 @@ class Game:
             m = self.model_x if next_node.ply == 1 else self.model_o
 
             winner, _ = board.check_winner()
-            if winner == 1 or winner == -1:
-              next_node.value = winner
+            if winner is not None:
+              next_node.state_value = winner
               next_node.is_terminal = True
             else:
-              next_node.value = m.get_next_step_value(board.state)
+              next_node.state_value = m.get_next_step_value(board.state)
+              # Applying this ugly patch to make it range [-1;1]
+              # as currently model returns [0;1]
+              next_node.state_value = (next_node.state_value * 2) - 1 
+              # Collecting all values is too slow. TODO: policy output
+              #brds = [(board.state, r, c) for board, r, c in root.all_moves]
+              #m.get_next_step_values(brds)
             next_node.parent = root
 
             root.tried_nodes.append(next_node)
@@ -319,11 +331,11 @@ class Game:
         return self.mcts_run_simulation(next_node)
 
 
-    def mcts_back_propagate(self, node):
-        cur_node = node
+    def mcts_back_propagate(self, leaf_node):
+        cur_node = leaf_node
         while cur_node is not None:
             cur_node.num_visits += 1
-            cur_node.value += node.value
+            cur_node.value += leaf_node.state_value
             cur_node = cur_node.parent
         return
 
@@ -377,8 +389,8 @@ class Game:
         # TODO: make it a param
         num_simulations = MCTS_NUM_SIMULATIONS
         for sim_num in range(num_simulations):
-            last_node = self.mcts_run_simulation(root)
-            self.mcts_back_propagate(last_node)
+            new_leaf_node = self.mcts_run_simulation(root)
+            self.mcts_back_propagate(new_leaf_node)
 
         self.mcts_analyze_tree(root)
 
@@ -395,7 +407,7 @@ class Game:
 
     def minimax(self, board, depth, alpha, beta, player):
       winner, _ = board.check_winner()
-      if winner != 0:
+      if winner is not None:
           return (winner, None, None)
       
       m = self.model_x if player == 'X' else self.model_o 
@@ -451,7 +463,7 @@ class Game:
 
     def play_game(self):
         self.board.reset()
-        steps, ply, winner = [], 1, 0
+        steps, ply, winner = [], 1, None
         while True:
             x, y = self.choose_next_step(ply)
             self.board.state[x][y] = ply
@@ -460,7 +472,7 @@ class Game:
             ply = -ply
 
             winner, _ = self.board.check_winner()
-            if len(steps) == 36 or winner != 0:
+            if winner is not None:
                 break
 
         # Set desired rewards to the boards
