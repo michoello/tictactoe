@@ -264,14 +264,14 @@ class Game:
         n_total = root.num_visits
         n_sqrt_total = math.sqrt(n_total)
         c_puct = 1.0 # TODO: experiment with that
-        best_puct = -1000 * root.ply # negative infinity for X, positive for O
+        best_puct = -1000 
         best_node = None
         for node in root.tried_nodes:
-            node_puct = node.value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
-            if root.ply == 1 and node_puct > best_puct:
-                best_puct = node_puct
-                best_node = node
-            if root.ply == -1 and node_puct < best_puct:
+            value = node.value
+            if root.ply == -1:
+                value = -value
+            node_puct = value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
+            if node_puct > best_puct:
                 best_puct = node_puct
                 best_node = node
 
@@ -281,8 +281,14 @@ class Game:
     # Currently the values are taken from the model value outputs, so they are not normalized
     # Therefore have to softmax them for puct to work
     # TODO: make a policy network and take those priors from there
-    def mcts_softmax_priors(self, tried_nodes):
-        priors = [node.state_value for node in tried_nodes]
+    def mcts_softmax_priors(self, tried_nodes, ply):
+        # converting state values back to [0;1] range, and inverting them to 1-v for Os
+        # TODO: all these ugly tricks should go away
+        norm_values = [node.state_value for node in tried_nodes]
+        norm_values = [(v + 1) / 2.0 for v in norm_values]
+        if ply == -1:
+            norm_values = [1 - v for v in norm_values]
+        priors = norm_values
 
         # softmax
         m = max(priors)
@@ -323,7 +329,7 @@ class Game:
             root.tried_nodes.append(next_node)
 
             if tried == all - 1: # we just added last move, time to calc priors
-                self.mcts_softmax_priors(root.tried_nodes)
+                self.mcts_softmax_priors(root.tried_nodes, root.ply)
 
             return next_node
 
@@ -502,7 +508,7 @@ def generate_random_board():
 # Generates a random batch of size N, where each class is presented with n // 3 samples
 def generate_batch(n):
     boards, winners = [], []
-    for board_class in range(-1, 2):
+    for board_class in [-1, 1]:
         for i in range(n // 3):
             while True:
                 board = generate_random_board()

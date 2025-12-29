@@ -234,7 +234,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, 0, 0, 0, 0, 0],
         ]
         winner, cells = game.Board(board).check_winner()
-        self.assertEqual(winner, 0)
+        self.assertEqual(winner, None)
         self.assertEqual(cells, [])
 
         board = [

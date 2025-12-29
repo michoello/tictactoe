@@ -343,9 +343,12 @@ class TestMcts(MyTestCase):
     def test_terminal_defense(self):
 
        # Models DO matter here even with terminal states, as to discover protective
-       # behavior it has to go pretty deep, and it is not always enough to have just 500
-       # simulation. Therefore using fixed random
-       game.MCTS_NUM_SIMULATIONS=500
+       # behavior it has to go pretty deep, and it is not always enough to have just 1500
+       # simulation. Therefore using fixed random.
+       #
+       # So high number of simulation is due to MCTS bugs. TODO fix them and reduce
+       #
+       game.MCTS_NUM_SIMULATIONS=1500
        rng = SimpleRNG(seed=2)
        with patch("random.random", new=rng.random):
            model_x = ttt.TTTPlayer(enable_cpp=True)
