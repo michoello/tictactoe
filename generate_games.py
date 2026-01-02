@@ -36,6 +36,7 @@ if args.mode == "play_single_game":
     model_o = pickup_model(*args.model_o.split(":"))
     g = game.Game(model_x, model_o, game_type, game_mode)
     steps, winner = g.play_game()
+    winner = steps[-1].reward
     step_no = 0
     for ss in steps:
         print("Step", step_no, ":", "crosses" if ss.ply == 1 else "zeroes")

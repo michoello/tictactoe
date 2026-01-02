@@ -129,13 +129,9 @@ class Board:
                         xyo = xyo + [(i, j)] + xy
         if winner is None and not there_are_empty_cells:
             winner = 0
-
         return winner, sorted(set(xyo))
 
-
-
     def print_board(self, r=None, c=None):
-
         bgs = {
             #"grey": "\033[100m", 
             #"black": "\033[40m",
@@ -146,8 +142,6 @@ class Board:
             "black": "\033[48;5;234m",
             "yellow": "\033[38;5;94m",
         }
-
- 
 
         fgs = {
             "green": "\033[32m",
@@ -189,11 +183,11 @@ class Board:
 
 
 @dataclass
-class Step:
+class GameState:
+    board: list[list[int]]
     ply: int  # 1 for crosses, -1 for zeroes
     x: int
     y: int
-    board: list[list[int]]
     reward: Optional[float] = None
 
 
@@ -389,17 +383,14 @@ class Game:
         print("MCTS tree depth: ", self.mcts_depth(root))
         print()
 
-    def best_mcts_step(self, ply, num_simulations):
-        root = Game.MctsNode(self.board, None, None, ply)
+    def best_mcts_step(self, board, ply, num_simulations):
+        root = Game.MctsNode(board, None, None, ply)
 
-        # TODO: make it a param
-        #num_simulations = MCTS_NUM_SIMULATIONS
         for sim_num in range(num_simulations):
             new_leaf_node = self.mcts_run_simulation(root)
             self.mcts_back_propagate(new_leaf_node)
 
         self.mcts_analyze_tree(root)
-
 
         # Choose the node that got the most visits
         best_node = None
@@ -449,32 +440,33 @@ class Game:
 
 
     def step_no(self):
-        # Step number is count of O's on the board.
+        # GameState number is count of O's on the board.
         return sum([1 for row in self.board.state for x in row if x == -1])
 
 
-    def choose_next_step(self, ply):
+    def choose_next_step(self, board, ply):
         # First step is always random to increase diversity
         if self.step_no() == 0: 
               return self.random_step()
 
         if self.game_mode == "minimax":
-           return self.best_minimax_step(self.board, ply)
+           return self.best_minimax_step(board, ply)
 
         if self.game_mode == "mcts":
-           return self.best_mcts_step(ply, MCTS_NUM_SIMULATIONS)
+           return self.best_mcts_step(board, ply, MCTS_NUM_SIMULATIONS)
 
-        return self.best_greedy_step(self.board, ply)
+        return self.best_greedy_step(board, ply)
 
-
+    # Returns list of consequtive game states
+    # The reward of last state shows the game winner
     def play_game(self):
         self.board.reset()
         steps, ply, winner = [], 1, None
         while True:
-            x, y = self.choose_next_step(ply)
+            x, y = self.choose_next_step(self.board, ply)
             self.board.state[x][y] = ply
 
-            steps.append(Step(board=self.board.copy(), ply=ply, x=x, y=y))
+            steps.append(GameState(board=self.board.copy(), ply=ply, x=x, y=y))
             ply = -ply
 
             winner, _ = self.board.check_winner()
@@ -487,12 +479,13 @@ class Game:
             step.reward = reward
             reward = reward * 0.9
 
-        return steps, winner
+        return steps
 
     def generate_batch_from_games(self, num_boards):
       boards, values = [], []
       while len(boards) < num_boards:
-        steps, winner = self.play_game()
+        steps = self.play_game()
+        winner = steps[-1].reward
         for step in steps:
            boards.append(step.board.state)
            train_reward = [(step.reward + 1) / 2]
@@ -523,8 +516,8 @@ def competition(model_x, model_o, num_games, game_type=GameType.TICTACTOE_6_6_4,
     winners = {-1: 0, 0: 0, 1: 0}
     g = Game(model_x, model_o, game_type, game_mode)
     for f in range(num_games):
-        #print(f"Game {f}")
-        _, winner = g.play_game()
+        steps = g.play_game()
+        winner = steps[-1].reward
         winners[winner] = winners[winner] + 1
 
     return winners
