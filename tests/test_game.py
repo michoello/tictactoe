@@ -115,12 +115,14 @@ class TestTrainingCycle(MyTestCase):
             trained_model = ttt.TTTPlayer(trained_model, enable_cpp=True)
 
             # ctw = crosses_trained_winners
-            ctw = game.competition(trained_model, random_model, 20)
+            g = game.Game(trained_model, random_model)
+            ctw = g.competition(20)
             print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
             self.assertGreater(ctw[1], ctw[-1])
 
             # ztw = zeroes_trained_winners
-            ztw = game.competition(random_model, trained_model, 20)
+            g = game.Game(random_model, trained_model)
+            ztw = g.competition(20)
             print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
             self.assertLess(ztw[1], ztw[-1])
 

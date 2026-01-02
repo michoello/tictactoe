@@ -101,9 +101,9 @@ BATCH_SIZE = 32
 TRAIN_ITERATIONS = 25
 
 
-def train_single_round(trainee, m_crosses, m_zeroes, m_student):
+def train_single_round(trainee, model_x, model_o, m_student):
 
-    g = game.Game(m_crosses, m_zeroes)
+    g = game.Game(model_x, model_o)
     train_boards, train_values = g.generate_batch_from_games(BATCH_SIZE)
 
     #
@@ -159,11 +159,12 @@ def fight(trainee, student_path, opponent_type, opponent_path):
     m_opponent = pickup_model(opponent_type, opponent_path)
 
     if trainee == "crosses":
-        m_crosses, m_zeroes = m_student, m_opponent
+        model_x, model_o = m_student, m_opponent
     else:
-        m_crosses, m_zeroes = m_opponent, m_student
+        model_x, model_o = m_opponent, m_student
 
-    winners = game.competition(m_crosses, m_zeroes, NUM_GAMES)
+    g = game.Game(model_x, model_o)
+    winners = g.competition(NUM_GAMES)
     print(f"FIGHT! {student_path} vs {opponent_path}: {winners}")
 
     return winners
@@ -240,15 +241,15 @@ NUM_ROUNDS = 4
 def train(prefix, family_cross, family_zero, version, trainee):
     crosses_name = model_name(prefix, family_cross, "crosses", version)
     zeroes_name = model_name(prefix, family_zero, "zeroes", version)
-    m_crosses = tttp.TTTPlayer(crosses_name)
-    m_zeroes = tttp.TTTPlayer(zeroes_name)
+    model_x = tttp.TTTPlayer(crosses_name)
+    model_o = tttp.TTTPlayer(zeroes_name)
 
     if trainee == "crosses":
-        m_student, m_opponent = m_crosses, m_zeroes
+        m_student, m_opponent = model_x, model_o
         student_name, opponent_name = crosses_name, zeroes_name
         student_family = family_cross
     else:
-        m_student, m_opponent = m_zeroes, m_crosses
+        m_student, m_opponent = model_o, model_x
         student_name, opponent_name = zeroes_name, crosses_name
         student_family = family_zero
 
@@ -256,7 +257,7 @@ def train(prefix, family_cross, family_zero, version, trainee):
     tr_ts = print(f"Start {student_name}")
     for i in range(NUM_ROUNDS):
         it_ts = print(f"Start {student_name} vs {opponent_name} ITER {i}")
-        train_single_round(trainee, m_crosses, m_zeroes, m_student)
+        train_single_round(trainee, model_x, model_o, m_student)
         print(
             f"[ts:{it_ts}] Finish {student_name} vs {opponent_name} ITER {i}"
         )
@@ -281,9 +282,10 @@ def cross_competition(prefix, families, version):
         for j in range(len(families)):
             crosses_path = model_name(prefix, families[i], "crosses", version)
             zeroes_path = model_name(prefix, families[j], "zeroes", version)
-            m_crosses = tttp.TTTPlayer(crosses_path)
-            m_zeroes = tttp.TTTPlayer(zeroes_path)
-            winners = game.competition(m_crosses, m_zeroes, NUM_GAMES)
+            model_x = tttp.TTTPlayer(crosses_path)
+            model_o = tttp.TTTPlayer(zeroes_path)
+            g = game.Game(model_x, model_o)
+            winners = g.competition(NUM_GAMES)
             print(f"TGIFH: {crosses_path} vs {zeroes_path}: {winners}")
             matches.append([crosses_path, winners[1], zeroes_path, winners[-1]])
      
@@ -308,11 +310,10 @@ def main():
     families = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     version = 0
     for family in families:
-       m_crosses = tttp.TTTPlayer(enable_cpp=True)
-       m_crosses.save_to_file(model_name(prefix, family, "crosses", version))
-       m_zeroes = tttp.TTTPlayer(enable_cpp=True)
-       m_zeroes.save_to_file(model_name(prefix, family, "zeroes", version))
-
+       model_x = tttp.TTTPlayer(enable_cpp=True)
+       model_x.save_to_file(model_name(prefix, family, "crosses", version))
+       model_o = tttp.TTTPlayer(enable_cpp=True)
+       model_o.save_to_file(model_name(prefix, family, "zeroes", version))
 
     while True:
         #

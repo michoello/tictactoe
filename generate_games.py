@@ -49,9 +49,9 @@ if args.mode == "play_single_game":
 if args.mode == "play_many_games":
     model_x = pickup_model(*args.model_x.split(":"))
     model_o = pickup_model(*args.model_o.split(":"))
-    num_games = args.num_games
-    winners = game.competition(model_x, model_o, num_games, game_type, game_mode)
+    g = game.Game(model_x, model_o, game_type, game_mode)
+    winners = g.competition(args.num_games)
 
     print(
-        f"Crosses: {winners[1]}, Zeroes: {winners[-1]}, Ties: {winners[0]} out of {num_games}"
+        f"Crosses: {winners[1]}, Zeroes: {winners[-1]}, Ties: {winners[0]} out of {args.num_games}"
     )
