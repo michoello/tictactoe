@@ -191,6 +191,164 @@ class GameState:
     reward: Optional[float] = None
 
 
+# Entire MCTS algorithm is in this class
+class MctsNode:
+      parent = None # previous step node, None for root
+      board: Board
+      row: int 
+      col: int
+      ply: int  ## 1 or -1
+      all_moves: list[Board] = []
+      tried_nodes: list[Board] = []
+      state_value: float = 0  # state value taken from model
+      value: float = 0.0      # accumulated value collected from child nodes
+      num_visits: int = 0     # number of times simulation passed through the node
+      prior: float = 0.0
+      is_terminal = False
+
+      def __init__(self, board, row, col, ply):
+            self.board = board
+            self.row = row
+            self.col = col
+            self.ply = ply
+            self.num_visits = 0
+            self.all_moves = self.board.all_next_steps(self.ply)
+            self.tried_nodes = []
+
+      def mcts_get_best_node_to_continue(self):
+        n_total = self.num_visits
+        n_sqrt_total = math.sqrt(n_total)
+        c_puct = 1.0 # TODO: experiment with that
+        best_puct = -1000 
+        best_node = None
+        for node in self.tried_nodes:
+            value = node.value
+            if self.ply == -1:
+                value = -value
+            node_puct = value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
+            if node_puct > best_puct:
+                best_puct = node_puct
+                best_node = node
+
+        return best_node
+ 
+
+      # Currently the values are taken from the model value outputs, so they are not normalized
+      # Therefore have to softmax them for puct to work
+      # TODO: make a policy network and take those priors from there
+      def mcts_softmax_priors(self):
+        ply = self.ply
+        tried_nodes = self.tried_nodes
+        # converting state values back to [0;1] range, and inverting them to 1-v for Os
+        # TODO: all these ugly tricks should go away
+        norm_values = [node.state_value for node in tried_nodes]
+        norm_values = [(v + 1) / 2.0 for v in norm_values]
+        if ply == -1:
+            norm_values = [1 - v for v in norm_values]
+        priors = norm_values
+
+        # softmax
+        m = max(priors)
+        exps = [math.exp(v - m) for v in priors]
+        total = sum(exps)
+        priors = [e / total for e in exps]
+
+        for i, node in enumerate(tried_nodes):
+            node.prior = priors[i]
+
+      # Returns the last visited node
+      def mcts_run_simulation(self, gm): ## `gm` is game object
+        if self.is_terminal:
+            # no more walking after terminal
+            return self
+
+        tried, all = len(self.tried_nodes), len(self.all_moves)
+        if tried < all:
+            board, row, col = self.all_moves[tried]
+
+            next_node = MctsNode(board, row, col, -self.ply)
+
+            winner, _ = board.check_winner()
+            if winner is not None:
+              next_node.state_value = winner
+              next_node.is_terminal = True
+            else:
+              m = gm.model_x if next_node.ply == 1 else gm.model_o
+              next_node.state_value = m.get_next_step_value(board.state)
+              # Applying this ugly patch to make it range [-1;1]
+              # as currently model returns [0;1]
+              next_node.state_value = (next_node.state_value * 2) - 1 
+              # Collecting all values is too slow. TODO: policy output
+              #brds = [(board.state, r, c) for board, r, c in self.all_moves]
+              #m.get_next_step_values(brds)
+            next_node.parent = self
+
+            self.tried_nodes.append(next_node)
+
+            if tried == all - 1: # we just added last move, time to calc priors
+                self.mcts_softmax_priors()
+
+            return next_node
+
+        next_node = self.mcts_get_best_node_to_continue()
+        return next_node.mcts_run_simulation(gm)
+
+
+      def mcts_back_propagate(self):
+        cur_node = self
+        while cur_node is not None:
+            cur_node.num_visits += 1
+            cur_node.value += self.state_value
+            cur_node = cur_node.parent
+
+    
+      def mcts_node_count(self):
+        count = 0
+        for node in self.tried_nodes:
+            count += node.mcts_node_count()
+        return count + 1
+
+      def mcts_depth(self):
+        depth = 0
+        if len(self.tried_nodes) == 0:
+            return 1
+
+        for node in self.tried_nodes:
+            subdepth = node.mcts_depth()
+            if subdepth > depth:
+                depth = subdepth
+        return depth + 1
+
+      def mcts_unique_node_count(self, accum=None):
+        if accum is None:
+            accum = {}
+        hsh = self.board.asstr()
+        accum[hsh] = 1
+
+        for node in self.tried_nodes:
+            node.mcts_unique_node_count(accum)
+        return len(accum.keys())
+
+      def mcts_terminal_node_count(self):
+        if self.is_terminal:
+            return 1
+        cnt = 0
+        for node in self.tried_nodes:
+            cnt += node.mcts_terminal_node_count()
+        return cnt
+
+      def mcts_analyze_tree(self):
+        print("MCTS available moves: ", len(self.all_moves))
+        print("MCTS node count: ", self.mcts_node_count())
+        print("MCTS unique count: ", self.mcts_unique_node_count())
+        print("MCTS terminal count: ", self.mcts_terminal_node_count())
+        print("MCTS tree depth: ", self.mcts_depth())
+        print()
+
+
+
+
+
 class Game:
     def __init__(self, model_x, model_o, game_type=GameType.TICTACTOE_6_6_4, game_mode="greedy"):
         self.game_type = game_type
@@ -231,166 +389,15 @@ class Game:
         return row, col
 
 
-    class MctsNode:
-        parent = None # previous step node, None for root
-        board: Board
-        row: int 
-        col: int
-        ply: int  ## 1 or -1
-        all_moves: list[Board] = []
-        tried_nodes: list[Board] = []
-        state_value: float = 0  # state value taken from model
-        value: float = 0.0      # accumulated value collected from child nodes
-        num_visits: int = 0     # number of times simulation passed through the node
-        prior: float = 0.0
-        is_terminal = False
-
-        def __init__(self, board, row, col, ply):
-            self.board = board
-            self.row = row
-            self.col = col
-            self.ply = ply
-            self.num_visits = 0
-            self.all_moves = self.board.all_next_steps(self.ply)
-            self.tried_nodes = []
-
-    def mcts_get_best_node_to_continue(self, root):
-        n_total = root.num_visits
-        n_sqrt_total = math.sqrt(n_total)
-        c_puct = 1.0 # TODO: experiment with that
-        best_puct = -1000 
-        best_node = None
-        for node in root.tried_nodes:
-            value = node.value
-            if root.ply == -1:
-                value = -value
-            node_puct = value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
-            if node_puct > best_puct:
-                best_puct = node_puct
-                best_node = node
-
-        return best_node
- 
-
-    # Currently the values are taken from the model value outputs, so they are not normalized
-    # Therefore have to softmax them for puct to work
-    # TODO: make a policy network and take those priors from there
-    def mcts_softmax_priors(self, tried_nodes, ply):
-        # converting state values back to [0;1] range, and inverting them to 1-v for Os
-        # TODO: all these ugly tricks should go away
-        norm_values = [node.state_value for node in tried_nodes]
-        norm_values = [(v + 1) / 2.0 for v in norm_values]
-        if ply == -1:
-            norm_values = [1 - v for v in norm_values]
-        priors = norm_values
-
-        # softmax
-        m = max(priors)
-        exps = [math.exp(v - m) for v in priors]
-        total = sum(exps)
-        priors = [e / total for e in exps]
-
-        for i, node in enumerate(tried_nodes):
-            node.prior = priors[i]
-
-    # Returns the last visited node
-    def mcts_run_simulation(self, root):
-        if root.is_terminal:
-            # no more walking after terminal
-            return root
-
-        tried, all = len(root.tried_nodes), len(root.all_moves)
-        if tried < all:
-            board, row, col = root.all_moves[tried]
-
-            next_node = Game.MctsNode(board, row, col, -root.ply)
-            m = self.model_x if next_node.ply == 1 else self.model_o
-
-            winner, _ = board.check_winner()
-            if winner is not None:
-              next_node.state_value = winner
-              next_node.is_terminal = True
-            else:
-              next_node.state_value = m.get_next_step_value(board.state)
-              # Applying this ugly patch to make it range [-1;1]
-              # as currently model returns [0;1]
-              next_node.state_value = (next_node.state_value * 2) - 1 
-              # Collecting all values is too slow. TODO: policy output
-              #brds = [(board.state, r, c) for board, r, c in root.all_moves]
-              #m.get_next_step_values(brds)
-            next_node.parent = root
-
-            root.tried_nodes.append(next_node)
-
-            if tried == all - 1: # we just added last move, time to calc priors
-                self.mcts_softmax_priors(root.tried_nodes, root.ply)
-
-            return next_node
-
-        next_node = self.mcts_get_best_node_to_continue(root)
-        return self.mcts_run_simulation(next_node)
-
-
-    def mcts_back_propagate(self, leaf_node):
-        cur_node = leaf_node
-        while cur_node is not None:
-            cur_node.num_visits += 1
-            cur_node.value += leaf_node.state_value
-            cur_node = cur_node.parent
-        return
-
-    
-    def mcts_node_count(self, root):
-        count = 0
-        for node in root.tried_nodes:
-            count += self.mcts_node_count(node)
-        return count + 1
-
-    def mcts_depth(self, root):
-        depth = 0
-        if len(root.tried_nodes) == 0:
-            return 1
-
-        for node in root.tried_nodes:
-            subdepth = self.mcts_depth(node)
-            if subdepth > depth:
-                depth = subdepth
-        return depth + 1
-
-    def mcts_unique_node_count(self, root, accum=None):
-        if accum is None:
-            accum = {}
-        hsh = root.board.asstr()
-        accum[hsh] = 1
-
-        for node in root.tried_nodes:
-            self.mcts_unique_node_count(node, accum)
-        return len(accum.keys())
-
-    def mcts_terminal_node_count(self, root, accum=None):
-        if root.is_terminal:
-            return 1
-        cnt = 0
-        for node in root.tried_nodes:
-            cnt += self.mcts_terminal_node_count(node)
-        return cnt
-
-    def mcts_analyze_tree(self, root):
-        print("MCTS available moves: ", len(root.all_moves))
-        print("MCTS node count: ", self.mcts_node_count(root))
-        print("MCTS unique count: ", self.mcts_unique_node_count(root))
-        print("MCTS terminal count: ", self.mcts_terminal_node_count(root))
-        print("MCTS tree depth: ", self.mcts_depth(root))
-        print()
 
     def best_mcts_step(self, board, ply, num_simulations):
-        root = Game.MctsNode(board, None, None, ply)
+        root = MctsNode(board, None, None, ply)
 
         for sim_num in range(num_simulations):
-            new_leaf_node = self.mcts_run_simulation(root)
-            self.mcts_back_propagate(new_leaf_node)
+            new_leaf_node = root.mcts_run_simulation(self)
+            new_leaf_node.mcts_back_propagate()
 
-        self.mcts_analyze_tree(root)
+        root.mcts_analyze_tree()
 
         # Choose the node that got the most visits
         best_node = None
