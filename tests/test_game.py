@@ -284,7 +284,7 @@ class TestMcts(MyTestCase):
        g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "mcts")
 
        # Test that MCTS chooses winning move
-       g.board.set([
+       board = game.Board([
            [0, 0,-1,-1, 0,-1],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],
@@ -295,11 +295,11 @@ class TestMcts(MyTestCase):
 
        # Note the step is not done by this call, it only returns coordinates
        # X to win
-       row, col = g.best_mcts_step(g.board, 1, 100)
+       row, col = g.best_mcts_step(board, 1, 100)
        self.assertAlmostEqual([row, col], [2, 2])
 
        # Put O to first row to win
-       row, col = g.best_mcts_step(g.board, -1, 100)
+       row, col = g.best_mcts_step(board, -1, 100)
        self.assertAlmostEqual([row, col], [0, 4])
 
     def test_terminal_defense(self):
@@ -313,7 +313,7 @@ class TestMcts(MyTestCase):
        # Test that MCTS chooses protective move
 
        # Put X between almost winning Os in row 1:
-       g.board.set([
+       board = game.Board([
            [0, 0,-1,-1, 0,-1],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],
@@ -328,11 +328,11 @@ class TestMcts(MyTestCase):
        #
        # So high number of simulation is due to MCTS bugs. TODO fix them and reduce
        #
-       row, col = g.best_mcts_step(g.board, 1, 1500)
+       row, col = g.best_mcts_step(board, 1, 1500)
        self.assertEqual([row, col], [0, 4])
 
        # Put O in center to block Xs diagonal:
-       g.board.set([
+       board = game.Board([
            [0, 0,-1,-1, 0, 0],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],
@@ -340,7 +340,7 @@ class TestMcts(MyTestCase):
            [0, 0, 0, 0, 1, 0],
            [0, 0, 0, 0, 0, 1],
        ])
-       row, col = g.best_mcts_step(g.board, -1, 1500)
+       row, col = g.best_mcts_step(board, -1, 1500)
        self.assertEqual([row, col], [2, 2])
 
        # TODO: add tests

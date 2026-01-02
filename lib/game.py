@@ -355,7 +355,7 @@ class Game:
         self.game_mode = game_mode
         self.model_x = model_x
         self.model_o = model_o
-        self.board = Board(game_type=self.game_type)
+        #self.board = Board(game_type=self.game_type)
 
     def best_greedy_step(self, board, last_move):
 
@@ -443,13 +443,13 @@ class Game:
         cell = random.randint(0, 35)
         return int(cell / 6), int(cell % 6)
 
-    def step_no(self):
+    def step_no(self, board):
         # GameState number is count of O's on the board.
-        return sum([1 for row in self.board.state for x in row if x == -1])
+        return sum([1 for row in board.state for x in row if x == -1])
 
     def choose_next_step(self, board, last_move):
         # First step is always random to increase diversity
-        if self.step_no() == 0:
+        if self.step_no(board) == 0:
             return self.random_step()
 
         if self.game_mode == "minimax":
@@ -463,17 +463,22 @@ class Game:
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
     def play_game(self):
-        self.board.reset()
+        board = Board(game_type=self.game_type)
+        #self.board.reset()
         steps, last_move, winner, step_no = [], 1, None, 0
-        while winner is None:
-            x, y = self.choose_next_step(self.board, last_move)
-            self.board.state[x][y] = last_move
 
-            steps.append(GameState(board=self.board.copy(), last_move=last_move, x=x, y=y, step_no=step_no))
+            #steps.append(GameState(board=board.copy(), last_move=last_move, x=x, y=y, step_no=step_no))
+
+
+        while winner is None:
+            x, y = self.choose_next_step(board, last_move)
+            board.state[x][y] = last_move
+            winner, _ = board.check_winner()
+
+            steps.append(GameState(board=board.copy(), last_move=last_move, x=x, y=y, step_no=step_no))
             last_move = -last_move
             step_no += 1
 
-            winner, _ = self.board.check_winner()
 
         # Set desired rewards to the boards
         reward = winner
