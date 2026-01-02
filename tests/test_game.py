@@ -314,7 +314,6 @@ class TestTrainingCycle(MyTestCase):
 
 class TestMcts(MyTestCase):
     def test_terminal_win(self):
-       game.MCTS_NUM_SIMULATIONS=100
 
        # Models don't matter here as we test terminal states behavior which is fixed
        model_x = ttt.TTTPlayer(enable_cpp=True)
@@ -333,22 +332,15 @@ class TestMcts(MyTestCase):
 
        # Note the step is not done by this call, it only returns coordinates
        # X to win
-       row, col = g.choose_next_step(1)
+       row, col = g.best_mcts_step(1, 100)
        self.assertAlmostEqual([row, col], [2, 2])
 
        # Put O to first row to win
-       row, col = g.choose_next_step(-1)
+       row, col = g.best_mcts_step(-1, 100)
        self.assertAlmostEqual([row, col], [0, 4])
 
     def test_terminal_defense(self):
 
-       # Models DO matter here even with terminal states, as to discover protective
-       # behavior it has to go pretty deep, and it is not always enough to have just 1500
-       # simulation. Therefore using fixed random.
-       #
-       # So high number of simulation is due to MCTS bugs. TODO fix them and reduce
-       #
-       game.MCTS_NUM_SIMULATIONS=1500
        rng = SimpleRNG(seed=2)
        with patch("random.random", new=rng.random):
            model_x = ttt.TTTPlayer(enable_cpp=True)
@@ -366,7 +358,14 @@ class TestMcts(MyTestCase):
            [0, 0, 0, 0, 1, 0],
            [0, 0, 0, 0, 0, 1],
        ])
-       row, col = g.choose_next_step(1)
+
+       # Models DO matter here even with terminal states, as to discover protective
+       # behavior it has to go pretty deep, and it is not always enough to have just 1500
+       # simulation. Therefore using fixed random.
+       #
+       # So high number of simulation is due to MCTS bugs. TODO fix them and reduce
+       #
+       row, col = g.best_mcts_step(1, 1500)
        self.assertEqual([row, col], [0, 4])
 
        # Put O in center to block Xs diagonal:
@@ -378,7 +377,7 @@ class TestMcts(MyTestCase):
            [0, 0, 0, 0, 1, 0],
            [0, 0, 0, 0, 0, 1],
        ])
-       row, col = g.choose_next_step(-1)
+       row, col = g.best_mcts_step(-1, 1500)
        self.assertEqual([row, col], [2, 2])
 
        # TODO: add tests

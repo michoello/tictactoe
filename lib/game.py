@@ -389,11 +389,11 @@ class Game:
         print("MCTS tree depth: ", self.mcts_depth(root))
         print()
 
-    def best_mcts_step(self, board, ply):
-        root = Game.MctsNode(board, None, None, ply)
+    def best_mcts_step(self, ply, num_simulations):
+        root = Game.MctsNode(self.board, None, None, ply)
 
         # TODO: make it a param
-        num_simulations = MCTS_NUM_SIMULATIONS
+        #num_simulations = MCTS_NUM_SIMULATIONS
         for sim_num in range(num_simulations):
             new_leaf_node = self.mcts_run_simulation(root)
             self.mcts_back_propagate(new_leaf_node)
@@ -462,7 +462,7 @@ class Game:
            return self.best_minimax_step(self.board, ply)
 
         if self.game_mode == "mcts":
-           return self.best_mcts_step(self.board, ply)
+           return self.best_mcts_step(ply, MCTS_NUM_SIMULATIONS)
 
         return self.best_greedy_step(self.board, ply)
 
