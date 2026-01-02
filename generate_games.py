@@ -30,28 +30,19 @@ game_type = args.game_type
 game_type = game.GameType.TICTACTOE_6_6_5_TOR if game_type == "5_tor" else game.GameType.TICTACTOE_6_6_4
 
 game_mode = args.game_mode
+model_x = pickup_model(*args.model_x.split(":"))
+model_o = pickup_model(*args.model_o.split(":"))
 
 if args.mode == "play_single_game":
-    model_x = pickup_model(*args.model_x.split(":"))
-    model_o = pickup_model(*args.model_o.split(":"))
     g = game.Game(model_x, model_o, game_type, game_mode)
     steps = g.play_game()
-    winner = steps[-1].reward
-    step_no = 0
     for ss in steps:
-        print("Step", step_no, ":", "crosses" if ss.ply == 1 else "zeroes")
-        print("  Move:", ss.x, ss.y, " Reward: ", ss.reward)
-        ss.board.print_board(ss.x, ss.y)
-        print()
-        step_no += 1
+        ss.print_state()
 
 
 if args.mode == "play_many_games":
-    model_x = pickup_model(*args.model_x.split(":"))
-    model_o = pickup_model(*args.model_o.split(":"))
     g = game.Game(model_x, model_o, game_type, game_mode)
     winners = g.competition(args.num_games)
-
     print(
         f"Crosses: {winners[1]}, Zeroes: {winners[-1]}, Ties: {winners[0]} out of {args.num_games}"
     )
