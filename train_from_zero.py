@@ -86,50 +86,9 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def generate_playing_batch(m_crosses, m_zeroes, m_student):
-    boards, values = [], []
-
-    g = game.Game(m_crosses, m_zeroes)
-    steps, winner = g.play_game()
-    for step in steps:
-        # include only 10% of boards
-        if random.random() > 0.9:
-            boards.append(step.board.state)
-            train_reward = [(step.reward + 1) / 2]
-            values.append(train_reward)
-    return boards, values
-
-
-def generate_dumb_batch(num_boards, m_crosses, m_zeroes, m_student):
-    outboards, outvalues = [], []
-    num_games_played = 0
-
-    i = 0
-    while i < num_boards:
-        num_games_played += 1
-        boards, values = generate_playing_batch(m_crosses, m_zeroes, m_student)
-        for board, value in zip(boards, values):
-            outboards.append(board)
-            outvalues.append(value)
-            i += 1
-
-    # Shuffle the batch
-    combined = list(zip(outboards, outvalues))
-    random.shuffle(combined)
-    boards_shuffled, values_shuffled = zip(*combined)
-    outboards, outvalues = list(boards_shuffled), list(values_shuffled)
-
-    print(
-        f"DUMB BATCH READY: num_boards={len(outboards)} games_played={num_games_played}"
-    )
-    return outboards, outvalues
-
-
 def calc_loss(m, boards, values):
     sum_loss = 0
     for board, state_value in zip(boards, values):
-        #m.x.set(board)
-        #m.y.set([value])
         m.m.set_data(m.x, board)
         m.m.set_data(m.y, [state_value])
 
@@ -144,9 +103,8 @@ TRAIN_ITERATIONS = 25
 
 def train_single_round(trainee, m_crosses, m_zeroes, m_student):
 
-    train_boards, train_values = generate_dumb_batch(
-        BATCH_SIZE, m_crosses, m_zeroes, m_student
-    )
+    g = game.Game(m_crosses, m_zeroes)
+    train_boards, train_values = g.generate_batch_from_games(BATCH_SIZE)
 
     #
     # Get old memories from buffer

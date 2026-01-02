@@ -489,60 +489,20 @@ class Game:
 
         return steps, winner
 
+    def generate_batch_from_games(self, num_boards):
+      boards, values = [], []
+      while len(boards) < num_boards:
+        steps, winner = self.play_game()
+        for step in steps:
+           boards.append(step.board.state)
+           train_reward = [(step.reward + 1) / 2]
+           values.append(train_reward)
 
-# ----------------------------------
-def generate_random_board():
-    size = 6 * 6
-    num_zeroes = random.randint(
-        0, size // 2
-    )  # Random number of zeroes (up to half the board)
-    num_crosses = num_zeroes + random.choice([0, 1])  # Either equal or one more cross
-    num_empty = size - num_zeroes - num_crosses
-
-    values = [1] * num_crosses + [-1] * num_zeroes + [0] * num_empty
-    random.shuffle(values)
-
-    return [values[i * 6 : (i + 1) * 6] for i in range(6)]
-
-
-# Generates a random batch of size N, where each class is presented with n // 3 samples
-def generate_batch(n):
-    boards, winners = [], []
-    for board_class in [-1, 1]:
-        for i in range(n // 3):
-            while True:
-                board = generate_random_board()
-                winner, _ = Board(board).check_winner()
-                if winner == board_class:
-                    break
-            boards.append(board)
-            winners.append([(winner + 1.0) / 2.0])
-    return boards, winners
-
-
-# Generate sequence of boards for a single random game
-# TODO: delete, use play_game with TTTRandom models
-def generate_random_game():
-    boards = [START_BOARD]
-
-    ply = 1  # crosses
-    num = 0  # number of filled cells
-    while num < 36:
-        row = random.randint(0, 5)
-        col = random.randint(0, 5)
-
-        if board[row][col] == 0:
-            board[row][col] = ply
-            num = num + 1
-            ply = -ply
-
-            boards.append(copy.deepcopy(board))
-
-            winner, _ = check_winner(board)
-            if winner != 0:
-                return boards, winner
-
-    return boards, 0
+      # Shuffle the batch
+      combined = list(zip(boards, values))
+      random.shuffle(combined)
+      boards_shuffled, values_shuffled = zip(*combined)
+      return list(boards_shuffled), list(values_shuffled)
 
 
 def print_scores(values):

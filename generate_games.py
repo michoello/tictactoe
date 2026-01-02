@@ -5,8 +5,6 @@ import random
 
 from typing import Dict
 
-# from lib import ttt_classifier as tttc
-# from lib import ttt_player as tttp
 from lib import tttc, tttp, pickup_model
 
 
@@ -28,42 +26,10 @@ if args.mode == "idontknow":
     sys.exit(0)
 
 
-if args.mode == "random_boards":
-    wins: Dict[int, int] = {}
-    for i in range(1000):
-        board = game.generate_random_board()
-        board.print_board()
-        winner, _ = game.check_winner(board)
-        print()
-        wins[winner] = wins.get(winner, 0) + 1
-
-    print("WINNERS: ", wins)
-
-
-if args.mode == "generate_random_game":
-    boards, winner = game.generate_random_game()
-
-    for num, board in enumerate(boards):
-        print("Step", num)
-        board.print_board()
-        print()
-
-    print("Winner: ", winner)
-
-
-if args.mode == "many_games":
-    wins = {}
-    for i in range(100):
-        _, winner = game.generate_random_game()
-        wins[winner] = wins.get(winner, 0) + 1
-
-    print("WINNERS: ", wins)
-
 game_type = args.game_type
 game_type = game.GameType.TICTACTOE_6_6_5_TOR if game_type == "5_tor" else game.GameType.TICTACTOE_6_6_4
 
 game_mode = args.game_mode
-
 
 if args.mode == "play_single_game":
     model_x = pickup_model(*args.model_x.split(":"))

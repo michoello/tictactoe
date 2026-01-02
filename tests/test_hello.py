@@ -136,7 +136,14 @@ class TestHelloWorld(unittest.TestCase):
         assert ww2.val() == [[3], [4], [5], [6], [7], [8]], f"actual value {ww2.val()}"
 
     def test_game_reshape(self):
-        board = game.generate_random_board()
+        board = [
+            [ 1, 0, 1, 0, 0, 0 ],
+            [ 1, 0,-1, 0,-1, 0 ],
+            [ 1, 0, 1, 0, 0, 0 ],
+            [ 0,-1, 0,-1, 0, 0 ],
+            [ 1, 0, 1, 0, 0, 0 ],
+            [ 1, 0, 1, 0, 0, 0 ],
+        ]
 
         xx = ml.BB(board)
         self.assertEqual(xx.dims(), [6, 6])
