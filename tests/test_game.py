@@ -295,11 +295,13 @@ class TestMcts(MyTestCase):
 
        # Note the step is not done by this call, it only returns coordinates
        # X to win
-       row, col = g.best_mcts_step(board, 1, 100)
+       game_state_x = game.GameState(board, 1)
+       row, col = g.best_mcts_step(game_state_x, 100)
        self.assertAlmostEqual([row, col], [2, 2])
 
        # Put O to first row to win
-       row, col = g.best_mcts_step(board, -1, 100)
+       game_state_o = game.GameState(board, -1)
+       row, col = g.best_mcts_step(game_state_o, 100)
        self.assertAlmostEqual([row, col], [0, 4])
 
     def test_terminal_defense(self):
@@ -328,7 +330,8 @@ class TestMcts(MyTestCase):
        #
        # So high number of simulation is due to MCTS bugs. TODO fix them and reduce
        #
-       row, col = g.best_mcts_step(board, 1, 1500)
+       game_state_x = game.GameState(board, 1)
+       row, col = g.best_mcts_step(game_state_x, 1500)
        self.assertEqual([row, col], [0, 4])
 
        # Put O in center to block Xs diagonal:
@@ -340,7 +343,8 @@ class TestMcts(MyTestCase):
            [0, 0, 0, 0, 1, 0],
            [0, 0, 0, 0, 0, 1],
        ])
-       row, col = g.best_mcts_step(board, -1, 1500)
+       game_state_o = game.GameState(board, 1)
+       row, col = g.best_mcts_step(game_state_o, 1500)
        self.assertEqual([row, col], [2, 2])
 
        # TODO: add tests

@@ -134,7 +134,7 @@ class Board:
 
 
 
-@dataclass
+#@dataclass
 class GameState:
     board: Board
     last_move: int  # 1 for crosses, -1 for zeroes
@@ -144,6 +144,13 @@ class GameState:
     winner: Optional[int] = None
     xyo: Optional[list[int]] = None  # if the state is terminal, contains list of winning cells
     reward: Optional[float] = None
+
+    def __init__(self, board, last_move, step_no=None, x=None, y=None):
+        self.board = board
+        self.last_move = last_move
+        self.step_no = step_no
+        self.x = x
+        self.y = y
 
     def print_state(self):
         bgs = {
@@ -390,7 +397,10 @@ class Game:
         val, row, col = self.minimax(board, depth, alpha, beta, player)
         return row, col
 
-    def best_mcts_step(self, board, next_move, num_simulations):
+    def best_mcts_step(self, game_state, num_simulations):
+        board = game_state.board
+        next_move = game_state.last_move
+
         root = MctsNode(board, None, None, next_move)
 
         for sim_num in range(num_simulations):
@@ -452,6 +462,12 @@ class Game:
     def choose_next_step(self, prev_state):
         board = prev_state.board.copy()
         next_move = -prev_state.last_move
+
+        game_state = GameState(
+                board=board, 
+                last_move=next_move, 
+                step_no=prev_state.step_no + 1)
+
         # First step is always random to increase diversity
         row, col = None, None
         if self.step_no(board) == 0:
@@ -459,21 +475,19 @@ class Game:
         elif self.game_mode == "minimax":
             row, col = self.best_minimax_step(board, next_move)
         elif self.game_mode == "mcts":
-            row, col = self.best_mcts_step(board, next_move, MCTS_NUM_SIMULATIONS)
+            row, col = self.best_mcts_step(game_state, MCTS_NUM_SIMULATIONS)
         else:
             row, col = self.best_greedy_step(board, next_move)
+
+        game_state.x=row 
+        game_state.y=col
 
         board.state[row][col] = next_move
         winner, xyo = board.check_winner()
 
-        return GameState(
-                board=board, 
-                last_move=next_move, 
-                x=row, 
-                y=col, 
-                step_no=prev_state.step_no + 1, 
-                winner=winner,
-                xyo=xyo)
+        game_state.winner=winner
+        game_state.xyo=xyo
+        return game_state
 
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
