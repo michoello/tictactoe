@@ -295,14 +295,18 @@ class TestMcts(MyTestCase):
 
        # Note the step is not done by this call, it only returns coordinates
        # X to win
-       game_state_x = game.GameState(board, 1)
+       game_state_x = game.GameState(board.copy(), 1)
        row, col = g.best_mcts_step(game_state_x, 100)
        self.assertAlmostEqual([row, col], [2, 2])
+       self.assertAlmostEqualNested(game_state_x.winner, 1)
+       self.assertAlmostEqualNested(game_state_x.xyo, [(2, 2), (3, 3), (4, 4), (5, 5)])
 
        # Put O to first row to win
-       game_state_o = game.GameState(board, -1)
+       game_state_o = game.GameState(board.copy(), -1)
        row, col = g.best_mcts_step(game_state_o, 100)
        self.assertAlmostEqual([row, col], [0, 4])
+       self.assertAlmostEqualNested(game_state_o.winner, -1)
+       self.assertAlmostEqualNested(game_state_o.xyo, [ (0, 2), (0, 3), (0, 4), (0, 5)])
 
     def test_terminal_defense(self):
 

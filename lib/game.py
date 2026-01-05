@@ -177,8 +177,7 @@ class GameState:
                 what = fgs[fg] + what + cancel_color
             print(what, end="")
 
-        #winner, xyo = self.board.check_winner()
-        winner, xyo = self.winner, self.xyo
+        winner, xyo = self.winner, self.xyo or []
 
         print("Step", self.step_no, ":", "crosses" if self.last_move == 1 else "zeroes")
         print("  Move:", self.x, self.y, " Reward: ", self.reward)
@@ -281,10 +280,11 @@ class MctsNode:
 
             next_node = MctsNode(board, row, col, -self.next_move)
 
-            winner, _ = board.check_winner()
+            winner, xyo = board.check_winner()
             if winner is not None:
                 next_node.state_value = winner
                 next_node.is_terminal = True
+                next_node.xyo = xyo
             else:
                 m = gm.model_x if next_node.next_move == 1 else gm.model_o
                 next_node.state_value = m.get_next_step_value(board.state)
@@ -413,9 +413,21 @@ class Game:
         best_node = None
         best_count = -1
         for node in root.tried_nodes:
+            # TODO: break the even: if counts are the same, compare values
             if node.num_visits > best_count:
                 best_count = node.num_visits
                 best_node = node
+        
+        game_state.x = best_node.row
+        game_state.y = best_node.col
+
+        board.state[best_node.row][best_node.col] = next_move
+        if best_node.is_terminal:
+            game_state.winner=best_node.state_value
+            game_state.xyo=best_node.xyo
+        #winner, xyo = board.check_winner()
+        #game_state.winner=winner
+        #game_state.xyo=xyo
 
         return best_node.row, best_node.col
 
@@ -461,12 +473,7 @@ class Game:
 
     def choose_next_step(self, prev_state):
         board = prev_state.board.copy()
-        next_move = -prev_state.last_move
-
-        game_state = GameState(
-                board=board, 
-                last_move=next_move, 
-                step_no=prev_state.step_no + 1)
+        next_move = -prev_state.last_move if prev_state.last_move is not None else 1
 
         # First step is always random to increase diversity
         row, col = None, None
@@ -475,9 +482,22 @@ class Game:
         elif self.game_mode == "minimax":
             row, col = self.best_minimax_step(board, next_move)
         elif self.game_mode == "mcts":
+            game_state = GameState(
+                board=board, 
+                last_move=next_move, 
+                step_no=prev_state.step_no + 1)
+
             row, col = self.best_mcts_step(game_state, MCTS_NUM_SIMULATIONS)
+            return game_state
+
         else:
             row, col = self.best_greedy_step(board, next_move)
+
+
+        game_state = GameState(
+                board=board, 
+                last_move=next_move, 
+                step_no=prev_state.step_no + 1)
 
         game_state.x=row 
         game_state.y=col
