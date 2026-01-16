@@ -145,14 +145,14 @@ class TestTrainingCycle(MyTestCase):
 
         # Derivative of loss function is its value is 1.0 (aka df/df)
         self.assertEqual(
-            value(ds.bval(0)),
+            value(ds.bval()),
             [
-                [1],
+                [0],
             ],
         )
         # Derivative of its args
         self.assertEqual(
-            value(dy.bval(0)),
+            value(dy.bval()),
             [
                 [2, -4],
             ],
@@ -222,18 +222,18 @@ class TestTrainingCycle(MyTestCase):
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
         # old python and new cpp implementations:
-        self.assertAlmostEqualNested(m_py.loss.dval(), value(m_cpp.z3.bval(0)), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.dval(), value(m_cpp.za.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.loss.dval(), value(m_cpp.z3.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.z3.dval(), value(m_cpp.za.bval()), 1e-6)
 
         # But the weights back values (grads) are consistent:
-        self.assertAlmostEqualNested(m_py.w3.dval(), value(m_cpp.w3.bval(0)), 1e-6)
-        self.assertAlmostEqualNested(m_py.b3.dval(), value(m_cpp.b3.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.w3.dval(), value(m_cpp.w3.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.b3.dval(), value(m_cpp.b3.bval()), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w2.dval(), value(m_cpp.w2.bval(0)), 1e-6)
-        self.assertAlmostEqualNested(m_py.b2.dval(), value(m_cpp.b2.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.w2.dval(), value(m_cpp.w2.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.b2.dval(), value(m_cpp.b2.bval()), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w1.dval(), value(m_cpp.w1.bval(0)), 1e-6)
-        self.assertAlmostEqualNested(m_py.b1.dval(), value(m_cpp.b1.bval(0)), 1e-6)
+        self.assertAlmostEqualNested(m_py.w1.dval(), value(m_cpp.w1.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.b1.dval(), value(m_cpp.b1.bval()), 1e-6)
 
         # Now apply grads and check that thee results match
         m_py.apply_gradient()

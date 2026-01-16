@@ -204,18 +204,30 @@ class GameState:
 
 # Entire MCTS algorithm is in this class
 class MctsNode:
-    parent = None  # previous step node, None for root
+    state: GameState # TODO
+    
+    # these guys will be replaced by state
     board: Board
     row: int
     col: int
     next_move: int  ## 1 or -1
+    is_terminal = False
+
+    # Possibly too
+    state_value: float = 0  # state value taken from model
+    prior: float = 0.0
+
+
+    parent = None  # previous step node, None for root
+
+
+
     all_moves: list[Board] = []
     tried_nodes: list[Board] = []
-    state_value: float = 0  # state value taken from model
+
+    # These two are to be used to sort out the best move
     value: float = 0.0  # accumulated value collected from child nodes
     num_visits: int = 0  # number of times simulation passed through the node
-    prior: float = 0.0
-    is_terminal = False
 
     def __init__(self, board, row, col, next_move):
         self.board = board
@@ -425,9 +437,6 @@ class Game:
         if best_node.is_terminal:
             game_state.winner=best_node.state_value
             game_state.xyo=best_node.xyo
-        #winner, xyo = board.check_winner()
-        #game_state.winner=winner
-        #game_state.xyo=xyo
 
         return best_node.row, best_node.col
 
