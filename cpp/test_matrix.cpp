@@ -1167,11 +1167,40 @@ TEST_CASE(convolutions_grads_propagate) {
 TEST_CASE(per_element_block_gradients_smoketest) {
   Mod3l m;
 
-  std::vector<Block* (*) (Block*)> block_makers = {
+  Block *dother = Data(&m, 3, 3);
+	m.set_data(dother, {
+       {-0.5, 0.25, 0.125},
+       {1.1, 1.2, 1.3},
+       {0, 17, -3.1415},
+	});
+
+
+  //std::vector<Block* (*) (Block*)> block_makers = {
+  std::vector<std::function<Block* (Block*)>> block_makers = {
      &ReLU,
      &Tanh,
      &Sigmoid,
      &Sqrt,
+     [](Block* in) { return MulEl(in, 1.618); },
+
+     // Testing Matrix addition block
+     [dother](Block* in) { return Add(in, dother); },
+     [dother](Block* in) { return Add(dother, in); },
+
+     // Testing Matrix substraction block
+     [dother](Block* in) { return Dif(in, dother); },
+     [dother](Block* in) { return Dif(dother, in); },
+
+     // Testing Matrix multiplication block
+     [dother](Block* in) { return MatMul(in, dother); },
+     [dother](Block* in) { return MatMul(dother, in); },
+     
+     // Reshaper
+     [](Block* in) { return Reshape(in, 9, 1); },
+     //
+     // This one will fail, as it disconnects from the input block
+     // TODO: add it to the test to check the sanity?
+     // [dother](Block* in) { return dother; },
   };
 
   for(const auto& block_maker: block_makers) { 

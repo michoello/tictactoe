@@ -340,8 +340,8 @@ static Block *Reshape(Block *a, int rows, int cols) {
     for_each_ella([](double in, double &out) { out = in; }, a->fval(), *out);
   });
 
-  a->add_bawd_fun([res](Matrix *) {
-    // TODO
+  a->add_bawd_fun([res](Matrix *out) {
+    for_each_ella([](double grad_in, double &grad_back) { grad_back = grad_in; }, res->bval(), *out);
   });
   return res;
 }
