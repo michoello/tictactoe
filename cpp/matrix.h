@@ -85,12 +85,14 @@ static void for_each_ella(F fu, const Ms &...mats) {
 
 static void print_matrix(const std::vector<std::vector<double>> &mtx,
                          int round = 3) {
-  for (const auto &row : mtx) {
+  //for (const auto &row : mtx) {
+  for (size_t r = 0; r < mtx.size(); ++r) {
+    const auto& row = mtx[r];
     std::cerr << "  { ";
     for (size_t i = 0; i < row.size(); ++i) {
       std::cerr << std::fixed << std::setprecision(round) << row[i]
                 << (i < row.size() - 1 ? ", " : " ");
     }
-    std::cerr << "}\n";
+    std::cerr << "}" << (r < mtx.size() - 1 ? ",":"") << "\n";
   }
 }

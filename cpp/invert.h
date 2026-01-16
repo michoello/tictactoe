@@ -290,6 +290,7 @@ static Block *Convo(Block *input, Block *kernel) {
 }
 
 static double square(double d) { return d * d; }
+static double square_derivative(double d) { return 2 * d; }
 
 static double sigmoid(double x) {
   if (x >= 0) {
@@ -322,7 +323,14 @@ static double tanh_derivative(double x) {
 	return 1 - t * t;
 }
 
+// TODO: parametrize 0.01?
+static double relu_leaky(double x) {
+  return x > 0 ? x : x * 0.01;
+}
 
+static double relu_derivative(double x) {
+  return x > 0 ? 1 : 0.01;
+}
 
 static double tbd(double) { return 0; }
 
@@ -356,7 +364,7 @@ static Block *ElFun(Block *arg, F1 fwd, F2 bwd) {
   return block;
 }
 
-static Block *Sqrt(Block *a) { return ElFun(a, &square, &tbd); }
+static Block *Sqrt(Block *a) { return ElFun(a, &square, &square_derivative); }
 
 static Block *Sigmoid(Block *a) {
   return ElFun(a, &sigmoid, &sigmoid_derivative);
@@ -366,9 +374,14 @@ static Block *Tanh(Block *a) {
   return ElFun(a, &tanh_custom, &tanh_derivative);
 }
 
+static Block *ReLU(Block *a) {
+  return ElFun(a, &relu_leaky, &relu_derivative);
+}
+
 static Block *MulEl(Block *a, double n) {
   return ElFun(
-      a, [n](double d) { return n * d; }, &tbd);
+      a, [n](double d) { return n * d; },
+         [n](double _) { return n; });
 }
 
 static Block *Add(Block *a1, Block *a2) {
