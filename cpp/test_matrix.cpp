@@ -1035,7 +1035,6 @@ TEST_CASE(convolutions_grads_apply) {
     { 7.000, 12.200, 8.400 }
   }));
 
-  // !!!
   CHECK(assertEqualVectors(dkernel->bval(), {
 		{ 1017.600, 1024.800 },
 		{ 1471.200, 1478.400 }
@@ -1174,8 +1173,6 @@ TEST_CASE(per_element_block_gradients_smoketest) {
        {0, 17, -3.1415},
 	});
 
-
-  //std::vector<Block* (*) (Block*)> block_makers = {
   std::vector<std::function<Block* (Block*)>> block_makers = {
      &ReLU,
      &Tanh,
@@ -1222,7 +1219,80 @@ TEST_CASE(per_element_block_gradients_smoketest) {
 	}
 }
 
+// This is a prototype of smoke test for a more realistic complex model
+// to be used for game training. As of now, it is simpler, toy version,
+// though still including all major blocks.
+TEST_CASE(larger_model) {
+  Mod3l m;
 
+  Block *dinput = Data(&m, 3, 3);
+	m.set_data(dinput, {
+       { 1, 0, -1},
+       { 1, 0, -1},
+       { 0, 1, -1},
+	});
+
+  Block *dkernel1 = Data(&m, 2, 2);
+  m.set_data(dkernel1, {
+     { 0.3, 0.1 },
+     { 0.2, 0.0 },
+  });
+  Block *dc1 = Convo(dinput, dkernel1);
+  Block *rl1 = ReLU(dc1);
+
+
+  Block *dkernel2 = Data(&m, 2, 2);
+  m.set_data(dkernel2, {
+     { -0.3, 0.1 },
+     { -0.2, 0.4 },
+  });
+  Block *dc2 = Convo(dinput, dkernel2);
+  Block *rl2 = ReLU(dc2);
+
+  Block *rl = Add(rl1, rl2);
+  
+  Block *dw = Data(&m, 3, 3);
+  m.set_data(dw, {{1, 2, 3}, {5, 6, 7}, {9, 10, 11}});
+
+  Block *dlogits = MatMul(rl, dw);
+  Block *dsoftmax = SoftMax(dlogits);
+  // !!!
+
+  // This is our toy policy network head
+  Block *dlabels = Data(&m, 3, 3);
+  m.set_data(dlabels, {
+    {0, 1, 0},
+    {0, 0, 0},
+    {0, 0, 0},
+  });
+  Block *policy_loss = SoftMaxCrossEntropy(dlogits, dsoftmax, dlabels);
+
+  //
+  Block *dw2 = Data(&m, 3, 1);
+  m.set_data(dw2, {{1.5}, {2.5}, {3.5}});
+
+  Block *dvalue = Tanh(MatMul(rl, dw2));
+  
+  Block *dlabel = Data(&m, 1, 1);
+  m.set_data(dlabel, {{-1}});
+
+  Block *dvalue_loss = SSE(dvalue, dlabel);
+
+  for(size_t i = 0; i < 10; ++i) {
+  	double value_before = dvalue_loss->fval().get(0, 0);
+  	double policy_before = policy_loss->fval().get(0, 0);
+  	std::cout << "Losses: policy " << policy_before << ", " << "  value " << value_before << "\n";
+  	dkernel1->apply_bval(0.01);
+  	dkernel2->apply_bval(0.01);
+  	dw->apply_bval(0.01);
+  	dw2->apply_bval(0.01);
+  	double value_after = dvalue_loss->fval().get(0, 0);
+  	double policy_after = policy_loss->fval().get(0, 0);
+  
+    CHECK(value_before > value_after);
+    CHECK(policy_before > policy_after);
+  }
+}
 
 
 TEST_CASE(softmax) {
@@ -1298,11 +1368,5 @@ TEST_CASE(softmax_cross_entropy) {
 																					 { 0.029, 0.029 },
                                        }));
 }
-
-/*
-TEST_CASE(tanh) {
-   // TODO
-}
-*/
 
 int main(int argc, char **argv) { return run_tests(argc, argv); }

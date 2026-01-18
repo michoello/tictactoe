@@ -114,14 +114,14 @@ value(            dc.fval()),
 
         # Derivative of loss function is its value is 1.0 (aka df/df)
         self.assertEqual(
-            value(ds.bval(0)),
+            value(ds.bval()),
             [
                 [1],
             ],
         )
         # Derivative of its args
         self.assertEqual(
-            value(dy.bval(0)),
+            value(dy.bval()),
             [
                 [2, -4],
             ],
@@ -183,21 +183,21 @@ value(            ds.fval()),
             [ 0.071, 4.500, 10.989 ]
         ])
 
-        self.assertNearlyEqual(value(dsig.bval(0)), [
+        self.assertNearlyEqual(value(dsig.bval()), [
             [ 363.886, 2087.070, 6607.540 ],
             [ 9.985, 4051.542, 59815.266 ],
                                     ])
 
         # From Sum and backwards it all goes the same:
-        self.assertNearlyEqual(value(ds2.bval(0)), [
+        self.assertNearlyEqual(value(ds2.bval()), [
             [ 0.898, 0.700, 0.300 ],
             [ 0.009, 0.500, 0.999 ]
                                     ])
 
 
-        self.assertEqual(value(da.bval(0)), value(ds2.bval(0)))
-        self.assertEqual(value(db.bval(0)), value(ds2.bval(0)))
-        self.assertEqual(value(dc.bval(0)), value(ds2.bval(0)))
+        self.assertEqual(value(da.bval()), value(ds2.bval()))
+        self.assertEqual(value(db.bval()), value(ds2.bval()))
+        self.assertEqual(value(dc.bval()), value(ds2.bval()))
 
 
 
@@ -253,7 +253,7 @@ value(            ds.fval()),
 
         self.assertNearlyEqual(value(loss.fval()), [[0.75, 0.739, 0.691]])
 
-        self.assertNearlyEqual(value(w.bval(0)), [
+        self.assertNearlyEqual(value(w.bval()), [
              [0.0527, -0.052, -4.543/100000],
              [-0.105, 0.104, 9.086/100000]
         ], 3)
