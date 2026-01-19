@@ -1,3 +1,21 @@
+# 2026-01-18
+
+Unified Convo-Softmax-Policy-ReLu network is almost ready. But before that minor refactoring is needed.
+Started today.
+Both X and O models for TTTPlayer are now unified. The games are to be played like this:
+```
+python3 generate_games.py --mode play_single_game \
+   --model_x player:models/cpp3.001/duomodel-4000.json \   # This is spec, pointing to both models' jsons.
+   --model_o player:models/cpp3.001/duomodel-4000.json \   # This can be a different one
+   --game_mode mcts
+
+# or
+
+python3 generate_games.py --mode play_single_game \
+    --model_x player:models/cpp3.001/duomodel-4000.json \
+    --model_o random: --game_mode greedy
+```
+
 # 2025-12-26 
 
 Draft MCTS added. Also very slow.

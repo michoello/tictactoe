@@ -93,17 +93,21 @@ class TestTrainingCycle(MyTestCase):
 
                 for i in range(10):
                     for board, winner in zip(train_boards, train_winners):
-                        m.m.set_data(m.x, board)
-                        m.m.set_data(m.y, [winner])
+                        m.model_x.m.set_data(m.model_x.x, board)
+                        m.model_x.m.set_data(m.model_x.y, [winner])
+                        m.model_o.m.set_data(m.model_o.x, board)
+                        m.model_o.m.set_data(m.model_o.y, [winner])
                         m.calc_grads()
                         m.apply_gradient()
 
                     test_loss = 0
                     for board, winner in zip(test_boards, test_winners):
-                        m.m.set_data(m.x, board)
-                        m.m.set_data(m.y, [winner])
+                        m.model_x.m.set_data(m.model_x.x, board)
+                        m.model_x.m.set_data(m.model_x.y, [winner])
+                        m.model_o.m.set_data(m.model_o.x, board)
+                        m.model_o.m.set_data(m.model_o.y, [winner])
 
-                        test_loss = test_loss + value(m.loss.fval())[0][0]
+                        test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
                     m.save_to_file(trained_model)
@@ -111,7 +115,6 @@ class TestTrainingCycle(MyTestCase):
 
 
             print("Playing...")
-            #random_model = ttt.TTTPlayer(init_model, enable_cpp=True)
             trained_model = ttt.TTTPlayer(trained_model, enable_cpp=True)
 
             # ctw = crosses_trained_winners
@@ -181,18 +184,20 @@ class TestTrainingCycle(MyTestCase):
         ), patch("random.choice", new=rng.choice), patch(
             "random.shuffle", new=rng.shuffle
         ):
-            m = ttt.TTTPlayer()
+            mx = ttt.TTTPlayer()
+            mo = ttt.TTTPlayer()
 
-            g = game.Game(m, m)
+            g = game.Game(mx, mo)
             train_boards, train_winners = g.generate_batch_from_games(25)
 
-            m.x.set(train_boards[0])
-            m.y.set(train_winners)
+            mx.model_x.x.set(train_boards[0])
+            mx.model_x.y.set(train_winners)
 
-            self.assertAlmostEqualNested(m.loss.val(), [[3.202939]], 1e-6)
-            m.calc_grads()
-            m.apply_gradient()
-            self.assertAlmostEqualNested(m.loss.val(), [[3.135752]], 1e-6)
+            # Check that gradient decreased
+            self.assertAlmostEqualNested(mx.model_x.loss.val(), [[1.647714]], 1e-6)
+            mx.calc_grads()
+            mx.apply_gradient()
+            self.assertAlmostEqualNested(mx.model_x.loss.val(), [[1.630994]], 1e-6)
 
 
     def test_py_cpp_models_compare(self):
@@ -212,41 +217,41 @@ class TestTrainingCycle(MyTestCase):
         ):
             m_cpp = ttt.TTTPlayer(enable_cpp=True)
 
-        self.assertAlmostEqualNested(m_py.x.val(), value(m_cpp.x.fval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.z1.val(), value(m_cpp.z1.fval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.val(), value(m_cpp.z3.fval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.loss.val(), value(m_cpp.loss.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.x.val(), value(m_cpp.model_x.x.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.z1.val(), value(m_cpp.model_x.z1.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.z3.val(), value(m_cpp.model_x.z3.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.loss.val(), value(m_cpp.model_x.loss.fval()), 1e-6)
 
         m_py.calc_grads()
         m_cpp.calc_grads()
 
         # The "flow" or "operational" blocks have this discrepancy a bit between
         # old python and new cpp implementations:
-        self.assertAlmostEqualNested(m_py.loss.dval(), value(m_cpp.z3.bval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.z3.dval(), value(m_cpp.za.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.loss.dval(), value(m_cpp.model_x.z3.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.z3.dval(), value(m_cpp.model_x.za.bval()), 1e-6)
 
         # But the weights back values (grads) are consistent:
-        self.assertAlmostEqualNested(m_py.w3.dval(), value(m_cpp.w3.bval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.b3.dval(), value(m_cpp.b3.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.w3.dval(), value(m_cpp.model_x.w3.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.b3.dval(), value(m_cpp.model_x.b3.bval()), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w2.dval(), value(m_cpp.w2.bval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.b2.dval(), value(m_cpp.b2.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.w2.dval(), value(m_cpp.model_x.w2.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.b2.dval(), value(m_cpp.model_x.b2.bval()), 1e-6)
 
-        self.assertAlmostEqualNested(m_py.w1.dval(), value(m_cpp.w1.bval()), 1e-6)
-        self.assertAlmostEqualNested(m_py.b1.dval(), value(m_cpp.b1.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.w1.dval(), value(m_cpp.model_x.w1.bval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.b1.dval(), value(m_cpp.model_x.b1.bval()), 1e-6)
 
         # Now apply grads and check that thee results match
         m_py.apply_gradient()
         m_cpp.apply_gradient()
 
-        self.assertAlmostEqualNested(m_py.loss.val(), value(m_cpp.loss.fval()), 1e-6)
+        self.assertAlmostEqualNested(m_py.model_x.loss.val(), value(m_cpp.model_x.loss.fval()), 1e-6)
 
         m_py_file = tempfile.mktemp()
         m_py.save_to_file(m_py_file)
 
         # After saving and reload the model loss is almost the same (note 1e-3)
         m_py2 = ttt.TTTPlayer(m_py_file)
-        self.assertAlmostEqualNested(m_py.loss.val(), m_py2.loss.val(), 1e-3)
+        self.assertAlmostEqualNested(m_py.model_x.loss.val(), m_py2.model_x.loss.val(), 1e-3)
 
         m_cpp_file = tempfile.mktemp()
         m_cpp.save_to_file(m_cpp_file)
@@ -255,14 +260,14 @@ class TestTrainingCycle(MyTestCase):
         m_cpp2 = ttt.TTTPlayer(m_cpp_file) 
 
         # Since cpp model does not store the inputs, we copy them from first cpp model
-        m_cpp2.m.set_data(m_cpp2.x, value(m_cpp.x.fval()))
-        m_cpp2.m.set_data(m_cpp2.y, value(m_cpp.y.fval()))
-        self.assertAlmostEqualNested(value(m_cpp.loss.fval()), value(m_cpp2.loss.fval()), 1e-3)
+        m_cpp2.model_x.m.set_data(m_cpp2.model_x.x, value(m_cpp.model_x.x.fval()))
+        m_cpp2.model_x.m.set_data(m_cpp2.model_x.y, value(m_cpp.model_x.y.fval()))
+        self.assertAlmostEqualNested(value(m_cpp.model_x.loss.fval()), value(m_cpp2.model_x.loss.fval()), 1e-3)
 
         # The outputs are now a bit different between py and cpp, because of rounding
         # (both weights and the inputs)
         # TODO: rounding
-        self.assertAlmostEqualNested(value(m_cpp2.loss.fval()), m_py2.loss.val(), 1e-3)
+        self.assertAlmostEqualNested(value(m_cpp2.model_x.loss.fval()), m_py2.model_x.loss.val(), 1e-3)
 
 
     def test_ratings(self):

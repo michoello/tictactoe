@@ -299,13 +299,12 @@ class MctsNode:
                 next_node.xyo = xyo
             else:
                 m = gm.model_x if next_node.next_move == 1 else gm.model_o
-                next_node.state_value = m.get_next_step_value(board.state)
+                next_node.state_value = m.get_next_step_value(next_node.next_move, board.state)
                 # Applying this ugly patch to make it range [-1;1]
                 # as currently model returns [0;1]
                 next_node.state_value = (next_node.state_value * 2) - 1
                 # Collecting all values is too slow. TODO: policy output
                 # brds = [(board.state, r, c) for board, r, c in self.all_moves]
-                # m.get_next_step_values(brds)
             next_node.parent = self
 
             self.tried_nodes.append(next_node)
@@ -389,7 +388,7 @@ class Game:
         m = self.model_x if next_move == 1 else self.model_o
 
         for board, row, col in boards:
-            value = m.get_next_step_value(board.state)
+            value = m.get_next_step_value(next_move, board.state)
             if value is None:
                 continue
 
@@ -402,12 +401,6 @@ class Game:
 
         return best_xy[0], best_xy[1]
 
-    def best_minimax_step(self, board, next_move):
-        player = "X" if next_move == 1 else "O"
-        depth = 2
-        alpha, beta = -1000, 1000  # infinity!
-        val, row, col = self.minimax(board, depth, alpha, beta, player)
-        return row, col
 
     def best_mcts_step(self, game_state, num_simulations):
         board = game_state.board
@@ -440,38 +433,6 @@ class Game:
 
         return best_node.row, best_node.col
 
-    def minimax(self, board, depth, alpha, beta, player):
-        winner, _ = board.check_winner()
-        if winner is not None:
-            return (winner, None, None)
-
-        m = self.model_x if player == "X" else self.model_o
-        if depth == 0:
-            return m.get_next_step_value(board.state), None, None
-
-        boards = board.all_next_steps(1 if player == "X" else -1)  # next_move)
-        random.shuffle(boards)
-
-        best_val = -float("inf") if player == "X" else float("inf")
-        next_player = "O" if player == "X" else "X"
-        best_row, best_col = None, None
-
-        for board, row, col in boards:
-            val, _, _ = self.minimax(board, depth - 1, alpha, beta, next_player)
-            if player == "X":
-                if val > best_val:
-                    best_val, best_row, best_col = val, row, col
-                alpha = max(alpha, best_val)
-            else:
-                if val < best_val:
-                    best_val, best_row, best_col = val, row, col
-                beta = min(beta, best_val)
-
-            if beta <= alpha:
-                break
-
-        return best_val, best_row, best_col
-
     def random_step(self):
         cell = random.randint(0, 35)
         return int(cell / 6), int(cell % 6)
@@ -488,8 +449,6 @@ class Game:
         row, col = None, None
         if self.step_no(board) == 0:
             row, col = self.random_step()
-        elif self.game_mode == "minimax":
-            row, col = self.best_minimax_step(board, next_move)
         elif self.game_mode == "mcts":
             game_state = GameState(
                 board=board, 

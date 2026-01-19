@@ -34,12 +34,54 @@ class TTTRandom:
             values[x][y] = self.get_next_step_value(b)
         return values
 
-    def get_next_step_value(self, board):
+    def get_next_step_value(self, player, board):
         return random.random()
 
 
 # Simple player based on board position value
+# Works both sides as it encapsulates two models inside
 class TTTPlayer:
+    def __init__(self, spec_file=None, enable_cpp=False):
+      if spec_file:
+        with open(spec_file, "r") as file:
+            spec = json.loads(file.read())
+        self.model_x = TTTPlayerImpl(spec["model_x"])
+        self.model_o = TTTPlayerImpl(spec["model_o"])
+      else:
+        self.model_x = TTTPlayerImpl(enable_cpp=enable_cpp)
+        self.model_o = TTTPlayerImpl(enable_cpp=enable_cpp)
+
+    def get_next_step_value(self, player, board):
+        if player == 1:
+            return self.model_x.get_next_step_value(board)
+        else:
+            return self.model_o.get_next_step_value(board)
+
+    def calc_grads(self):
+        self.model_x.calc_grads()
+        self.model_o.calc_grads()
+
+    def apply_gradient(self, alpha = 0.01):
+        self.model_x.apply_gradient(alpha)
+        self.model_o.apply_gradient(alpha)
+
+    def save_to_file(self, file_name):
+        x_file = file_name + "x"
+        o_file = file_name + "o"
+        with open(file_name, "w") as file:
+          file.write(json.dumps({
+            "model_x": x_file,
+            "model_o": o_file,
+          })) 
+
+        self.model_x.save_to_file(x_file)
+        self.model_o.save_to_file(o_file)
+
+
+# Single side player based on board position value
+# Can play either for X xor for O, but not both
+# Became private implementation detail, not to be used directly
+class TTTPlayerImpl:
     def __init__(self, file_to_load_from=None, enable_cpp=False):
       self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
 
@@ -140,7 +182,6 @@ class TTTPlayer:
                     self.replay_buffer.from_json(model_json["replay_buffer"])
                 else:
                     self.replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
-
 
 
     def calc_grads(self):
