@@ -263,13 +263,15 @@ class MctsNode:
     def mcts_softmax_priors(self):
         next_move = self.next_move
         tried_nodes = self.tried_nodes
-        # converting state values back to [0;1] range, and inverting them to 1-v for Os
+
+        # converting state values to [0;1] range, and inverting them to 1-v for Os
+        # It fakes the policy output, by comparing values
+        # of all next states, and then converting it to probs
         # TODO: all these ugly tricks should go away
-        norm_values = [node.state_value for node in tried_nodes]
-        norm_values = [(v + 1) / 2.0 for v in norm_values]
+        priors = [node.state_value for node in tried_nodes]
+        priors = [(v + 1) / 2.0 for v in priors]
         if next_move == -1:
-            norm_values = [1 - v for v in norm_values]
-        priors = norm_values
+            priors = [1 - v for v in priors]
 
         # softmax
         m = max(priors)
@@ -300,9 +302,7 @@ class MctsNode:
             else:
                 m = gm.model_x if next_node.next_move == 1 else gm.model_o
                 next_node.state_value = m.get_next_step_value(next_node.next_move, board.state)
-                # Applying this ugly patch to make it range [-1;1]
-                # as currently model returns [0;1]
-                next_node.state_value = (next_node.state_value * 2) - 1
+
                 # Collecting all values is too slow. TODO: policy output
                 # brds = [(board.state, r, c) for board, r, c in self.all_moves]
             next_node.parent = self

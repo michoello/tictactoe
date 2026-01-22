@@ -238,7 +238,8 @@ class TTTPlayerImpl:
         else:
             self.x.set(board)
             step_value = self.prediction.val()
-        return step_value[0][0]
+        # Normalize the value to [-1;+1] range from sigmoid's output of [0;+1]
+        return step_value[0][0] * 2 - 1
 
     def get_loss_value(self):
         return value(self.loss.fval())[0][0]
