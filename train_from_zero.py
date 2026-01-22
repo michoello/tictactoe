@@ -86,13 +86,11 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def calc_loss(m, boards, values):
+def calc_loss(player, m, boards, values):
     sum_loss = 0
     for board, state_value in zip(boards, values):
-        m.m.set_data(m.x, board)
-        m.m.set_data(m.y, [state_value])
-
-        sum_loss = sum_loss + m.get_loss_value()
+        m.set_board_and_value(player, board, state_value)
+        sum_loss = sum_loss + m.get_loss_value(player)
 
     return sum_loss / len(boards)
 
@@ -109,7 +107,7 @@ def train_single_round(trainee, model_x, model_o, m_student):
     #
     # Get old memories from buffer
     #
-    replay_buffer = m_student.replay_buffer
+    replay_buffer = m_student.replay_buffer()
     replay_boards, replay_values = [], []
     if replay_buffer.count > 100:
         for i in range(16):
@@ -128,15 +126,15 @@ def train_single_round(trainee, model_x, model_o, m_student):
     #
     for i in range(TRAIN_ITERATIONS):
         for board, state_value in zip(train_boards, train_values):
-            m_student.m.set_data(m_student.x, board)
-            m_student.m.set_data(m_student.y, [state_value])
+            _player = 1 if trainee == "crosses" else -1
+            m_student.set_board_and_value(_player, board, state_value)
 
             m_student.calc_grads()
             m_student.apply_gradient(0.001)
 
-            loss = m_student.get_loss_value()
+            loss = m_student.get_loss_value(_player)
 
-        train_loss = calc_loss(m_student, train_boards, train_values)
+        train_loss = calc_loss(_player, m_student, train_boards, train_values)
         if i % 10 == 0:
             print(f"EPOCH {i}: Train loss={train_loss}")
 

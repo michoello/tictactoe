@@ -68,6 +68,7 @@ class TTTPlayer:
     def set_board_and_value(self, player, board, _value):
         impl = self.model_x if player == 1 else self.model_o
 
+        # For sigmoid [0;1] range compatibility
         _value = [[ (_value[0][0] + 1) / 2]]
 
         impl.m.set_data(impl.x, board)
@@ -84,6 +85,14 @@ class TTTPlayer:
 
         self.model_x.save_to_file(x_file)
         self.model_o.save_to_file(o_file)
+
+    def replay_buffer(self):
+        return self.model_x.replay_buffer
+
+    def get_loss_value(self, player):
+        impl = self.model_x if player == 1 else self.model_o
+        return impl.get_loss_value()
+
 
 
 # Single side player based on board position value
