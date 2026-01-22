@@ -65,10 +65,13 @@ class TTTPlayer:
 
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
-    def set_board_and_value(self, player, board, value):
+    def set_board_and_value(self, player, board, _value):
         impl = self.model_x if player == 1 else self.model_o
+
+        _value = [[ (_value[0][0] + 1) / 2]]
+
         impl.m.set_data(impl.x, board)
-        impl.m.set_data(impl.y, value)
+        impl.m.set_data(impl.y, _value)
 
     def save_to_file(self, file_name):
         x_file = file_name + "x"

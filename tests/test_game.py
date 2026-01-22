@@ -8,6 +8,7 @@ from utils import SimpleRNG
 from unittest.mock import patch
 from lib import ratings
 
+# TODO: rename value
 from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
 def DData(mod3l, rows, cols, values):
@@ -79,7 +80,7 @@ class TestTrainingCycle(MyTestCase):
             print("Training")
 
             g = game.Game(random_model, random_model)
-            test_boards, test_winners = g.generate_batch_from_games(20)
+            test_boards, test_values = g.generate_batch_from_games(20)
 
             total_epochs = 50 
             for epoch in range(total_epochs):
@@ -88,19 +89,19 @@ class TestTrainingCycle(MyTestCase):
                 else:
                   g = game.Game(random_model, m)
                   
-                train_boards, train_winners = g.generate_batch_from_games(20)
+                train_boards, train_values = g.generate_batch_from_games(20)
 
                 for i in range(10):
-                    for board, winner in zip(train_boards, train_winners):
-                        m.set_board_and_value( 1, board, [winner])
-                        m.set_board_and_value(-1, board, [winner])
+                    for board, val in zip(train_boards, train_values):
+                        m.set_board_and_value( 1, board, val)
+                        m.set_board_and_value(-1, board, val)
                         m.calc_grads()
                         m.apply_gradient()
 
                     test_loss = 0
-                    for board, winner in zip(test_boards, test_winners):
-                        m.set_board_and_value( 1, board, [winner])
-                        m.set_board_and_value(-1, board, [winner])
+                    for board, val in zip(test_boards, test_values):
+                        m.set_board_and_value( 1, board, val)
+                        m.set_board_and_value(-1, board, val)
                         test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
@@ -182,10 +183,10 @@ class TestTrainingCycle(MyTestCase):
             mo = ttt.TTTPlayer(enable_cpp=True)
 
             g = game.Game(mx, mo)
-            train_boards, train_winners = g.generate_batch_from_games(25)
+            train_boards, train_values = g.generate_batch_from_games(25)
 
-            mx.set_board_and_value( 1, train_boards[0], [train_winners[0]])
-            mx.set_board_and_value(-1, train_boards[0], [train_winners[0]])
+            mx.set_board_and_value( 1, train_boards[0], train_values[0])
+            mx.set_board_and_value(-1, train_boards[0], train_values[0])
 
             # Check that gradient decreased
             self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.647714]], 1e-6)

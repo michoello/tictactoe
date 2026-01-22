@@ -493,7 +493,7 @@ class Game:
         # Set desired rewards to the boards
         reward = steps[-1].winner
         for step in reversed(steps):
-            step.reward = reward
+            step.reward = [[reward]]
             reward = reward * 0.9
 
         # lil trick to remove initial empty state. Is it better? Or should it stay?
@@ -505,7 +505,7 @@ class Game:
       winners = {-1: 0, 0: 0, 1: 0}
       for f in range(num_games):
         steps = self.play_game()
-        winner = steps[-1].reward
+        winner = steps[-1].reward[0][0]
         winners[winner] = winners[winner] + 1
 
       return winners
@@ -516,6 +516,5 @@ class Game:
             all_steps.extend(self.play_game())
 
         random.shuffle(all_steps)
-        return [step.board.state for step in all_steps], [ [(step.reward + 1)/2] for step in all_steps]
-        #return [step.board.state for step in all_steps], [ (step.reward + 1)/2 for step in all_steps]
+        return [step.board.state for step in all_steps], [ step.reward for step in all_steps]
     
