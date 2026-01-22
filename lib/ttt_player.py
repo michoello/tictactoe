@@ -52,10 +52,8 @@ class TTTPlayer:
         self.model_o = TTTPlayerImpl(enable_cpp=enable_cpp)
 
     def get_next_step_value(self, player, board):
-        if player == 1:
-            return self.model_x.get_next_step_value(board)
-        else:
-            return self.model_o.get_next_step_value(board)
+        impl = self.model_x if player == 1 else self.model_o
+        return impl.get_next_step_value(board)
 
     def calc_grads(self):
         self.model_x.calc_grads()
@@ -64,6 +62,13 @@ class TTTPlayer:
     def apply_gradient(self, alpha = 0.01):
         self.model_x.apply_gradient(alpha)
         self.model_o.apply_gradient(alpha)
+
+    # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
+    # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
+    def set_board_and_value(self, player, board, value):
+        impl = self.model_x if player == 1 else self.model_o
+        impl.m.set_data(impl.x, board)
+        impl.m.set_data(impl.y, value)
 
     def save_to_file(self, file_name):
         x_file = file_name + "x"

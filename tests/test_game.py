@@ -25,7 +25,6 @@ class MyTestCase(unittest.TestCase):
         else:
             self.assertAlmostEqual(a, b, delta=delta)
 
-
 class TestTrainingCycle(MyTestCase):
 
     def test_omg(self):
@@ -93,20 +92,15 @@ class TestTrainingCycle(MyTestCase):
 
                 for i in range(10):
                     for board, winner in zip(train_boards, train_winners):
-                        m.model_x.m.set_data(m.model_x.x, board)
-                        m.model_x.m.set_data(m.model_x.y, [winner])
-                        m.model_o.m.set_data(m.model_o.x, board)
-                        m.model_o.m.set_data(m.model_o.y, [winner])
+                        m.set_board_and_value( 1, board, [winner])
+                        m.set_board_and_value(-1, board, [winner])
                         m.calc_grads()
                         m.apply_gradient()
 
                     test_loss = 0
                     for board, winner in zip(test_boards, test_winners):
-                        m.model_x.m.set_data(m.model_x.x, board)
-                        m.model_x.m.set_data(m.model_x.y, [winner])
-                        m.model_o.m.set_data(m.model_o.x, board)
-                        m.model_o.m.set_data(m.model_o.y, [winner])
-
+                        m.set_board_and_value( 1, board, [winner])
+                        m.set_board_and_value(-1, board, [winner])
                         test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
@@ -184,20 +178,20 @@ class TestTrainingCycle(MyTestCase):
         ), patch("random.choice", new=rng.choice), patch(
             "random.shuffle", new=rng.shuffle
         ):
-            mx = ttt.TTTPlayer()
-            mo = ttt.TTTPlayer()
+            mx = ttt.TTTPlayer(enable_cpp=True)
+            mo = ttt.TTTPlayer(enable_cpp=True)
 
             g = game.Game(mx, mo)
             train_boards, train_winners = g.generate_batch_from_games(25)
 
-            mx.model_x.x.set(train_boards[0])
-            mx.model_x.y.set(train_winners)
+            mx.set_board_and_value( 1, train_boards[0], [train_winners[0]])
+            mx.set_board_and_value(-1, train_boards[0], [train_winners[0]])
 
             # Check that gradient decreased
-            self.assertAlmostEqualNested(mx.model_x.loss.val(), [[1.647714]], 1e-6)
+            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.647714]], 1e-6)
             mx.calc_grads()
             mx.apply_gradient()
-            self.assertAlmostEqualNested(mx.model_x.loss.val(), [[1.630994]], 1e-6)
+            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.631000]], 1e-6)
 
 
     def test_py_cpp_models_compare(self):

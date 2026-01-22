@@ -517,4 +517,5 @@ class Game:
 
         random.shuffle(all_steps)
         return [step.board.state for step in all_steps], [ [(step.reward + 1)/2] for step in all_steps]
+        #return [step.board.state for step in all_steps], [ (step.reward + 1)/2 for step in all_steps]
     
