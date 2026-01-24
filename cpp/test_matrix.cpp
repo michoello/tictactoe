@@ -1278,10 +1278,12 @@ TEST_CASE(larger_model) {
 
   Block *dvalue_loss = SSE(dvalue, dlabel);
 
+  CHECK(assertEqualVectors(dvalue_loss->fval(), { {3.998} }));
+  CHECK(assertEqualVectors(policy_loss->fval(), { {2.302} }));
+
   for(size_t i = 0; i < 10; ++i) {
   	double value_before = dvalue_loss->fval().get(0, 0);
   	double policy_before = policy_loss->fval().get(0, 0);
-  	std::cout << "Losses: policy " << policy_before << ", " << "  value " << value_before << "\n";
   	dkernel1->apply_bval(0.01);
   	dkernel2->apply_bval(0.01);
   	dw->apply_bval(0.01);
@@ -1292,6 +1294,10 @@ TEST_CASE(larger_model) {
     CHECK(value_before > value_after);
     CHECK(policy_before > policy_after);
   }
+
+  CHECK(assertEqualVectors(dvalue_loss->fval(), { {3.995} }));
+  CHECK(assertEqualVectors(policy_loss->fval(), { {1.593} }));
+
 }
 
 

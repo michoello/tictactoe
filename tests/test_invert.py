@@ -1,5 +1,24 @@
 import unittest
-from listinvert import Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Abs, Add, BCE, Sigmoid, Reshape, value
+from listinvert import (
+    Matrix,
+    multiply_matrix,
+    Mod3l,
+    Block,
+    Data,
+    MatMul,
+    SSE,
+    Abs,
+    Add,
+    BCE,
+    Sigmoid,
+    Reshape,
+    value,
+    Convo,
+    ReLU,
+    SoftMax,
+    SoftMaxCrossEntropy,
+    Tanh,
+)
 
 
 def python_matmul(A, B):
@@ -82,7 +101,7 @@ class TestMod3l(unittest.TestCase):
         dc = MatMul(da, db)
 
         self.assertEqual(
-value(            da.fval()),
+            value(da.fval()),
             [
                 [1, 2, 3],
                 [4, 5, 6],
@@ -90,7 +109,7 @@ value(            da.fval()),
         )
 
         self.assertEqual(
-value(            dc.fval()),
+            value(dc.fval()),
             [
                 [38, 44, 50, 56],
                 [83, 98, 113, 128],
@@ -129,7 +148,7 @@ value(            dc.fval()),
 
         dy.apply_bval(0.1)
         self.assertNearlyEqual(
-value(            dy.fval()),
+            value(dy.fval()),
             [
                 [0.8, 2.4],
             ],
@@ -137,7 +156,7 @@ value(            dy.fval()),
 
         # Calc loss again
         self.assertNearlyEqual(
-value(            ds.fval()),
+            value(ds.fval()),
             [
                 [3.2],
             ],
@@ -170,66 +189,71 @@ value(            ds.fval()),
 
         ds2 = Add(Add(da, db), dc)
 
-        self.assertEqual(value(ds2.fval()), [
-                                       [6, 8, 10],
-                                       [7, 9, 11],
-                                    ])
+        self.assertEqual(
+            value(ds2.fval()),
+            [
+                [6, 8, 10],
+                [7, 9, 11],
+            ],
+        )
 
         dsig = Sigmoid(ds2)
         dl = BCE(dsig, dy)
 
-        self.assertNearlyEqual(value(dl.fval()), [
-            [ 5.402, 5.600, 3.000 ],
-            [ 0.071, 4.500, 10.989 ]
-        ])
+        self.assertNearlyEqual(
+            value(dl.fval()), [[5.402, 5.600, 3.000], [0.071, 4.500, 10.989]]
+        )
 
-        self.assertNearlyEqual(value(dsig.bval()), [
-            [ 363.886, 2087.070, 6607.540 ],
-            [ 9.985, 4051.542, 59815.266 ],
-                                    ])
+        self.assertNearlyEqual(
+            value(dsig.bval()),
+            [
+                [363.886, 2087.070, 6607.540],
+                [9.985, 4051.542, 59815.266],
+            ],
+        )
 
         # From Sum and backwards it all goes the same:
-        self.assertNearlyEqual(value(ds2.bval()), [
-            [ 0.898, 0.700, 0.300 ],
-            [ 0.009, 0.500, 0.999 ]
-                                    ])
-
+        self.assertNearlyEqual(
+            value(ds2.bval()), [[0.898, 0.700, 0.300], [0.009, 0.500, 0.999]]
+        )
 
         self.assertEqual(value(da.bval()), value(ds2.bval()))
         self.assertEqual(value(db.bval()), value(ds2.bval()))
         self.assertEqual(value(dc.bval()), value(ds2.bval()))
 
-
-
     def test_mod3l_reshape(self):
         m = Mod3l()
 
         dy = Data(m, 3, 4)
-        m.set_data(dy, [
-           [1, 2, 3, 4],
-           [5, 2, 3, 4],
-           [8, 2, 3, 4],
-        ])
+        m.set_data(
+            dy,
+            [
+                [1, 2, 3, 4],
+                [5, 2, 3, 4],
+                [8, 2, 3, 4],
+            ],
+        )
 
         dr = Reshape(dy, 4, 3)
 
-        self.assertEqual(value(dr.fval()), 
-            [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
+        self.assertEqual(value(dr.fval()), [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
 
     def test_mod3l_sigmoid(self):
         m = Mod3l()
 
         dy = Data(m, 3, 4)
-        m.set_data(dy, [
-           [1, 2, 3, 4],
-           [5, 2, 3, 4],
-           [8, 2, 3, 4],
-        ])
+        m.set_data(
+            dy,
+            [
+                [1, 2, 3, 4],
+                [5, 2, 3, 4],
+                [8, 2, 3, 4],
+            ],
+        )
 
         dr = Reshape(dy, 4, 3)
 
-        self.assertEqual(value(dr.fval()), 
-            [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
+        self.assertEqual(value(dr.fval()), [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
 
     # Clone of tictactoe test_hello/test_bce_loss
     def test_mod3l_bce_loss(self):
@@ -240,7 +264,7 @@ value(            ds.fval()),
         w = Data(m, 2, 3)
         m.set_data(w, [[-0.1, 0.5, 0.3], [-0.6, 0.7, 0.8]])
 
-        #y = (x @ w).sigmoid()
+        # y = (x @ w).sigmoid()
         y = Sigmoid(MatMul(x, w))
 
         self.assertNearlyEqual(value(y.fval()), [[0.527, 0.478, 0.468]])
@@ -248,21 +272,21 @@ value(            ds.fval()),
         l = Data(m, 1, 3)
         m.set_data(l, [[0, 1, 0.468]])
 
-        #loss = y.bce(ml.BB([[0, 1, 0.468]]))
+        # loss = y.bce(ml.BB([[0, 1, 0.468]]))
         loss = BCE(y, l)
 
         self.assertNearlyEqual(value(loss.fval()), [[0.75, 0.739, 0.691]])
 
-        self.assertNearlyEqual(value(w.bval()), [
-             [0.0527, -0.052, -4.543/100000],
-             [-0.105, 0.104, 9.086/100000]
-        ], 3)
+        self.assertNearlyEqual(
+            value(w.bval()),
+            [[0.0527, -0.052, -4.543 / 100000], [-0.105, 0.104, 9.086 / 100000]],
+            3,
+        )
 
         w.apply_bval(1.0)
-        self.assertNearlyEqual(value(w.fval()), [
-            [-0.153, 0.552, 0.3],
-            [-0.495, 0.596, 0.8]
-        ])
+        self.assertNearlyEqual(
+            value(w.fval()), [[-0.153, 0.552, 0.3], [-0.495, 0.596, 0.8]]
+        )
 
         # Check that loss decreased
         self.assertNearlyEqual(value(loss.fval()), [[0.736, 0.726, 0.691]])
@@ -276,6 +300,95 @@ value(            ds.fval()),
         # Check that updating x also reduces the loss
         self.assertNearlyEqual(value(loss.fval()), [[0.734, 0.723, 0.691]])
 
+    # Clone of cpp testcase larger_model
+    def test_larger_model(self):
+        m = Mod3l()
+        dinput = Data(m, 3, 3)
+        m.set_data(
+            dinput,
+            [
+                [1, 0, -1],
+                [1, 0, -1],
+                [0, 1, -1],
+            ],
+        )
+
+        dkernel1 = Data(m, 2, 2)
+        m.set_data(
+            dkernel1,
+            [
+                [0.3, 0.1],
+                [0.2, 0.0],
+            ],
+        )
+        dc1 = Convo(dinput, dkernel1)
+        rl1 = ReLU(dc1)
+
+        dkernel2 = Data(m, 2, 2)
+        m.set_data(
+            dkernel2,
+            [
+                [-0.3, 0.1],
+                [-0.2, 0.4],
+            ],
+        )
+        dc2 = Convo(dinput, dkernel2)
+        rl2 = ReLU(dc2)
+
+        rl = Add(rl1, rl2)
+
+        dw = Data(m, 3, 3)
+        m.set_data(dw, [[1, 2, 3], [5, 6, 7], [9, 10, 11]])
+
+        dlogits = MatMul(rl, dw)
+        dsoftmax = SoftMax(dlogits)
+
+        # This is our toy policy network head
+        dlabels = Data(m, 3, 3)
+        m.set_data(
+            dlabels,
+            [
+                [0, 1, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        policy_loss = SoftMaxCrossEntropy(dlogits, dsoftmax, dlabels)
+
+        dw2 = Data(m, 3, 1)
+        m.set_data(dw2, [[1.5], [2.5], [3.5]])
+
+        dvalue = Tanh(MatMul(rl, dw2))
+
+        dlabel = Data(m, 1, 1)
+        m.set_data(dlabel, [[-1]])
+
+        dvalue_loss = SSE(dvalue, dlabel)
+
+        self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.998]])
+        self.assertNearlyEqual(value(policy_loss.fval()), [[2.302]])
+
+        for i in range(10):
+            value_before = dvalue_loss.fval().get(0, 0)
+            policy_before = policy_loss.fval().get(0, 0)
+
+            dkernel1.apply_bval(0.01)
+            dkernel2.apply_bval(0.01)
+            dw.apply_bval(0.01)
+            dw2.apply_bval(0.01)
+
+            value_after = dvalue_loss.fval().get(0, 0)
+            policy_after = policy_loss.fval().get(0, 0)
+
+            assert (
+                value_before > value_after
+            ), "Value loss did not decrease. Before:{value_before}, after:{value_after}"
+            assert (
+                policy_before > policy_after
+            ), "Policy lose did not decrease. Before:{value_before}, after:{value_after}"
+
+        self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.995]])
+        self.assertNearlyEqual(value(policy_loss.fval()), [[1.593]])
 
 
 if __name__ == "__main__":

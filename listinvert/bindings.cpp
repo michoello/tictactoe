@@ -43,4 +43,13 @@ PYBIND11_MODULE(_listinvert, m) {
     m.def("BCE", &BCE, py::return_value_policy::reference_internal, "BCE loss func");
     m.def("Sigmoid", &Sigmoid, py::return_value_policy::reference_internal, "Sigmoid applied to each element");
     m.def("Reshape", &Reshape, py::return_value_policy::reference_internal, "SSE loss func");
+    m.def("Convo", &Convo, py::return_value_policy::reference_internal, "Convolution block");
+    m.def("ReLU", &ReLU, py::return_value_policy::reference_internal, "ReLU (leaky) func");
+    m.def("Tanh", &Tanh, py::return_value_policy::reference_internal, "Tanh func");
+    m.def("SoftMax", &SoftMax, py::return_value_policy::reference_internal, "SoftMax func");
+    m.def("SoftMaxCrossEntropy", &SoftMaxCrossEntropy, py::return_value_policy::reference_internal, "SoftMaxCrossEntropy loss");
+
+
+
+
 }
