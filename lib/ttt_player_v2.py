@@ -91,28 +91,28 @@ class TTTPlayerImpl:
 
        self.dinput = Data(self.m, 3, 3)
        self.dkernel1 = Data(self.m, 2, 2)
+       self.dkernel2 = Data(self.m, 2, 2)
+       self.dw = Data(self.m, 3, 3)
+       self.dw2 = Data(self.m, 3, 1)
+
+       self.dlabels = Data(self.m, 3, 3)  # Policy labels
+       self.dlabel = Data(self.m, 1, 1)   # Value label
+
        self.dc1 = Convo(self.dinput, self.dkernel1)
        self.rl1 = ReLU(self.dc1)
 
-       self.dkernel2 = Data(self.m, 2, 2)
        self.dc2 = Convo(self.dinput, self.dkernel2)
        self.rl2 = ReLU(self.dc2)
 
        self.rl = Add(self.rl1, self.rl2)
 
-       self.dw = Data(self.m, 3, 3)
        self.dlogits = MatMul(self.rl, self.dw)
+       # Policy
        self.dsoftmax = SoftMax(self.dlogits)
-
-       # Policy labels
-       self.dlabels = Data(self.m, 3, 3)
        self.policy_loss = SoftMaxCrossEntropy(self.dlogits, self.dsoftmax, self.dlabels)
 
-        
-       self.dw2 = Data(self.m, 3, 1)
+       # Value
        self.dvalue = Tanh(MatMul(self.rl, self.dw2))
-       # Value label
-       self.dlabel = Data(self.m, 1, 1)
        self.dvalue_loss = SSE(self.dvalue, self.dlabel)
 
        """
@@ -127,8 +127,6 @@ class TTTPlayerImpl:
        self.w3 = Data(self.m, 32, 1)
        self.b3 = Data(self.m, 1, 1)
 
-
-
        self.z0 = Reshape(self.x, 1, 36)
        self.z1 = Sigmoid(Add(MatMul(self.z0, self.w1), self.b1))
        self.z2 = Sigmoid(Add(MatMul(self.z1, self.w2), self.b2))
@@ -140,17 +138,19 @@ class TTTPlayerImpl:
        self.y = DData(self.m, 1, 1, ml.random_matrix(1, 1))
        self.loss = BCE(self.z3, self.y)
 
+       """
+
        if file_to_load_from:
            self.load_from_file(file_to_load_from)
        else:
-           self.m.set_data(self.x, ml.random_matrix(6, 6)) 
-           self.m.set_data(self.w1, ml.random_matrix(36, 64))
-           self.m.set_data(self.b1, ml.random_matrix(1, 64))
-           self.m.set_data(self.w2, ml.random_matrix(64, 32))
-           self.m.set_data(self.b2, ml.random_matrix(1, 32))
-           self.m.set_data(self.w3, ml.random_matrix(32, 1))
-           self.m.set_data(self.b3, ml.random_matrix(1, 1))
-       """
+           self.m.set_data(           self.dinput, ml.random_matrix(3, 3))
+           self.m.set_data(           self.dkernel1, ml.random_matrix(2, 2))
+           self.m.set_data(           self.dkernel2, ml.random_matrix(2, 2))
+           self.m.set_data(           self.dw, ml.random_matrix(3, 3))
+           self.m.set_data(           self.dw2, ml.random_matrix(3, 1))
+           self.m.set_data(           self.dlabels, ml.random_matrix(3, 3)) 
+           self.m.set_data(           self.dlabel, ml.random_matrix(1, 1))
+
 
     def parse_model_file(self, file_name):
         with open(file_name, "r") as file:
