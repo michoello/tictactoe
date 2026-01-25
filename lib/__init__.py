@@ -3,6 +3,7 @@ from .ml import *
 
 from . import ttt_classifier as tttc
 from . import ttt_player as tttp
+from . import ttt_player_v2 as tttp_v2
 import random
 
 

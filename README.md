@@ -1,3 +1,7 @@
+# 2026-01-24
+
+Started integration of Player V2: Convos, ReLU, Softmax with CrossEntropy, Tanh. Policy and Value.
+
 # 2026-01-18
 
 Unified Convo-Softmax-Policy-ReLu network is almost ready. But before that minor refactoring is needed.

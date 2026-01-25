@@ -3,13 +3,34 @@ from lib import ml
 from lib import game
 import tempfile
 from lib import ttt_player as ttt
+from lib import ttt_player_v2 as tttv2
 from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
 from lib import ratings
 
 # TODO: rename value
-from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
+from listinvert import (
+    Matrix,
+    multiply_matrix,
+    Mod3l,
+    Block,
+    Data,
+    MatMul,
+    SSE,
+    Abs,
+    Add,
+    BCE,
+    Sigmoid,
+    Reshape,
+    value,
+    Convo,
+    ReLU,
+    SoftMax,
+    SoftMaxCrossEntropy,
+    Tanh,
+)
+
 
 def DData(mod3l, rows, cols, values):
     res = Data(mod3l, rows, cols)
@@ -358,6 +379,175 @@ class TestMcts(MyTestCase):
        # - puct exploration/exploitation - have to manually tweak priors and mock network values
        # - test near full board (to check that tree returns early and does not crash)
        # - test tie
+
+    # Clone of cpp testcase larger_model
+    def test_larger_model(self):
+        m = Mod3l()
+        dinput = Data(m, 3, 3)
+        m.set_data(
+            dinput,
+            [
+                [1, 0, -1],
+                [1, 0, -1],
+                [0, 1, -1],
+            ],
+        )
+
+        dkernel1 = Data(m, 2, 2)
+        m.set_data(
+            dkernel1,
+            [
+                [0.3, 0.1],
+                [0.2, 0.0],
+            ],
+        )
+        dc1 = Convo(dinput, dkernel1)
+        rl1 = ReLU(dc1)
+
+        dkernel2 = Data(m, 2, 2)
+        m.set_data(
+            dkernel2,
+            [
+                [-0.3, 0.1],
+                [-0.2, 0.4],
+            ],
+        )
+        dc2 = Convo(dinput, dkernel2)
+        rl2 = ReLU(dc2)
+
+        rl = Add(rl1, rl2)
+
+        dw = Data(m, 3, 3)
+        m.set_data(dw, [[1, 2, 3], [5, 6, 7], [9, 10, 11]])
+
+        dlogits = MatMul(rl, dw)
+        dsoftmax = SoftMax(dlogits)
+
+        # This is our toy policy network head
+        dlabels = Data(m, 3, 3)
+        m.set_data(
+            dlabels,
+            [
+                [0, 1, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        policy_loss = SoftMaxCrossEntropy(dlogits, dsoftmax, dlabels)
+
+        dw2 = Data(m, 3, 1)
+        m.set_data(dw2, [[1.5], [2.5], [3.5]])
+
+        dvalue = Tanh(MatMul(rl, dw2))
+
+        dlabel = Data(m, 1, 1)
+        m.set_data(dlabel, [[-1]])
+
+        dvalue_loss = SSE(dvalue, dlabel)
+
+        self.assertAlmostEqualNested(value(dvalue_loss.fval()), [[3.998]])
+        self.assertAlmostEqualNested(value(policy_loss.fval()), [[2.302]])
+
+        for i in range(10):
+            value_before = dvalue_loss.fval().get(0, 0)
+            policy_before = policy_loss.fval().get(0, 0)
+
+            dkernel1.apply_bval(0.01)
+            dkernel2.apply_bval(0.01)
+            dw.apply_bval(0.01)
+            dw2.apply_bval(0.01)
+
+            value_after = dvalue_loss.fval().get(0, 0)
+            policy_after = policy_loss.fval().get(0, 0)
+
+            assert (
+                value_before > value_after
+            ), f"Value loss did not decrease. Before:{value_before}, after:{value_after}"
+            assert (
+                policy_before > policy_after
+            ), f"Policy lose did not decrease. Before:{value_before}, after:{value_after}"
+
+        self.assertAlmostEqualNested(value(dvalue_loss.fval()), [[3.995]])
+        self.assertAlmostEqualNested(value(policy_loss.fval()), [[1.593]])
+
+class TestPlayerV2(MyTestCase):
+
+    # UNDER CONSTRUCTION.
+    # Add needed methods, update needed methods, init with rands, and test 
+    # actual game and training
+    #
+    def test_debugging(self):
+        player2 = tttv2.TTTPlayerV2()
+
+        impl = player2.impl
+        m = impl.m
+
+        m.set_data(
+            impl.dinput,
+            [
+                [1, 0, -1],
+                [1, 0, -1],
+                [0, 1, -1],
+            ],
+        )
+
+        m.set_data(
+            impl.dkernel1,
+            [
+                [0.3, 0.1],
+                [0.2, 0.0],
+            ],
+        )
+
+        m.set_data(
+            impl.dkernel2,
+            [
+                [-0.3, 0.1],
+                [-0.2, 0.4],
+            ],
+        )
+
+        m.set_data(impl.dw, [[1, 2, 3], [5, 6, 7], [9, 10, 11]])
+
+        # This is our toy policy network head
+        dlabels = Data(m, 3, 3)
+        m.set_data(
+            impl.dlabels,
+            [
+                [0, 1, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+
+        m.set_data(impl.dw2, [[1.5], [2.5], [3.5]])
+
+        m.set_data(impl.dlabel, [[-1]])
+
+        self.assertAlmostEqualNested(value(impl.dvalue_loss.fval()), [[3.998]])
+        self.assertAlmostEqualNested(value(impl.policy_loss.fval()), [[2.302]])
+
+        for i in range(10):
+            value_before = impl.dvalue_loss.fval().get(0, 0)
+            policy_before = impl.policy_loss.fval().get(0, 0)
+
+            impl.dkernel1.apply_bval(0.01)
+            impl.dkernel2.apply_bval(0.01)
+            impl.dw.apply_bval(0.01)
+            impl.dw2.apply_bval(0.01)
+
+            value_after = impl.dvalue_loss.fval().get(0, 0)
+            policy_after = impl.policy_loss.fval().get(0, 0)
+
+            assert (
+                value_before > value_after
+            ), f"Value loss did not decrease. Before:{value_before}, after:{value_after}"
+            assert (
+                policy_before > policy_after
+            ), f"Policy lose did not decrease. Before:{value_before}, after:{value_after}"
+
+        self.assertAlmostEqualNested(value(impl.dvalue_loss.fval()), [[3.995]])
+        self.assertAlmostEqualNested(value(impl.policy_loss.fval()), [[1.593]])
 
 
 if __name__ == "__main__":
