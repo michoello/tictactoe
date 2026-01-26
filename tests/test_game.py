@@ -485,36 +485,32 @@ class TestPlayerV2(MyTestCase):
       ), patch("random.choice", new=rng.choice), patch(
             "random.shuffle", new=rng.shuffle
       ):
-
         player2 = tttv2.TTTPlayerV2()
-
-        impl = player2.impl
-        m = impl.m
-
-        m.set_data(
-            impl.dlabels,
-            [
+        player2.set_board_and_value(
+            player = 1,
+            board = [
+                [1, 0, -1],
+                [1, 0, -1],
+                [0, 1, -1],
+            ],
+            _value = [[-1]],
+            policy = [
                 [0, 1, 0],
                 [0, 0, 0],
                 [0, 0, 0],
-            ],
+            ]
         )
-        m.set_data(impl.dlabel, [[-1]])
-
-        self.assertAlmostEqualNested(value(impl.dvalue_loss.fval()), [[0.756]])
-        self.assertAlmostEqualNested(value(impl.policy_loss.fval()), [[1.404]])
+ 
+        value_loss, policy_loss = player2.get_loss_value()
+        self.assertAlmostEqualNested(value_loss, 2.210)
+        self.assertAlmostEqualNested(policy_loss, 2.302)
 
         for i in range(10):
-            value_before = impl.dvalue_loss.fval().get(0, 0)
-            policy_before = impl.policy_loss.fval().get(0, 0)
+            value_before, policy_before = player2.get_loss_value()
 
-            impl.dkernel1.apply_bval(0.01)
-            impl.dkernel2.apply_bval(0.01)
-            impl.dw.apply_bval(0.01)
-            impl.dw2.apply_bval(0.01)
+            player2.apply_gradient(0.01)
 
-            value_after = impl.dvalue_loss.fval().get(0, 0)
-            policy_after = impl.policy_loss.fval().get(0, 0)
+            value_after, policy_after = player2.get_loss_value()
 
             assert (
                 value_before > value_after
@@ -523,8 +519,9 @@ class TestPlayerV2(MyTestCase):
                 policy_before > policy_after
             ), f"Policy lose did not decrease. Before:{value_before}, after:{value_after}"
 
-        self.assertAlmostEqualNested(value(impl.dvalue_loss.fval()), [[0.158]])
-        self.assertAlmostEqualNested(value(impl.policy_loss.fval()), [[1.140]])
+        value_loss, policy_loss = player2.get_loss_value()
+        self.assertAlmostEqualNested(value_loss, 0.249)
+        self.assertAlmostEqualNested(policy_loss, 2.112)
 
 
 if __name__ == "__main__":

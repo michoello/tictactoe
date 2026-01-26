@@ -66,9 +66,13 @@ class TTTPlayerV2:
 
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
-    def set_board_and_value(self, player, board, _value):
-        self.impl.m.set_data(impl.x, board)
-        self.impl.m.set_data(impl.y, _value)
+    def set_board_and_value(self, player, board, _value=None, policy=None):
+        self.impl.m.set_data(self.impl.dinput, board)
+        if _value:
+           self.impl.m.set_data(self.impl.dlabel, _value)
+        if policy:
+           self.impl.m.set_data(self.impl.dlabels, policy)
+
 
     def save_to_file(self, file_name):
         self.impl.save_to_file(file_name)
@@ -76,7 +80,8 @@ class TTTPlayerV2:
     def replay_buffer(self):
         return self.impl.replay_buffer
 
-    def get_loss_value(self, player):
+    # Returns tuple of two losses: value and policy
+    def get_loss_value(self):
         return self.impl.get_loss_value()
 
 
@@ -213,12 +218,11 @@ class TTTPlayerImpl:
         return step_value[0][0] 
 
     def get_loss_value(self):
-        return value(self.loss.fval())[0][0]
+        #return value(self.dvalue_loss.fval())[0][0], value(self.policy_loss.fval())[0][0]
+        return self.dvalue_loss.fval().get(0, 0), self.policy_loss.fval().get(0, 0)
 
     def apply_gradient(self, alpha = 0.01):
-        self.w1.appl(alpha)
-        self.b1.appl(alpha)
-        self.w2.appl(alpha)
-        self.b2.appl(alpha)
-        self.w3.appl(alpha)
-        self.b3.appl(alpha)
+        self.dkernel1.apply_bval(alpha)
+        self.dkernel2.apply_bval(alpha)
+        self.dw.apply_bval(alpha)
+        self.dw2.apply_bval(alpha)
