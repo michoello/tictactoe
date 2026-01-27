@@ -489,21 +489,27 @@ class TestPlayerV2(MyTestCase):
         player2.set_board_and_value(
             player = 1,
             board = [
-                [1, 0, -1],
-                [1, 0, -1],
-                [0, 1, -1],
+                [1, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0,-1],
+                [1, 0, 0, 0, 0,-1],
+                [0, 0, 0, 0, 0,-1],
+                [1, 0, 0, 0, 0,-1],
+                [1, 0, 0, 0, 0, 0],
             ],
             _value = [[-1]],
             policy = [
-                [0, 1, 0],
-                [0, 0, 0],
-                [0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0.9, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0,0.1],
             ]
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 2.210)
-        self.assertAlmostEqualNested(policy_loss, 2.302)
+        self.assertAlmostEqualNested(value_loss, 1.049)
+        self.assertAlmostEqualNested(policy_loss, 3.504)
 
         for i in range(10):
             value_before, policy_before = player2.get_loss_value()
@@ -520,8 +526,8 @@ class TestPlayerV2(MyTestCase):
             ), f"Policy lose did not decrease. Before:{value_before}, after:{value_after}"
 
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 0.249)
-        self.assertAlmostEqualNested(policy_loss, 2.112)
+        self.assertAlmostEqualNested(value_loss, 0.294)
+        self.assertAlmostEqualNested(policy_loss, 3.393)
 
 
 if __name__ == "__main__":

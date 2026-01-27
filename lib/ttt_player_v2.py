@@ -94,13 +94,13 @@ class TTTPlayerImpl:
 
        self.m = Mod3l()
 
-       self.dinput = Data(self.m, 3, 3)
+       self.dinput = Data(self.m, 6, 6)
        self.dkernel1 = Data(self.m, 2, 2)
        self.dkernel2 = Data(self.m, 2, 2)
-       self.dw = Data(self.m, 3, 3)
-       self.dw2 = Data(self.m, 3, 1)
+       self.dw = Data(self.m, 6, 6)
+       self.dw2 = Data(self.m, 6, 1)
 
-       self.dlabels = Data(self.m, 3, 3)  # Policy labels
+       self.dlabels = Data(self.m, 6, 6)  # Policy labels
        self.dlabel = Data(self.m, 1, 1)   # Value label
 
        self.dc1 = Convo(self.dinput, self.dkernel1)
@@ -148,13 +148,13 @@ class TTTPlayerImpl:
        if file_to_load_from:
            self.load_from_file(file_to_load_from)
        else:
-           self.m.set_data(           self.dinput, ml.random_matrix(3, 3))
+           self.m.set_data(           self.dinput, ml.random_matrix(6, 6))  # TODO: remove, them are inputs
            self.m.set_data(           self.dkernel1, ml.random_matrix(2, 2))
            self.m.set_data(           self.dkernel2, ml.random_matrix(2, 2))
-           self.m.set_data(           self.dw, ml.random_matrix(3, 3))
-           self.m.set_data(           self.dw2, ml.random_matrix(3, 1))
-           self.m.set_data(           self.dlabels, ml.random_matrix(3, 3)) 
-           self.m.set_data(           self.dlabel, ml.random_matrix(1, 1))
+           self.m.set_data(           self.dw, ml.random_matrix(6, 6))
+           self.m.set_data(           self.dw2, ml.random_matrix(6, 1))
+           self.m.set_data(           self.dlabels, ml.random_matrix(6, 6)) # TODO: remove: them a labels
+           self.m.set_data(           self.dlabel, ml.random_matrix(1, 1))  #  same
 
 
     def parse_model_file(self, file_name):
