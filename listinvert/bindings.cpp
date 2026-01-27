@@ -20,7 +20,10 @@ PYBIND11_MODULE(_listinvert, m) {
         .def("set_data", &Matrix::set_data)
         .def("get", (double (Matrix::*)(int,int)) &Matrix::get,
              py::arg("row"), py::arg("col"),
-             "Get/set an element by (row, col)");
+             "Gets an element by (row, col)")
+        .def("set", (void (Matrix::*)(int,int, double)) &Matrix::set,
+             py::arg("row"), py::arg("col"), py::arg("value"),
+             "Sets an element by (row, col)");
  
 
     m.def("value", &value<Matrix>, "Returns matrix value as vector of vectors");

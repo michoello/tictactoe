@@ -11,17 +11,18 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <format>
 #include <memory>
 #include <random>
 #include <unordered_set>
 #include <vector>
 
 struct Matrix {
-  int rows;
-  int cols;
+  size_t rows;
+  size_t cols;
   std::shared_ptr<std::vector<double>> data; // flat row-major storage
 
-  Matrix(int r, int c, double val = 0.0)
+  Matrix(size_t r, size_t c, double val = 0.0)
       : rows(r), cols(c),
         data(std::make_shared<std::vector<double>>(r * c, val)) {}
 
@@ -29,18 +30,26 @@ struct Matrix {
 
   void set_data(const std::vector<std::vector<double>> &vals) {
     size_t i = 0;
+    if(vals.size() != rows) {
+        throw std::invalid_argument(std::format("set_data arg must have {} rows. Provided {} rows", rows, vals.size()));
+    }
     for (size_t r = 0; r < vals.size(); ++r) {
-      if ((int)vals[r].size() != cols)
+    //for (const auto& row: vals) {
+      const auto& row = vals[r];
+      if ( row.size() != cols) {
         throw std::invalid_argument(
-            "All rows must have the same number of columns");
-      for (int c = 0; c < cols; ++c) {
-        (*data)[i++] = vals[r][c];
+            std::format("all rows must have the {} cols, provided {} in row {}", cols, row.size(), r));
+      }
+      //for (size_t c = 0; c < cols; ++c) {
+      for (double v : row) { //size_t c = 0; c < cols; ++c) {
+        //(*data)[i++] = vals[r][c];
+        (*data)[i++] = v;
       }
     }
   }
 
-  inline double get(int r, int c) const { return (*data)[r * cols + c]; }
-  inline void set(int r, int c, double value) { (*data)[r * cols + c] = value; }
+  inline double get(size_t r, size_t c) const { return (*data)[r * cols + c]; }
+  inline void set(size_t r, size_t c, double value) { (*data)[r * cols + c] = value; }
 
   // Convert bawd_fun to nested vector (Python list-of-lists)
 };
@@ -48,8 +57,8 @@ struct Matrix {
 // Extracts the full value of Matrix-like object(i.e. Matrix or matrix view)
 template <class M> std::vector<std::vector<double>> value(const M &m) {
   std::vector<std::vector<double>> out(m.rows, std::vector<double>(m.cols));
-  for (int i = 0; i < m.rows; i++) {
-    for (int j = 0; j < m.cols; j++) {
+  for (size_t i = 0; i < m.rows; i++) {
+    for (size_t j = 0; j < m.cols; j++) {
       out[i][j] = m.get(i, j);
     }
   }
@@ -64,10 +73,10 @@ void multiply_matrix(const T &a, const U &b, V *c) {
         "Matrix dimensions do not match for multiplication");
   }
 
-  for (int i = 0; i < a.rows; i++) {
-    for (int j = 0; j < b.cols; j++) {
+  for (size_t i = 0; i < a.rows; i++) {
+    for (size_t j = 0; j < b.cols; j++) {
       double sum = 0.0;
-      for (int k = 0; k < a.cols; k++) {
+      for (size_t k = 0; k < a.cols; k++) {
         sum += a.get(i, k) * b.get(k, j);
       }
       c->set(i, j, sum);

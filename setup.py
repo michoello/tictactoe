@@ -13,7 +13,8 @@ ext_modules = [
             pybind11.get_include(),
             "cpp"
         ],
-        extra_compile_args=["-std=c++17"],
+        #extra_compile_args=["-std=c++17"],
+        extra_compile_args=["-std=c++20"],
         #
         # TODO: Try adding -O3 for maximal performance
         # extra_compile_args=["-O3", "-std=c++17"],

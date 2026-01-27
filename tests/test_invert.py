@@ -65,8 +65,16 @@ class TestMatrixMultiply(unittest.TestCase):
         self.assertEqual(A_cpp.get(1, 1), 5)
 
         # This does not work, but ok for now
-        # A_cpp.set(1, 1, 3)
-        # self.assertEqual(A_cpp.get(1, 1), 3)
+        A_cpp.set(1, 1, 3)
+        self.assertEqual(A_cpp.get(1, 1), 3)
+
+    def test_wrong_set_data(self):
+        a = Matrix(2, 3)
+        with self.assertRaisesRegex(Exception, "set_data arg must have 2 rows. Provided 1 rows"):
+            a.set_data([[1, 2, 3]])
+        with self.assertRaisesRegex(Exception, "all rows must have the 3 cols, provided 2 in row 0"):
+            a.set_data([[1, 2], [3]])
+
 
 
 class TestMod3l(unittest.TestCase):

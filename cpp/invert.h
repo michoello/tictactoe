@@ -30,7 +30,7 @@ struct LazyFunc {
     is_calculated = false;
   }
 
-  LazyFunc(int r, int c) : mtx(r, c) {}
+  LazyFunc(size_t r, size_t c) : mtx(r, c) {}
 
   void calc() {
     if (!is_calculated) {
@@ -76,7 +76,7 @@ struct Block {
 
   void reset_model();
 
-  Block(const std::vector<Block *> &argz, int r, int c);
+  Block(const std::vector<Block *> &argz, size_t r, size_t c);
 
   void reset_both_lazy_funcs() {
     fowd_fun.is_calculated = false;
@@ -106,7 +106,6 @@ public:
   }
 
   void set_data(Block *block, const std::vector<std::vector<double>> &vals) {
-    // block->fval().set_data(vals);
     block->fowd_fun.val().set_data(vals);
     reset_all_lazy_funcs();
   }
@@ -118,7 +117,7 @@ public:
   }
 };
 
-static Block *Data(Mod3l *model, int rows, int cols) {
+static Block *Data(Mod3l *model, size_t rows, size_t cols) {
   return model->add(new Block({}, rows, cols));
 }
 
@@ -126,10 +125,10 @@ static Block *Data(Mod3l *model, int rows, int cols) {
 // gradient propagation
 template <class M> struct TransposedView {
   const M &src;
-  int rows;
-  int cols;
+  size_t rows;
+  size_t cols;
   TransposedView(const M &src) : src(src), rows(src.cols), cols(src.rows) {}
-  inline double get(int r, int c) const { return src.get(c, r); }
+  inline double get(size_t r, size_t c) const { return src.get(c, r); }
 };
 
 // This is requried to build view of a view
@@ -171,8 +170,8 @@ static Block *MatMul(Block *inputs, Block *weights) {
 // gradient propagation
 template <class M> struct ReshapedView {
   M *src;
-  int rows;
-  int cols;
+  size_t rows;
+  size_t cols;
   ReshapedView(M &src, size_t rows, size_t cols)
       : src(&src), rows(rows),
         cols(cols) { /* TODO: check rows*cols=rows*cols */
@@ -183,12 +182,12 @@ template <class M> struct ReshapedView {
     return {idx / src->cols, idx % src->cols};
   }
 
-  inline double get(int r, int c) const {
+  inline double get(size_t r, size_t c) const {
     auto [src_r, src_c] = convert(r, c);
     return src->get(src_r, src_c);
   }
 
-  inline void set(int r, int c, double value) {
+  inline void set(size_t r, size_t c, double value) {
     auto [src_r, src_c] = convert(r, c);
     src->set(src_r, src_c, value);
   }
@@ -200,8 +199,8 @@ ReshapedView(const ReshapedView<M> &) -> ReshapedView<ReshapedView<M>>;
 
 template <class M> struct SlidingWindowView {
   M *src;
-  int rows;
-  int cols;
+  size_t rows;
+  size_t cols;
   size_t window_rows;
   size_t window_cols;
   SlidingWindowView(M &src, size_t window_rows, size_t window_cols)
@@ -220,12 +219,12 @@ template <class M> struct SlidingWindowView {
     return {row % src->rows, col % src->cols};
   }
 
-  inline double get(int r, int c) const {
+  inline double get(size_t r, size_t c) const {
     auto [src_r, src_c] = convert(r, c);
     return src->get(src_r, src_c);
   }
 
-  inline void set(int r, int c, double value) {
+  inline void set(size_t r, size_t c, double value) {
     // This is a bit crazy. instead of assigning the result, we increase it
     // each time. Since convolution is essentially faning out the source matrix into
     // list of shingles, each cell is multiplied many times, thus grads sum up.
@@ -334,7 +333,7 @@ static double relu_derivative(double x) {
 
 static double tbd(double) { return 0; }
 
-static Block *Reshape(Block *a, int rows, int cols) {
+static Block *Reshape(Block *a, size_t rows, size_t cols) {
   Block *res = new Block({a}, rows, cols);
   res->set_fowd_fun([=](Matrix *out) {
     for_each_ella([](double in, double &out) { out = in; }, a->fval(), *out);

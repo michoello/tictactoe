@@ -91,7 +91,43 @@ inline int run_tests(int argc, char **argv) {
   }
 }
 
+#define ASSERT_THROWS(expression, expected_substring)                          \
+    do {                                                                       \
+        bool caught = false;                                                   \
+        try {                                                                  \
+            (expression);                                                      \
+        } catch (const std::exception& e) {                                    \
+            caught = true;                                                     \
+            std::string_view actual_msg(e.what());                             \
+            std::string_view sub(expected_substring);                          \
+            if (!sub.empty() && actual_msg.find(sub) == std::string_view::npos) {\
+                std::cerr << "[FAIL] Message mismatch!\n"                      \
+                          << "  Expected contains: " << sub << "\n"            \
+                          << "  Actual message:    " << actual_msg << "\n"     \
+                          << "  At: " << __FILE__ << ":" << __LINE__ << "\n";  \
+                __checks_failed++;    \
+            }                                                                  \
+        } catch (...) {                                                        \
+            caught = true; /* Caught non-standard exception */                \
+        }                                                                    \
+        __checks_total++;  \
+        if (!caught) {                                                         \
+            __checks_failed++;    \
+            std::cerr << "[FAIL] No exception thrown by: " << #expression << "\n"\
+                      << "  At: " << __FILE__ << ":" << __LINE__ << "\n";      \
+        } else {                                                               \
+            std::cout << "[PASS] " << #expression << "\n";                     \
+        }                                                                      \
+    } while (0)
+
+
 //-------------------------------------------------------------
+TEST_CASE(matrix_wrong_set_data) {
+  Matrix A(2, 2);
+  ASSERT_THROWS(A.set_data({{1, 2}, {3, 4}, {5, 6}}), "set_data arg must have 2 rows. Provided 3 rows");
+  ASSERT_THROWS(A.set_data({{1, 2}, {3}}), "all rows must have the 2 cols, provided 1 in row 1");
+}
+
 
 TEST_CASE(multiply) {
   Matrix A(2, 2);

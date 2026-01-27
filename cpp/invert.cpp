@@ -3,7 +3,7 @@
 
 #include "invert.h"
 
-Block::Block(const std::vector<Block *> &argz, int r, int c): fowd_fun(r, c), bawd_fun(r, c)
+Block::Block(const std::vector<Block *> &argz, size_t r, size_t c): fowd_fun(r, c), bawd_fun(r, c)
 {
   // TODO: check r and z are not zero.
   // TODO: This is very ugly, rewrite it
