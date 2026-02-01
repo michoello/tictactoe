@@ -166,12 +166,10 @@ class TTTPlayerImpl:
 
     def load_from_json(self, model_json):
         data = model_json["data"]
-        self.m.set_data(self.w1, data["w1"])
-        self.m.set_data(self.w2, data["w2"])
-        self.m.set_data(self.w3, data["w3"])
-        self.m.set_data(self.b1, data["b1"])
-        self.m.set_data(self.b2, data["b2"])
-        self.m.set_data(self.b3, data["b3"])
+        self.m.set_data(self.dkernel1, data["dkernel1"])
+        self.m.set_data(self.dkernel2, data["dkernel2"])
+        self.m.set_data(self.dw, data["dw"])
+        self.m.set_data(self.dw2, data["dw2"])
 
         if "replay_buffer" in model_json:
             self.replay_buffer.from_json(model_json["replay_buffer"])
@@ -189,15 +187,12 @@ class TTTPlayerImpl:
 
         with open(file_name, "w") as file:
             data_json = {
-                  "w1": rounded(value(self.w1.fval())),
-                  "w2": rounded(value(self.w2.fval())),
-                  "w3": rounded(value(self.w3.fval())),
-                  "b1": rounded(value(self.b1.fval())),
-                  "b2": rounded(value(self.b2.fval())),
-                  "b3": rounded(value(self.b3.fval())),
+               "dkernel1": rounded(value(self.dkernel1.fval())),
+               "dkernel2": rounded(value(self.dkernel2.fval())),
+               "dw": rounded(value(self.dw.fval())),
+               "dw2": rounded(value(self.dw2.fval())),
             }
             model_json = {
-                "cpp": self.enable_cpp,
                 "data": data_json,
                 "replay_buffer_zip": compress(self.replay_buffer.to_json()),
             }
@@ -213,12 +208,11 @@ class TTTPlayerImpl:
         return values
 
     def get_next_step_value(self, board):
-        self.m.set_data(self.x, board)
-        step_value = value(self.z3.fval())
+        self.m.set_data(self.dinput, board)
+        step_value = value(self.dlabel.fval())
         return step_value[0][0] 
 
     def get_loss_value(self):
-        #return value(self.dvalue_loss.fval())[0][0], value(self.policy_loss.fval())[0][0]
         return self.dvalue_loss.fval().get(0, 0), self.policy_loss.fval().get(0, 0)
 
     def apply_gradient(self, alpha = 0.01):

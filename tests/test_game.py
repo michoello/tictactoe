@@ -530,5 +530,69 @@ class TestPlayerV2(MyTestCase):
         self.assertAlmostEqualNested(policy_loss, 3.393)
 
 
+    def test_training_player_and_game_v2(self):
+        rng = SimpleRNG(seed=45)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            init_model = tempfile.mktemp()
+            trained_model = tempfile.mktemp()
+
+            m = tttv2.TTTPlayerV2()
+            m.save_to_file(init_model)
+            m.save_to_file(trained_model)
+
+            random_model = tttv2.TTTPlayerV2(init_model)
+            m = tttv2.TTTPlayerV2(trained_model)
+
+            print("Training")
+
+            g = game.Game(random_model, random_model)
+            test_boards, test_values = g.generate_batch_from_games(20)
+
+            total_epochs = 50 
+            for epoch in range(total_epochs):
+                if epoch % 2 == 0:
+                  g = game.Game(m, random_model)
+                else:
+                  g = game.Game(random_model, m)
+                  
+                train_boards, train_values = g.generate_batch_from_games(20)
+
+                for i in range(10):
+                    for board, val in zip(train_boards, train_values):
+                        m.set_board_and_value( 1, board, val)
+                        m.apply_gradient(0.001)
+
+                    test_loss = 0
+                    for board, val in zip(test_boards, test_values):
+                        m.set_board_and_value( 1, board, val)
+                        test_loss = test_loss + m.get_loss_value()[0] 
+
+                if epoch % 5 == 0:
+                    m.save_to_file(trained_model)
+                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
+
+            print("Playing...")
+            trained_model = tttv2.TTTPlayerV2(trained_model)
+
+            # ctw = crosses_trained_winners
+            g = game.Game(trained_model, random_model)
+            ctw = g.competition(20)
+            print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
+            self.assertGreater(ctw[1], ctw[-1])
+
+            # ztw = zeroes_trained_winners
+            g = game.Game(random_model, trained_model)
+            ztw = g.competition(20)
+            print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
+            # TODO: uncomment. There is a lot to do to make it work yet ahead
+            #self.assertLess(ztw[1], ztw[-1])
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
