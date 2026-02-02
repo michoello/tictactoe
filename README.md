@@ -1,3 +1,14 @@
+# 2026-02-02
+
+Player V2 extended to almost standard architecture:
+- two layers of convolutions, 32 convo channels each
+  - veeery slow, next I need to speed it up (batching and get rid of "views")
+- Sigmoid as non linearity. ReLU does not work for some reason (wrong initialization?)
+- One dense layers for policy head, and two for value head
+
+All this works and trains, to an extent, but many optimization needed to make it practical.
+Going to do that next.
+
 # 2026-01-24
 
 Started integration of Player V2: Convos, ReLU, Softmax with CrossEntropy, Tanh. Policy and Value.

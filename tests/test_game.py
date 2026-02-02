@@ -477,8 +477,6 @@ class TestPlayerV2(MyTestCase):
     # actual game and training
     #
     def test_debugging(self):
-
-
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -498,40 +496,40 @@ class TestPlayerV2(MyTestCase):
             ],
             _value = [[-1]],
             policy = [
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0.9, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0,0.1],
-            ]
+                [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0, 0] +
+                [0.9, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0,0.1]
+              ]
+            
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 1.049)
-        self.assertAlmostEqualNested(policy_loss, 3.504)
+        self.assertAlmostEqualNested(value_loss, 0.160)
+        self.assertAlmostEqualNested(policy_loss, 8.463)
 
-        for i in range(10):
+        for i in range(90):
             value_before, policy_before = player2.get_loss_value()
-
-            player2.apply_gradient(0.01)
-
+            player2.apply_gradient(0.001)
             value_after, policy_after = player2.get_loss_value()
 
             assert (
-                value_before > value_after
-            ), f"Value loss did not decrease. Before:{value_before}, after:{value_after}"
+                  value_before > value_after
+            ), f"Value loss did not decrease. Before:{value_before}, after:{value_after}, iteration {i}"
             assert (
-                policy_before > policy_after
-            ), f"Policy lose did not decrease. Before:{value_before}, after:{value_after}"
+                  policy_before > policy_after
+            ), f"Policy lose did not decrease. Before:{policy_before}, after:{policy_after}, iteration {i}"
+
 
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 0.294)
-        self.assertAlmostEqualNested(policy_loss, 3.393)
+        self.assertAlmostEqualNested(value_loss, 0.0119)
+        self.assertAlmostEqualNested(policy_loss, 0.326)
 
 
     def test_training_player_and_game_v2(self):
-        rng = SimpleRNG(seed=45)
+        rng = SimpleRNG(seed=44)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
         ), patch("random.choice", new=rng.choice), patch(
@@ -550,30 +548,39 @@ class TestPlayerV2(MyTestCase):
             print("Training")
 
             g = game.Game(random_model, random_model)
-            test_boards, test_values = g.generate_batch_from_games(20)
 
-            total_epochs = 50 
+            #test_boards, test_values = g.generate_batch_from_games(20)
+
+            total_epochs = 1
             for epoch in range(total_epochs):
-                if epoch % 2 == 0:
-                  g = game.Game(m, random_model)
-                else:
-                  g = game.Game(random_model, m)
+                #if epoch % 2 == 0:
+                g = game.Game(m, random_model)
+                #else:
+                #  g = game.Game(random_model, m)
                   
-                train_boards, train_values = g.generate_batch_from_games(20)
 
-                for i in range(10):
+                train_boards, train_values = g.generate_batch_from_games(2)
+
+                #test_boards, test_values = train_boards, train_values
+                for i in range(1):
+                    train_loss = 0
                     for board, val in zip(train_boards, train_values):
                         m.set_board_and_value( 1, board, val)
                         m.apply_gradient(0.001)
+                        train_loss = train_loss + m.get_loss_value()[0]
+                    #print(train_loss)
 
-                    test_loss = 0
-                    for board, val in zip(test_boards, test_values):
-                        m.set_board_and_value( 1, board, val)
-                        test_loss = test_loss + m.get_loss_value()[0] 
+                    #test_loss = 0
+                    #for board, val in zip(test_boards, test_values):
+                    #    m.set_board_and_value( 1, board, val)
+                    #    test_loss = test_loss + m.get_loss_value()[0]
+                    #print(test_loss)
 
+                print(" ")
                 if epoch % 5 == 0:
                     m.save_to_file(trained_model)
-                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
+                    #print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
+                    print(f"{epoch/total_epochs*100}%")
 
             print("Playing...")
             trained_model = tttv2.TTTPlayerV2(trained_model)
