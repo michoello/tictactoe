@@ -318,6 +318,38 @@ TEST_CASE(reshape) {
 	}));
 }
 
+TEST_CASE(explode) {
+  Mod3l m;
+
+  Block *db = Data(&m, 3, 4);
+  m.set_data(db, {
+     {1,  2,  3,  4},
+     {5,  6,  7,  8}, 
+     {9, 10, 11, 12}
+  });
+
+  Block *de = Explode(db, 3, 3);
+
+  // Each row represents the content of
+  // sliding window 3*3 rolling over b
+  // circular
+  Abs(de);
+
+  CHECK(assertEqualVectors(de->fval(), {
+    { 1, 2, 3,   5, 6, 7,  9, 10, 11 },
+    { 2, 3, 4,   6, 7, 8,  10, 11,12 },
+    { 3, 4, 1,   7, 8, 5,  11, 12, 9 },
+    { 4, 1, 2,   8, 5, 6,  12, 9, 10 },
+    { 5, 6, 7,   9, 10,11,  1, 2, 3 },
+    { 6, 7, 8,   10,11,12,  2, 3, 4 },
+    { 7, 8, 5,   11, 12,9,  3, 4, 1 },
+    { 8, 5, 6,   12, 9,10,  4, 1, 2 },
+    { 9, 10, 11,  1, 2, 3,  5, 6, 7 },
+    { 10, 11,12,  2, 3, 4,  6, 7, 8 },
+    { 11, 12, 9,  3, 4, 1,  7, 8, 5 },
+    { 12, 9, 10,  4, 1, 2,  8, 5, 6 },
+  }));
+}
 
 
 TEST_CASE(matmul_with_grads) {

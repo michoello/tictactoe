@@ -345,6 +345,46 @@ static Block *Reshape(Block *a, size_t rows, size_t cols) {
   return res;
 }
 
+// Same as SlidingWindow view, but actually fills
+// the output matrix with shingled values
+static Block *Explode(Block *a, size_t win_rows, size_t win_cols) {
+  const Matrix &in = a->fval();
+  Block *res = new Block({a}, in.rows * in.cols, win_rows * win_cols);
+
+  // real_row = (exp_row / in.cols + exp_col / win_cols) % in.rows;
+  // real_col =  (exp_row % in.cols + exp_col % win_cols) % in.cols;
+
+  res->set_fowd_fun([=](Matrix *out) {
+    for(size_t r = 0; r < in.rows; r++) {
+       for(size_t c = 0; c < in.cols; c++) {
+         int exp_col = 0;
+         double val = in.get(r, c);
+
+         int last_row = r - win_rows;
+         int last_col = c - win_cols;
+
+         for(int base_r = r; base_r > last_row; base_r--) {
+             for(int base_c = c; base_c > last_col; base_c--) {
+                 int real_r = base_r >= 0 ? base_r : in.rows + base_r;
+                 int real_c = base_c >= 0 ? base_c : in.cols + base_c;
+                 int exp_row = real_r * in.cols + real_c;
+                 out->set(exp_row, exp_col, val);
+                 exp_col++;
+             }
+         }
+       }
+    }
+  });
+/*
+  a->add_bawd_fun([res](Matrix *out) {
+    for_each_ella([](double grad_in, double &grad_back) { grad_back = grad_in; }, res->bval(), *out);
+  });
+*/
+  return res;
+}
+
+
+
 template <typename F1, typename F2>
 static Block *ElFun(Block *arg, F1 fwd, F2 bwd) {
   Block *block = new Block({arg}, arg->fval().rows, arg->fval().cols);
