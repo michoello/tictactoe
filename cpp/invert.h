@@ -355,7 +355,9 @@ static Block *Explode(Block *a, size_t win_rows, size_t win_cols) {
   // real_col =  (exp_row % in.cols + exp_col % win_cols) % in.cols;
 
   res->set_fowd_fun([=](Matrix *out) {
-    for(size_t r = 0; r < in.rows; r++) {
+   // this is 10% faster than else branch. TODO: why?
+   if (false) {
+     for(size_t r = 0; r < in.rows; r++) {
        for(size_t c = 0; c < in.cols; c++) {
          int exp_col = 0;
          double val = in.get(r, c);
@@ -364,16 +366,41 @@ static Block *Explode(Block *a, size_t win_rows, size_t win_cols) {
          int last_col = c - win_cols;
 
          for(int base_r = r; base_r > last_row; base_r--) {
+             int real_r = base_r >= 0 ? base_r : in.rows + base_r;
+             int exp_row = real_r * in.cols;
              for(int base_c = c; base_c > last_col; base_c--) {
-                 int real_r = base_r >= 0 ? base_r : in.rows + base_r;
                  int real_c = base_c >= 0 ? base_c : in.cols + base_c;
-                 int exp_row = real_r * in.cols + real_c;
-                 out->set(exp_row, exp_col, val);
-                 exp_col++;
+                 out->set(exp_row + real_c, exp_col++, val);
              }
          }
        }
-    }
+     }
+   } else {
+     size_t in_r = 0, in_c = 0;
+     double* outel = out->data->data();
+
+     for(size_t out_r = 0; out_r < out->rows; out_r++) {
+       size_t win_col = 0, inw_r = in_r, inw_c = in_c;
+       for(size_t out_c = 0; out_c < out->cols; out_c++) {
+           *outel = in.get(inw_r, inw_c);
+           outel++;
+ 
+           win_col++;
+           if(win_col < win_cols) {
+               inw_c = (inw_c == in.cols - 1) ? 0 : inw_c + 1;
+           } else {
+               win_col = 0;
+               inw_r = (inw_r == in.rows - 1) ? 0 : inw_r + 1;
+               inw_c = in_c;
+           }
+       }
+       in_c = (in_c == in.cols - 1) ? 0 : in_c + 1;
+       if (in_c == 0) ++in_r;
+
+     }
+   }
+
+
   });
 /*
   a->add_bawd_fun([res](Matrix *out) {
