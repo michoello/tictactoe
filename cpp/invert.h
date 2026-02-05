@@ -15,6 +15,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include <x86intrin.h>
+
+
+
 #include "matrix.h"
 
 struct LazyFunc {
@@ -47,6 +51,9 @@ struct Block {
 
   mutable LazyFunc fowd_fun;
   mutable LazyFunc bawd_fun;
+  
+  size_t rows() const { return fowd_fun.mtx.rows; }
+  size_t cols() const { return fowd_fun.mtx.cols; }
 
   const Matrix &fval() const {
     fowd_fun.calc();
@@ -237,12 +244,12 @@ template <class M> struct SlidingWindowView {
 // Output size is same as input
 static Block *Convo(Block *input, Block *kernel) {
   Block *res =
-      new Block({input, kernel}, input->fval().rows, input->fval().cols);
+      new Block({input, kernel}, input->rows(), input->cols());
   // input -> m, n
   // kernel -> k, l
   // output -> m, n
   res->set_fowd_fun([=](Matrix *out) {
-    auto [k, l] = std::pair(kernel->fval().rows, kernel->fval().cols);
+    auto [k, l] = std::pair(kernel->rows(), kernel->fval().cols);
     SlidingWindowView input_slide(input->fval(), k, l);
     ReshapedView kernel_flat(kernel->fval(), k * l, 1);
     ReshapedView out_flat(*out, out->rows * out->cols, 1);
@@ -250,8 +257,6 @@ static Block *Convo(Block *input, Block *kernel) {
                     kernel_flat, // k * l, 1
                     &out_flat);  // m * n, 1
   });
-
-  // TODO: test everything below
 
   input->add_bawd_fun([kernel, res](Matrix *dinputs) {
     const Matrix &dout = res->bval();
@@ -287,6 +292,8 @@ static Block *Convo(Block *input, Block *kernel) {
 
   return res;
 }
+
+
 
 static double square(double d) { return d * d; }
 static double square_derivative(double d) { return 2 * d; }
@@ -348,65 +355,45 @@ static Block *Reshape(Block *a, size_t rows, size_t cols) {
 // Same as SlidingWindow view, but actually fills
 // the output matrix with shingled values
 static Block *Explode(Block *a, size_t win_rows, size_t win_cols) {
-  const Matrix &in = a->fval();
-  Block *res = new Block({a}, in.rows * in.cols, win_rows * win_cols);
-
-  // real_row = (exp_row / in.cols + exp_col / win_cols) % in.rows;
-  // real_col =  (exp_row % in.cols + exp_col % win_cols) % in.cols;
+  Block *res = new Block({a}, a->rows() * a->cols(), win_rows * win_cols);
 
   res->set_fowd_fun([=](Matrix *out) {
-   // this is 10% faster than else branch. TODO: why?
-   if (false) {
-     for(size_t r = 0; r < in.rows; r++) {
+    const Matrix &in = a->fval();
+    for(size_t r = 0; r < in.rows; r++) {
        for(size_t c = 0; c < in.cols; c++) {
-         int exp_col = 0;
          double val = in.get(r, c);
-
-         int last_row = r - win_rows;
-         int last_col = c - win_cols;
-
-         for(int base_r = r; base_r > last_row; base_r--) {
-             int real_r = base_r >= 0 ? base_r : in.rows + base_r;
-             int exp_row = real_r * in.cols;
-             for(int base_c = c; base_c > last_col; base_c--) {
-                 int real_c = base_c >= 0 ? base_c : in.cols + base_c;
-                 out->set(exp_row + real_c, exp_col++, val);
+         size_t real_rr = r, exp_col = 0;
+         for(size_t wr = 0; wr < win_rows; ++wr) { 
+             size_t real_cc = c;
+             for(size_t wc = 0; wc < win_cols; ++wc) {
+                 out->set(real_rr * in.cols + real_cc, exp_col++, val);
+                 real_cc = real_cc == 0 ? in.cols - 1 : real_cc - 1;
              }
+             real_rr = real_rr == 0 ? in.rows - 1 : real_rr - 1;
          }
        }
      }
-   } else {
-     size_t in_r = 0, in_c = 0;
-     double* outel = out->data->data();
+  });
 
-     for(size_t out_r = 0; out_r < out->rows; out_r++) {
-       size_t win_col = 0, inw_r = in_r, inw_c = in_c;
-       for(size_t out_c = 0; out_c < out->cols; out_c++) {
-           *outel = in.get(inw_r, inw_c);
-           outel++;
- 
-           win_col++;
-           if(win_col < win_cols) {
-               inw_c = (inw_c == in.cols - 1) ? 0 : inw_c + 1;
-           } else {
-               win_col = 0;
-               inw_r = (inw_r == in.rows - 1) ? 0 : inw_r + 1;
-               inw_c = in_c;
-           }
+  a->add_bawd_fun([=](Matrix *out) {
+    const Matrix &grad_in = res->bval();
+    for(size_t r = 0; r < out->rows; r++) {
+       for(size_t c = 0; c < out->cols; c++) {
+         double val = 0;
+         size_t real_rr = r, exp_col = 0;
+         for(size_t wr = 0; wr < win_rows; ++wr) { 
+             size_t real_cc = c;
+             for(size_t wc = 0; wc < win_cols; ++wc) {
+                 val += grad_in.get(real_rr * out->cols + real_cc, exp_col++);
+                 real_cc = real_cc == 0 ? out->cols - 1 : real_cc - 1;
+             }
+             real_rr = real_rr == 0 ? out->rows - 1 : real_rr - 1;
+         }
+         out->set(r, c, val);
        }
-       in_c = (in_c == in.cols - 1) ? 0 : in_c + 1;
-       if (in_c == 0) ++in_r;
-
      }
-   }
-
-
   });
-/*
-  a->add_bawd_fun([res](Matrix *out) {
-    for_each_ella([](double grad_in, double &grad_back) { grad_back = grad_in; }, res->bval(), *out);
-  });
-*/
+
   return res;
 }
 
@@ -477,6 +464,7 @@ static Block *Dif(Block *a1, Block *a2) { return Add(a1, MulEl(a2, -1)); };
 // This implementation does not respect rows of matrix,
 //and calculates the softmax over entire matrix
 static Block *SoftMax(Block *a) {
+  // TODO: replace with a->rows() etc here and everywhere else
   auto *res = new Block({a}, a->fval().rows, a->fval().cols);
 
   res->set_fowd_fun([=](Matrix *out) {
@@ -531,7 +519,7 @@ static Block *SoftMaxCrossEntropy(Block *logits, Block *softmax, Block *labels) 
 }
 
 static Block *Abs(Block *a) {
-  auto *res = new Block({a}, a->fval().rows, a->fval().cols);
+  auto *res = new Block({a}, a->rows(), a->cols());
 
   res->set_fowd_fun([=](Matrix *out) {
     for_each_ella([](double i/*n*/, double& o/*ut*/) { 
@@ -599,7 +587,7 @@ static double clip(double p) {
 // TODO: calc average as a single value. Currently it is consistent with
 // python impl having same flaw
 static Block *BCE(Block *a1, Block *a2) {
-  auto *res = new Block({a1, a2}, a1->fval().rows, a1->fval().cols);
+  auto *res = new Block({a1, a2}, a1->rows(), a1->cols());
 
   res->set_fowd_fun([=](Matrix *out) {
     for_each_ella(

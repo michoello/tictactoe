@@ -173,34 +173,35 @@ bool assertEqualVectors(const std::vector<std::vector<double>> &got,
                         int round = 3) {
   float tol = std::pow(10.0f, -round);
 
+  auto print_matrices = [expected, got, round](){
+    std::cerr << "Expected:\n";
+    print_matrix(expected, round);
+    std::cerr << "Got:\n";
+    print_matrix(got, round);
+  };
+
   if (got.size() != expected.size()) {
     std::cerr << "Assertion failed (different number of rows):" << got.size()
-              << " vs " << expected.size();
-    std::cerr << "\n";
+              << " vs " << expected.size() << "\n";
+    print_matrices();
     return false;
   }
 
   for (size_t i = 0; i < got.size(); ++i) {
     if (got[i].size() != expected[i].size()) {
       std::cerr << "Assertion failed (different number of columns in row " << i
-                << ")";
-      std::cerr << "\n";
+                << ")\n";
+      print_matrices();
       return false;
     }
     for (size_t j = 0; j < got[i].size(); ++j) {
       if (!approxEqual(got[i][j], expected[i][j], tol)) {
         std::cerr << "Assertion failed";
-        std::cerr << "\n";
-
         std::cerr << "Mismatch at (" << i << "," << j << "): "
                   << "expected " << expected[i][j] << " but got " << std::fixed
                   << std::setprecision(round) << got[i][j] << std::defaultfloat
                   << " (tolerance " << tol << ")\n";
-
-        std::cerr << "Expected:\n";
-        print_matrix(expected, round);
-        std::cerr << "Got:\n";
-        print_matrix(got, round);
+        print_matrices();
         return false;
       }
     }
@@ -324,17 +325,15 @@ TEST_CASE(explode) {
   Block *db = Data(&m, 3, 4);
   Block *de = Explode(db, 3, 3);
   Abs(de);
- for(int i =0; i < 100000; i++) {
   m.set_data(db, {
      {1,  2,  3,  4},
      {5,  6,  7,  8}, 
      {9, 10, 11, 12}
   });
 
-
   // Each row represents the content of
-  // sliding window 3*3 rolling over b
-  // circular
+  // sliding window 3*3 rolling over db
+  // circularly
   CHECK(assertEqualVectors(de->fval(), {
     { 1, 2, 3,   5, 6, 7,  9, 10, 11 },
     { 2, 3, 4,   6, 7, 8,  10, 11,12 },
@@ -349,7 +348,13 @@ TEST_CASE(explode) {
     { 11, 12, 9,  3, 4, 1,  7, 8, 5 },
     { 12, 9, 10,  4, 1, 2,  8, 5, 6 },
   }));
- }
+
+  // Gradient is imploded back (1 in -> 9 out in this case)
+  CHECK(assertEqualVectors(db->bval(), {
+    { 9, 9, 9, 9 },
+    { 9, 9, 9, 9 },
+    { 9, 9, 9, 9 }
+  }));
 }
 
 
