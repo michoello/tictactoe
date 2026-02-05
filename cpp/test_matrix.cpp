@@ -1148,6 +1148,103 @@ TEST_CASE(convolutions_grads_apply) {
   }));
 }
 
+// New version of convolutions! 
+// Will work with multi-convolutions as well
+TEST_CASE(convolutions2_grads_apply) {
+  Mod3l m;
+
+  Block *dinput = Data(&m, 3, 3);
+  m.set_data(dinput, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  Block *dkernel = Data(&m, 2, 2);
+  m.set_data(dkernel, {
+     { -0.2, 1.1 },
+     { 2.3, 0.4 },
+  });
+
+  Block *dc = Convo2(dinput, dkernel);
+
+  CHECK(assertEqualVectors(dc->fval(), {
+   { 13.200, 16.800, 15.900 },
+   { 24.000, 27.600, 26.700 },
+   { 10.500, 14.100, 13.200 }
+  }));
+
+  // Labels are the same as input, we want to check if kernel will get closer
+  Block *dlabels = Data(&m, 3, 3);
+  m.set_data(dlabels, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  // Let's have this crazy hand-crafted loss function:
+  Block* dif = Dif(dc, dlabels);
+  CHECK(assertEqualVectors(dif->fval(), {
+    { 12.200, 14.800, 12.900 },
+    { 20.000, 22.600, 20.700 },
+    { 3.500, 6.100, 4.200 }
+  }));
+
+  Block* sq = Sqrt(dif);
+  Block* sum = Sum(sq);
+  Block* loss = Abs(sum);
+  CHECK(assertEqualVectors(loss->fval(), {
+    { 1940.64 },
+  }));
+
+  CHECK(assertEqualVectors(sum->bval(), {
+    { 1.00 },
+  }));
+
+  CHECK(assertEqualVectors(dif->bval(), {
+    { 24.400, 29.600, 25.800 },
+    { 40.000, 45.200, 41.400 },
+    { 7.000, 12.200, 8.400 }
+  }));
+
+  CHECK(assertEqualVectors(dkernel->bval(), {
+		{ 1017.600, 1024.800 },
+		{ 1471.200, 1478.400 }
+  }));
+  dkernel->apply_bval(0.0001);
+
+  // See if effect is a least abit towards 
+  CHECK(assertEqualVectors(loss->fval(), { {1357.199} }));
+  CHECK(assertEqualVectors(dc->fval(), {
+    { 11.566, 14.666, 14.018 },
+    { 20.868, 23.969, 23.321 },
+    { 8.525, 11.626, 10.978 }
+    // Was:
+    // { 13.200, 16.800, 15.900 },
+    // { 24.000, 27.600, 26.700 },
+    // { 10.500, 14.100, 13.200 }
+  }));
+
+  for(int i = 0; i < 200; ++i) {
+     dkernel->apply_bval(0.001);
+	}
+
+  CHECK(assertEqualVectors(loss->fval(), { {0.0} }));
+
+  // The gradient descent discovered another "identity kernel" for 
+  // this particular input  convolution:
+  CHECK(assertEqualVectors(dkernel->fval(), {
+    { -0.050, 1.050 },
+    { 1.050, -1.050 }
+  }));
+  // Now result of convo is exactly the input:
+  CHECK(assertEqualVectors(dc->fval(), {
+		{ 1.000, 2.000, 3.000 },
+		{ 4.000, 5.000, 6.000 },
+		{ 7.000, 8.000, 9.000 }
+  }));
+}
+
 
 TEST_CASE(convolutions_grads_propagate) {
   Mod3l m;
@@ -1235,6 +1332,92 @@ TEST_CASE(convolutions_grads_propagate) {
   }));
 
 
+}
+
+TEST_CASE(convolutions2_grads_propagate) {
+  Mod3l m;
+
+  Block *dinput = Data(&m, 3, 3);
+  m.set_data(dinput, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  Block *dkernel = Data(&m, 2, 2);
+  m.set_data(dkernel, {
+     { -0.2, 1.1 },
+     { 2.3, 0.4 },
+  });
+
+  Block *dc = Convo2(dinput, dkernel);
+
+  CHECK(assertEqualVectors(dc->fval(), {
+   { 13.200, 16.800, 15.900 },
+   { 24.000, 27.600, 26.700 },
+   { 10.500, 14.100, 13.200 }
+  }));
+
+  // Labels are the same as input, we want to check if kernel will get closer
+  Block *dlabels = Data(&m, 3, 3);
+  m.set_data(dlabels, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  // Let's have this crazy hand-crafted loss function:
+  Block* loss = Abs(Sum(Sqrt(Dif(dc, dlabels))));
+  CHECK(assertEqualVectors(loss->fval(), {
+    { 1940.64 },
+  }));
+
+  CHECK(assertEqualVectors(dc->fval(), {
+    { 13.200, 16.800, 15.900 },
+    { 24.000, 27.600, 26.700 },
+    { 10.500, 14.100, 13.200 }
+  }));
+
+  // This time the kernel is fixed, but we apply gradients to the input
+  dinput->apply_bval(0.001);
+
+  // See if effect is a least abit towards 
+  CHECK(assertEqualVectors(loss->fval(), { {1853.443} }));
+  CHECK(assertEqualVectors(dc->fval(), {
+    { 12.867, 16.449, 15.562 },
+    { 23.579, 27.161, 26.274 },
+    { 10.266, 13.848, 12.961 }
+    // Was:
+    // { 13.200, 16.800, 15.900 },
+    // { 24.000, 27.600, 26.700 },
+    // { 10.500, 14.100, 13.200 }
+  }));
+
+  // It takes quite a bit to squeeze the input while fixing the kernel
+  for(int i = 0; i < 1100; ++i) {
+     dinput->apply_bval(0.001);
+	}
+  CHECK(assertEqualVectors(loss->fval(), { {0.0} }));
+
+  // Kernel is not changed:
+  CHECK(assertEqualVectors(dkernel->fval(), {
+     { -0.2, 1.1 },
+     { 2.3, 0.4 },
+  }));
+
+  // But result of convo is exactly the labels:
+  CHECK(assertEqualVectors(dc->fval(), {
+		{ 1.000, 2.000, 3.000 },
+		{ 4.000, 5.000, 6.000 },
+		{ 7.000, 8.000, 9.000 }
+  }));
+
+  // But the input is barely recognizeable
+  CHECK(assertEqualVectors(dinput->fval(), {
+    { 2.170, 1.914, 2.940 },
+    { -0.211, -0.467, 0.559 },
+    { 1.694, 1.438, 2.464 }
+  }));
 }
 
 

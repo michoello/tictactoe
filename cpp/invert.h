@@ -397,6 +397,18 @@ static Block *Explode(Block *a, size_t win_rows, size_t win_cols) {
   return res;
 }
 
+// Version 2 of Convolution
+static Block *Convo2(Block *input, Block *kernel) {
+  Block * input_exploded = Explode(input, kernel->rows(), kernel->cols()); // dims are [in.rows*in.cols ; ker.rows*ker.cols]
+  Block * kernel_reshaped = Reshape(kernel,  kernel->rows() * kernel->cols(), 1);
+  Block * matmul = MatMul(input_exploded, kernel_reshaped); // dims are [in.rows*in.cols; 1]
+  Block * convoluted = Reshape(matmul, input->rows(), input->cols()); // dims are same as input;
+  return convoluted;
+}
+
+
+
+
 
 
 template <typename F1, typename F2>
