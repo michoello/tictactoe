@@ -437,6 +437,9 @@ class TestMod3l(unittest.TestCase):
         # 2.
         dc2 = Reshape(MatMul(Explode(dinput, 2, 2), Reshape(dkernel2,  4, 1)), 3, 3)
 
+        assert dc2.rows() == 3
+        assert dc2.cols() == 3
+
         rl2 = ReLU(dc2)
 
         rl = Add(rl1, rl2)

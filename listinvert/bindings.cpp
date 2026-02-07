@@ -35,6 +35,8 @@ PYBIND11_MODULE(_listinvert, m) {
 
     py::class_<Block>(m, "Block")
         .def("apply_bval", &Block::apply_bval)
+        .def("rows", &Block::rows)
+        .def("cols", &Block::cols)
         .def("fval", &Block::fval)
         .def("bval", &Block::bval);
 
