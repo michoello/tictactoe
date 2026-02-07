@@ -5,6 +5,7 @@ from listinvert import (
     Mod3l,
     Block,
     Data,
+    Explode,
     MatMul,
     SSE,
     Abs,
@@ -14,6 +15,7 @@ from listinvert import (
     Reshape,
     value,
     Convo,
+    Convo2,
     ReLU,
     SoftMax,
     SoftMaxCrossEntropy,
@@ -398,6 +400,99 @@ class TestMod3l(unittest.TestCase):
         self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.995]])
         self.assertNearlyEqual(value(policy_loss.fval()), [[1.593]])
 
+    def test_larger_model_convo2(self):
+        m = Mod3l()
+        dinput = Data(m, 3, 3)
+        m.set_data(
+            dinput,
+            [
+                [1, 0, -1],
+                [1, 0, -1],
+                [0, 1, -1],
+            ],
+        )
+
+        dkernel1 = Data(m, 2, 2)
+        m.set_data(
+            dkernel1,
+            [
+                [0.3, 0.1],
+                [0.2, 0.0],
+            ],
+        )
+        dc1 = Convo2(dinput, dkernel1)
+        rl1 = ReLU(dc1)
+
+        dkernel2 = Data(m, 2, 2)
+        m.set_data(
+            dkernel2,
+            [
+                [-0.3, 0.1],
+                [-0.2, 0.4],
+            ],
+        )
+        # The next two blocks are the same. The test must work if we swap-comment them.
+        # 1.
+        # dc2 = Convo2(dinput, dkernel2)
+        # 2.
+        dc2 = Reshape(MatMul(Explode(dinput, 2, 2), Reshape(dkernel2,  4, 1)), 3, 3)
+
+        rl2 = ReLU(dc2)
+
+        rl = Add(rl1, rl2)
+
+        dw = Data(m, 3, 3)
+        m.set_data(dw, [[1, 2, 3], [5, 6, 7], [9, 10, 11]])
+
+        dlogits = MatMul(rl, dw)
+        dsoftmax = SoftMax(dlogits)
+
+        # This is our toy policy network head
+        dlabels = Data(m, 3, 3)
+        m.set_data(
+            dlabels,
+            [
+                [0, 1, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+        )
+        policy_loss = SoftMaxCrossEntropy(dlogits, dsoftmax, dlabels)
+
+        dw2 = Data(m, 3, 1)
+        m.set_data(dw2, [[1.5], [2.5], [3.5]])
+
+        dvalue = Tanh(MatMul(rl, dw2))
+
+        dlabel = Data(m, 1, 1)
+        m.set_data(dlabel, [[-1]])
+
+        dvalue_loss = SSE(dvalue, dlabel)
+
+        self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.998]])
+        self.assertNearlyEqual(value(policy_loss.fval()), [[2.302]])
+
+        for i in range(10):
+            value_before = dvalue_loss.fval().get(0, 0)
+            policy_before = policy_loss.fval().get(0, 0)
+
+            dkernel1.apply_bval(0.01)
+            dkernel2.apply_bval(0.01)
+            dw.apply_bval(0.01)
+            dw2.apply_bval(0.01)
+
+            value_after = dvalue_loss.fval().get(0, 0)
+            policy_after = policy_loss.fval().get(0, 0)
+
+            assert (
+                value_before > value_after
+            ), "Value loss did not decrease. Before:{value_before}, after:{value_after}"
+            assert (
+                policy_before > policy_after
+            ), "Policy lose did not decrease. Before:{value_before}, after:{value_after}"
+
+        self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.995]])
+        self.assertNearlyEqual(value(policy_loss.fval()), [[1.593]])
 
 if __name__ == "__main__":
     unittest.main()
