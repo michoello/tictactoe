@@ -25,8 +25,10 @@ from listinvert import (
     BCE,
     Sigmoid,
     Reshape,
+    Explode,
     value,
     Convo,
+    Convo2,
     ReLU,
     SoftMax,
     SoftMaxCrossEntropy,
@@ -95,20 +97,22 @@ class TTTPlayerImpl:
        self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
 
        self.m = Mod3l()
-
-
        self.dinput = Data(self.m, 6, 6)
 
        Nonlinearity = Sigmoid  # ReLU does not work though recommended by BOOKS
+
+       def Convo3(input, kernel):
+          return Reshape(MatMul(Explode(input, 3, 3), Reshape(kernel,  9, 1)), 6, 6)
 
        # Common trunk
        self.kernels1 = []
        self.kernels2 = []
        for i in range(CONVO_CHANNELS):
           self.kernels1.append(Data(self.m, 3, 3))
-          rl = Nonlinearity( Convo(self.dinput, self.kernels1[-1]) )
+
+          rl = Nonlinearity( Convo3(self.dinput, self.kernels1[-1]) )
           self.kernels2.append(Data(self.m, 3, 3))
-          rl = Nonlinearity( Convo(rl, self.kernels2[-1]) ) 
+          rl = Nonlinearity( Convo3(rl, self.kernels2[-1]) ) 
           if i == 0:
               self.rl = rl
           else:
