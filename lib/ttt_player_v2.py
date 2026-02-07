@@ -107,6 +107,8 @@ class TTTPlayerImpl:
        # Common trunk
        self.kernels1 = []
        self.kernels2 = []
+       self.fold = Data(self.m, 1, 1)
+
        for i in range(CONVO_CHANNELS):
           #self.kernels1.append(Data(self.m, 3, 3))
           #self.kernels2.append(Data(self.m, 3, 3))
@@ -121,8 +123,13 @@ class TTTPlayerImpl:
           rl = Nonlinearity(rl)
 
           input, kernel = rl, self.kernels2[-1]
-          rl = Reshape(MatMul(Explode(input, 3, 3), kernel), 6, 6)
+          rl = MatMul(Explode(input, 3, 3), kernel)
           rl = Nonlinearity(rl) 
+          rl = MatMul(rl, self.fold)
+
+          rl = Reshape(rl, 6, 6)
+
+
           if i == 0:
               self.rl = rl
           else:
@@ -158,6 +165,8 @@ class TTTPlayerImpl:
                self.m.set_data(self.kernels1[i], ml.random_matrix(9, 1))
                self.m.set_data(self.kernels2[i], ml.random_matrix(9, 1))
 
+           self.m.set_data(self.fold, [[1]])
+
            self.m.set_data(self.w_policy, ml.random_matrix(36, 36))
            self.m.set_data(self.b_policy, ml.random_matrix(1, 36))
            self.m.set_data(self.w_value1, ml.random_matrix(36, 36))
@@ -178,6 +187,8 @@ class TTTPlayerImpl:
         for i in range(CONVO_CHANNELS):
             self.m.set_data(self.kernels1[i], data[f"kernel1_{i}"])
             self.m.set_data(self.kernels2[i], data[f"kernel2_{i}"])
+
+        self.m.set_data(self.fold, data["fold"])
 
         self.m.set_data(self.w_policy, data["w_policy"])
         self.m.set_data(self.b_policy, data["b_policy"])
@@ -210,6 +221,7 @@ class TTTPlayerImpl:
                "b_value1": rounded(value(self.b_value1.fval())),
                "w_value": rounded(value(self.w_value.fval())),
                "b_value": rounded(value(self.b_value.fval())),
+               "fold":    rounded(value(self.fold.fval())),
             }
             for i in range(CONVO_CHANNELS):
                 data_json[f"kernel1_{i}"] = rounded(value(self.kernels1[i].fval()))
