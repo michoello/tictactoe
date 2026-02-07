@@ -108,11 +108,21 @@ class TTTPlayerImpl:
        self.kernels1 = []
        self.kernels2 = []
        for i in range(CONVO_CHANNELS):
-          self.kernels1.append(Data(self.m, 3, 3))
+          #self.kernels1.append(Data(self.m, 3, 3))
+          #self.kernels2.append(Data(self.m, 3, 3))
+          #rl = Nonlinearity( Convo3(self.dinput, self.kernels1[-1]) )
+          #rl = Nonlinearity( Convo3(rl, self.kernels2[-1]) ) 
 
-          rl = Nonlinearity( Convo3(self.dinput, self.kernels1[-1]) )
-          self.kernels2.append(Data(self.m, 3, 3))
-          rl = Nonlinearity( Convo3(rl, self.kernels2[-1]) ) 
+          self.kernels1.append(Data(self.m, 9, 1))
+          self.kernels2.append(Data(self.m, 9, 1))
+
+          input, kernel = self.dinput, self.kernels1[-1]
+          rl = Reshape(MatMul(Explode(input, 3, 3), kernel), 6, 6)
+          rl = Nonlinearity(rl)
+
+          input, kernel = rl, self.kernels2[-1]
+          rl = Reshape(MatMul(Explode(input, 3, 3), kernel), 6, 6)
+          rl = Nonlinearity(rl) 
           if i == 0:
               self.rl = rl
           else:
@@ -145,8 +155,8 @@ class TTTPlayerImpl:
            self.load_from_file(file_to_load_from)
        else:
            for i in range(CONVO_CHANNELS):
-               self.m.set_data(self.kernels1[i], ml.random_matrix(3, 3))
-               self.m.set_data(self.kernels2[i], ml.random_matrix(3, 3))
+               self.m.set_data(self.kernels1[i], ml.random_matrix(9, 1))
+               self.m.set_data(self.kernels2[i], ml.random_matrix(9, 1))
 
            self.m.set_data(self.w_policy, ml.random_matrix(36, 36))
            self.m.set_data(self.b_policy, ml.random_matrix(1, 36))
