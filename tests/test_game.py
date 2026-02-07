@@ -507,7 +507,6 @@ class TestPlayerV2(MyTestCase):
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        print("AAAAA: ", value_loss, policy_loss)
         self.assertAlmostEqualNested(value_loss, 0.118)
         self.assertAlmostEqualNested(policy_loss, 9.943)
 
@@ -525,7 +524,6 @@ class TestPlayerV2(MyTestCase):
 
 
         value_loss, policy_loss = player2.get_loss_value()
-        print("BBBBB: ", value_loss, policy_loss)
         self.assertAlmostEqualNested(value_loss, 0.00248)
         self.assertAlmostEqualNested(policy_loss, 0.326)
 
@@ -553,7 +551,7 @@ class TestPlayerV2(MyTestCase):
 
             #test_boards, test_values = g.generate_batch_from_games(20)
 
-            total_epochs = 1
+            total_epochs = 50
             for epoch in range(total_epochs):
                 #if epoch % 2 == 0:
                 g = game.Game(m, random_model)
@@ -561,28 +559,24 @@ class TestPlayerV2(MyTestCase):
                 #  g = game.Game(random_model, m)
                   
 
-                train_boards, train_values = g.generate_batch_from_games(2)
+                train_boards, train_values = g.generate_batch_from_games(20)
+                test_boards, test_values = g.generate_batch_from_games(20)
 
-                #test_boards, test_values = train_boards, train_values
-                for i in range(1):
+                for i in range(4):
                     train_loss = 0
                     for board, val in zip(train_boards, train_values):
                         m.set_board_and_value( 1, board, val)
                         m.apply_gradient(0.001)
                         train_loss = train_loss + m.get_loss_value()[0]
-                    #print(train_loss)
 
-                    #test_loss = 0
-                    #for board, val in zip(test_boards, test_values):
-                    #    m.set_board_and_value( 1, board, val)
-                    #    test_loss = test_loss + m.get_loss_value()[0]
-                    #print(test_loss)
+                    test_loss = 0
+                    for board, val in zip(test_boards, test_values):
+                        m.set_board_and_value( 1, board, val)
+                        test_loss = test_loss + m.get_loss_value()[0]
 
-                print(" ")
-                if epoch % 5 == 0:
+                if epoch % 10 == 0:
                     m.save_to_file(trained_model)
-                    #print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
-                    print(f"{epoch/total_epochs*100}%")
+                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
             print("Playing...")
             trained_model = tttv2.TTTPlayerV2(trained_model)

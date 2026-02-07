@@ -101,9 +101,6 @@ class TTTPlayerImpl:
 
        Nonlinearity = Sigmoid  # ReLU does not work though recommended by BOOKS
 
-       def Convo3(input, kernel):
-          return Reshape(MatMul(Explode(input, 3, 3), Reshape(kernel,  9, 1)), 6, 6)
-
        # Common trunk
        self.fold = Data(self.m, CONVO_CHANNELS, 1)
 
@@ -113,14 +110,12 @@ class TTTPlayerImpl:
        rl = Reshape(MatMul(Explode(self.dinput, 3, 3), self.kernels1), 6, 6)
        rl = Nonlinearity(rl)
 
-       rl = MatMul(Explode(rl, 3, 3), self.kernels2)
+       rl = MatMul(Explode(rl, 3, 3), self.kernels2) # dims:36,CONVO_CHANNELS
        rl = Nonlinearity(rl) 
 
-       rl = MatMul(rl, self.fold)
-       #print("AAAAAAAAAAAAAAAAAAAAAAAAA", rl.rows(), rl.cols())
+       rl = MatMul(rl, self.fold)  # dims:36,1
 
-       self.rl = rl #Reshape(rl, 6, 6)
-       self.rl_flat = Reshape(self.rl, 1, 36)
+       self.rl_flat = Reshape(rl, 1, 36)
 
        # Policy
        self.w_policy = Data(self.m, 36, 36)
@@ -149,7 +144,6 @@ class TTTPlayerImpl:
            self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS))
            self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS))
 
-           self.m.set_data(self.fold, [[1] for _ in range(CONVO_CHANNELS)])
 
            self.m.set_data(self.w_policy, ml.random_matrix(36, 36))
            self.m.set_data(self.b_policy, ml.random_matrix(1, 36))
@@ -158,6 +152,11 @@ class TTTPlayerImpl:
            self.m.set_data(self.w_value, ml.random_matrix(36, 1))
            self.m.set_data(self.b_value, ml.random_matrix(1, 1))
 
+           self.m.set_data(self.fold, [[1] for _ in range(CONVO_CHANNELS)])
+           # This next line, when uncommented, causes slower 
+           # gradient descent. TODO: find out if that is a fixed-randomness hiccup
+           # or a systemic phenomenon
+           #self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1))
 
     def parse_model_file(self, file_name):
         with open(file_name, "r") as file:
@@ -204,10 +203,10 @@ class TTTPlayerImpl:
                "b_value1": rounded(value(self.b_value1.fval())),
                "w_value": rounded(value(self.w_value.fval())),
                "b_value": rounded(value(self.b_value.fval())),
+               "kernel1": rounded(value(self.kernels1.fval())),
+               "kernel2": rounded(value(self.kernels2.fval())),
                "fold":    rounded(value(self.fold.fval())),
             }
-            data_json[f"kernel1"] = rounded(value(self.kernels1.fval()))
-            data_json[f"kernel2"] = rounded(value(self.kernels2.fval()))
 
             model_json = {
                 "data": data_json,
@@ -235,6 +234,7 @@ class TTTPlayerImpl:
     def apply_gradient(self, alpha = 0.01):
         self.kernels1.apply_bval(alpha)
         self.kernels2.apply_bval(alpha)
+        self.fold.apply_bval(alpha)
 
         self.w_policy.apply_bval(alpha)
         self.b_policy.apply_bval(alpha)
