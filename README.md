@@ -1,3 +1,16 @@
+# 2026-02-08
+
+Started training of PlayerV2. Nothing works omg!
+- Grads exploding on convo kernels, sometimes
+- It is not training at all on some batches, very little on others
+- Probably even gaming batch is not generated correctly
+
+But it starts at least lol:
+```
+./train_player_v2.sh
+```
+Lots of debugging ahead!
+
 # 2026-02-02
 
 Player V2 extended to almost standard architecture:
