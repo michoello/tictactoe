@@ -153,14 +153,7 @@ def train_single_round(trainee, model_x, model_o, m_student):
 
             loss, policy_loss = m_student.get_loss_value()
 
-            # TODO: Continue from here, looks like the batches are not generated correctly
-            print("AAAA loss=", loss, 
-                  " value=", value(m_student.impl.value.fval()),
-                  " value_label=", value(m_student.impl.value_label.fval()))
-
-
             if math.isnan(loss):
-              print("AAAA ", loss)
               print("Label: ", value(m_student.impl.value_label.fval()))
               print("input: ", value(m_student.impl.dinput.fval()))
               print("Grads kernels1: ", value(m_student.impl.kernels1.bval()))
@@ -173,11 +166,11 @@ def train_single_round(trainee, model_x, model_o, m_student):
             sloss += loss
             k1norm += grad_norm(value(m_student.impl.kernels1.bval()))
             k2norm += grad_norm(value(m_student.impl.kernels2.bval()))
-        print("Loss: ", loss, " k1norm=", k1norm, "  k2norm=", k2norm)
 
         train_loss = calc_loss(_player, m_student, train_boards, train_values)
         if i % 20 == 0:
             print(f"EPOCH {i}: Train loss={train_loss}")
+            print("    Loss: ", loss, " k1norm=", k1norm, "  k2norm=", k2norm)
 
 
 def model_name(prefix, family, trainee, version):

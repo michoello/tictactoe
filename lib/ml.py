@@ -3,8 +3,9 @@ import json
 import random
 
 
-def random_matrix(m, n):
-    return [[random.random() * 2 - 1 for _ in range(n)] for _ in range(m)]
+# Returns matrix filled with uniform distribution within [-k;k]
+def random_matrix(m, n, k = 1):
+    return [[ (random.random() * 2 - 1) * k for _ in range(n)] for _ in range(m)]
 
 
 # Sigmoid activation and its derivative

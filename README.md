@@ -1,4 +1,13 @@
+# 2026-02-10
+
+First attempt to fix the convolutional gradient blow up: proper initialization.
+As the convolution is exploded sum, to keep it under control, the values should be closer to 0.
+Snart name is Glorot-Xavier init. Ok, that helps, a bit (test updated),
+but the training still blows up. Need grad clipping next.
+
 # 2026-02-08
+
+Optimized multi-kernel convolutions integrated. Now speed is acceptable.
 
 Started training of PlayerV2. Nothing works omg!
 - Grads exploding on convo kernels, sometimes

@@ -494,12 +494,12 @@ class TestPlayerV2(MyTestCase):
                 [1, 0, 0, 0, 0,-1],
                 [1, 0, 0, 0, 0, 0],
             ],
-            _value = [[-1]],
+            _value = [[1]],
             policy = [
                 [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0.6, 0] +
                 [0, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0, 0] +
-                [0.9, 0, 0, 0, 0, 0] +
+                [0.3, 0, 0, 0, 0, 0] +
                 [0, 0, 0, 0, 0, 0] +
                 [0, 0, 0, 0, 0,0.1]
               ]
@@ -507,10 +507,10 @@ class TestPlayerV2(MyTestCase):
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 0.118)
-        self.assertAlmostEqualNested(policy_loss, 9.943)
+        self.assertAlmostEqualNested(value_loss, 3.331)
+        self.assertAlmostEqualNested(policy_loss, 3.271)
 
-        for i in range(90):
+        for i in range(1200):
             value_before, policy_before = player2.get_loss_value()
             player2.apply_gradient(0.001)
             value_after, policy_after = player2.get_loss_value()
@@ -525,7 +525,17 @@ class TestPlayerV2(MyTestCase):
 
         value_loss, policy_loss = player2.get_loss_value()
         self.assertAlmostEqualNested(value_loss, 0.00248)
-        self.assertAlmostEqualNested(policy_loss, 0.326)
+        self.assertAlmostEqualNested(policy_loss, 0.908)
+
+        # TODO: get rid of "impl"
+        self.assertAlmostEqualNested(value(player2.impl.policy.fval()), [
+                [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0.6, 0] +
+                [0, 0, 0, 0, 0, 0] +
+                [0.3, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0, 0] +
+                [0, 0, 0, 0, 0,0.1]
+              ], delta=0.01)
 
 
     def test_training_player_and_game_v2(self):

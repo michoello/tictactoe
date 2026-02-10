@@ -141,9 +141,10 @@ class TTTPlayerImpl:
        if file_to_load_from:
            self.load_from_file(file_to_load_from)
        else:
-           self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS))
-           self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS))
-
+           # Convolutions should be initialized very carefully to prevent gradient crazyness
+           # TODO: add batch normalization and gradient clipping
+           self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
+           self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
 
            self.m.set_data(self.w_policy, ml.random_matrix(36, 36))
            self.m.set_data(self.b_policy, ml.random_matrix(1, 36))
@@ -152,11 +153,12 @@ class TTTPlayerImpl:
            self.m.set_data(self.w_value, ml.random_matrix(36, 1))
            self.m.set_data(self.b_value, ml.random_matrix(1, 1))
 
-           self.m.set_data(self.fold, [[1] for _ in range(CONVO_CHANNELS)])
-           # This next line, when uncommented, causes slower 
-           # gradient descent. TODO: find out if that is a fixed-randomness hiccup
-           # or a systemic phenomenon
-           #self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1))
+           # TODO: simply moving this line up to the kernels1,2 initialization breaks
+           # the game debugging test entirely (just because of different values).
+           # A better test and initialization is needed to make sure the training is more or less
+           # stable
+           self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 0.1))
+
 
     def parse_model_file(self, file_name):
         with open(file_name, "r") as file:
