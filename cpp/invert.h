@@ -122,6 +122,14 @@ public:
       block->reset_both_lazy_funcs();
     }
   }
+
+  double global_grad_norm(const std::vector<Block*>& blocks) {
+    double norm = 0;
+    for(const Block* block: blocks) {
+      for_each_ella([&norm](double gi) { norm += gi * gi; }, block->bval());
+    }
+    return std::sqrt(norm);
+  }
 };
 
 static Block *Data(Mod3l *model, size_t rows, size_t cols) {
@@ -407,7 +415,26 @@ static Block *Convo2(Block *input, Block *kernel) {
 }
 
 
+static Block *GradClipper(Block *input, double threshold) {
+  auto *res = new Block({input}, input->rows(), input->cols());
 
+  res->set_fowd_fun([=](Matrix *out) {
+    for_each_ella([](double i, double &o) { o = i; }, input->fval(), *out);
+  });
+
+  input->add_bawd_fun([res, threshold](Matrix *out) {
+    double norm = res->model->global_grad_norm({res});
+    if(norm <= threshold) {
+       for_each_ella([](double gi, double & go) { go = gi; }, res->bval(), *out);
+    } else {
+       // Apply global norm scaling
+       double scale = threshold / norm;
+       for_each_ella([scale](double gi, double & go) { go = gi * scale; }, res->bval(), *out);
+    }
+  });
+
+  return res;
+}
 
 
 

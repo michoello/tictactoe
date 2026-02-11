@@ -6,6 +6,7 @@
 #include <iostream>
 #include <type_traits>
 #include <vector>
+#include <regex>
 
 //-------------------------------------------------------------
 // Tiny unittests libraryset
@@ -69,26 +70,20 @@ inline bool run_test(const TestCase &t) {
 
 // Run all or one test based on CLI
 inline int run_tests(int argc, char **argv) {
-  if (argc > 1) {
-    std::string filter = argv[1];
-    for (auto &t : get_tests()) {
-      if (t.name == filter) {
-        return run_test(t) ? 0 : 1;
-      }
-    }
-    std::cerr << "No test case named '" << filter << "'\n";
-    return 1;
-  } else {
-    int total_failed = 0;
-    for (auto &t : get_tests()) {
+  std::string filter = argc > 1 ? argv[1] : ".*";
+  int total_ran = 0;
+  int total_failed = 0;
+  for (auto &t : get_tests()) {
+    if (std::regex_match(t.name, std::regex(filter))) {
+      ++total_ran;
       if (!run_test(t)) {
         ++total_failed;
       }
     }
-    std::cout << "\n=== Summary: " << (get_tests().size() - total_failed)
-              << " passed, " << total_failed << " failed ===\n";
-    return total_failed == 0 ? 0 : 1;
   }
+  std::cout << "\n=== Summary: " << (total_ran - total_failed)
+            << " passed, " << total_failed << " failed ===\n";
+  return total_failed == 0 ? 0 : 1;
 }
 
 #define ASSERT_THROWS(expression, expected_substring)                          \
@@ -165,8 +160,6 @@ template <typename T> bool approxEqual(T a, T b, double tol = 1e-3) {
     return a == b; // exact for integers
   }
 }
-
-
 
 bool assertEqualVectors(const std::vector<std::vector<double>> &got,
                         const std::vector<std::vector<double>> &expected,
@@ -1378,6 +1371,27 @@ TEST_CASE(convolutions2_grads_propagate) {
     { 10.500, 14.100, 13.200 }
   }));
 
+  // Grads are high!
+  CHECK(assertEqualVectors(dc->bval(), {
+    { 24.400, 29.600, 25.800 },
+    { 40.000, 45.200, 41.400 },
+    { 7.000, 12.200, 8.400 }
+  }));
+
+
+  CHECK(assertEqualVectors(dkernel->bval(), {
+    { 1017.600, 1024.800 },
+    { 1471.200, 1478.400 }
+  }));
+
+  CHECK(assertEqualVectors(dinput->bval(), {
+    { 42.960, 51.780, 51.600 },
+    { 103.980, 112.800, 112.620 },
+    { 116.400, 125.220, 125.040 }
+  }));
+
+
+
   // This time the kernel is fixed, but we apply gradients to the input
   dinput->apply_bval(0.001);
 
@@ -1420,6 +1434,123 @@ TEST_CASE(convolutions2_grads_propagate) {
   }));
 }
 
+
+TEST_CASE(convolutions2_grads_clipping) {
+  Mod3l m;
+
+  Block *dinput = Data(&m, 3, 3);
+  m.set_data(dinput, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  Block *dkernel = Data(&m, 2, 2);
+  m.set_data(dkernel, {
+     { -0.2, 1.1 },
+     { 2.3, 0.4 },
+  });
+
+  Block *dc = Convo2(GradClipper(dinput, 1.0), GradClipper(dkernel, 1.0));
+  Block *dclipper = GradClipper(dc, 1.0);
+
+  CHECK(assertEqualVectors(dc->fval(), {
+   { 13.200, 16.800, 15.900 },
+   { 24.000, 27.600, 26.700 },
+   { 10.500, 14.100, 13.200 }
+  }));
+
+  CHECK(assertEqualVectors(dclipper->fval(), {
+   { 13.200, 16.800, 15.900 },
+   { 24.000, 27.600, 26.700 },
+   { 10.500, 14.100, 13.200 }
+  }));
+
+  // Labels are the same as input, we want to check if kernel will get closer
+  Block *dlabels = Data(&m, 3, 3);
+  m.set_data(dlabels, {
+     {1, 2, 3},
+     {4, 5, 6}, 
+     {7, 8, 9}
+  });
+
+  // Let's have this crazy hand-crafted loss function:
+  Block* loss = Abs(Sum(Sqrt(Dif(dclipper, dlabels))));
+  CHECK(assertEqualVectors(loss->fval(), { { 1940.64 } }));
+
+  // Unclipped grads are high as in the testcase convolutions2_grads_propagate.
+  CHECK(assertEqualVectors(dclipper->bval(), {
+    { 24.400, 29.600, 25.800 },
+    { 40.000, 45.200, 41.400 },
+    { 7.000, 12.200, 8.400 }
+  }));
+
+  CHECK(approxEqual(m.global_grad_norm({dclipper}), 88.105));
+
+  // Grads are much much lower than in the testcase convolutions2_grads_propagate.
+  CHECK(assertEqualVectors(dc->bval(), {
+    { 0.277, 0.336, 0.293 },
+    { 0.454, 0.513, 0.470 },
+    { 0.079, 0.138, 0.095 }
+  }));
+  CHECK(approxEqual(m.global_grad_norm({dc}), 1.0));
+
+  CHECK(assertEqualVectors(dkernel->bval(), {
+    { 0.401, 0.404 },
+    { 0.580, 0.583 }
+    // With no clipping:
+    //{ 1017.600, 1024.800 },
+    //{ 1471.200, 1478.400 }
+  }));
+
+  CHECK(assertEqualVectors(dinput->bval(), {
+    { 0.145, 0.174, 0.174 },
+    { 0.350, 0.380, 0.379 },
+    { 0.392, 0.421, 0.421 }
+  }));
+
+  // This time the kernel is fixed, but we apply gradients to the input
+  dinput->apply_bval(0.01);
+
+  // See if effect is a least abit towards, but much more smoothan without clipping
+  CHECK(assertEqualVectors(loss->fval(), { {1937.67} }));
+  CHECK(assertEqualVectors(dc->fval(), {
+    { 13.189, 16.788, 15.889 },
+    { 23.986, 27.585, 26.686 },
+    { 10.492, 14.092, 13.192 }
+    // Was:
+    // { 13.200, 16.800, 15.900 },
+    // { 24.000, 27.600, 26.700 },
+    // { 10.500, 14.100, 13.200 }
+  }));
+
+  // It takes a little longer to squeeze the input while fixing the kernel
+  // but we can safely operate at higher learning rate than without clipping
+  for(int i = 0; i < 1600; ++i) {
+     dinput->apply_bval(0.01);
+	}
+  CHECK(assertEqualVectors(loss->fval(), { {0.0} }));
+
+  // Kernel is not changed:
+  CHECK(assertEqualVectors(dkernel->fval(), {
+     { -0.2, 1.1 },
+     { 2.3, 0.4 },
+  }));
+
+  // But result of convo is exactly the labels:
+  CHECK(assertEqualVectors(dc->fval(), {
+		{ 1.000, 2.000, 3.000 },
+		{ 4.000, 5.000, 6.000 },
+		{ 7.000, 8.000, 9.000 }
+  }));
+
+  // But the input is barely recognizeable
+  CHECK(assertEqualVectors(dinput->fval(), {
+    { 2.170, 1.914, 2.940 },
+    { -0.211, -0.467, 0.559 },
+    { 1.694, 1.438, 2.464 }
+  }));
+}
 
 TEST_CASE(per_element_block_gradients_smoketest) {
   Mod3l m;
