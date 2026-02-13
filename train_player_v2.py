@@ -141,9 +141,8 @@ def train_single_round(trainee, model_x, model_o, m_student):
     # Backward pass
     #
 
-
     for i in range(TRAIN_ITERATIONS):
-        sloss, k1norm, k2norm = 0, 0, 0
+        sloss, k1norm, k2norm, cnt = 0, 0, 0, 0
         for board, state_value in zip(train_boards, train_values):
             _player = 1 if trainee == "crosses" else -1
             m_student.set_board_and_value(_player, board, state_value)
@@ -166,11 +165,13 @@ def train_single_round(trainee, model_x, model_o, m_student):
             sloss += loss
             k1norm += grad_norm(value(m_student.impl.kernels1.bval()))
             k2norm += grad_norm(value(m_student.impl.kernels2.bval()))
+            cnt += 1
 
         train_loss = calc_loss(_player, m_student, train_boards, train_values)
         if i % 20 == 0:
+            sloss, k1norm, k2norm = sloss/cnt, k1norm/cnt, k2norm/cnt
             print(f"EPOCH {i}: Train loss={train_loss}")
-            print("    Loss: ", loss, " k1norm=", k1norm, "  k2norm=", k2norm)
+            print("    Loss: ", sloss, " k1norm=", k1norm, "  k2norm=", k2norm)
 
 
 def model_name(prefix, family, trainee, version):

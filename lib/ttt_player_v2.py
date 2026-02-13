@@ -19,6 +19,7 @@ from listinvert import (
     Block,
     Data,
     MatMul,
+    GradClipper,
     SSE,
     Abs,
     Add,
@@ -72,10 +73,12 @@ class TTTPlayerV2:
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
     def set_board_and_value(self, player, board, _value=None, policy=None):
         self.impl.m.set_data(self.impl.dinput, board)
-        if _value:
-           self.impl.m.set_data(self.impl.value_label, _value)
-        if policy:
-           self.impl.m.set_data(self.impl.policy_labels, policy)
+
+        _value = _value or 0.5
+        self.impl.m.set_data(self.impl.value_label, _value)
+
+        policy = policy or [ [1/36 for _ in range(36)]]
+        self.impl.m.set_data(self.impl.policy_labels, policy)
 
 
     def save_to_file(self, file_name):
@@ -107,10 +110,13 @@ class TTTPlayerImpl:
        self.kernels1 = Data(self.m, 9, CONVO_CHANNELS)
        self.kernels2 = Data(self.m, 9, CONVO_CHANNELS)
 
-       rl = Reshape(MatMul(Explode(self.dinput, 3, 3), self.kernels1), 6, 6)
+       #rl = MatMul(Explode(self.dinput, 3, 3), self.kernels1)
+       rl = MatMul(Explode(GradClipper(self.dinput, 1.0), 3, 3), GradClipper(self.kernels1, 1.0))
+       rl = Reshape(rl, 6, 6)
        rl = Nonlinearity(rl)
 
-       rl = MatMul(Explode(rl, 3, 3), self.kernels2) # dims:36,CONVO_CHANNELS
+       #rl = MatMul(Explode(rl, 3, 3), self.kernels2) # dims:36,CONVO_CHANNELS
+       rl = MatMul(Explode(GradClipper(rl, 1.0), 3, 3), GradClipper(self.kernels2, 1.0)) # dims:36,CONVO_CHANNELS
        rl = Nonlinearity(rl) 
 
        rl = MatMul(rl, self.fold)  # dims:36,1
