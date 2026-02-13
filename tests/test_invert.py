@@ -2,6 +2,7 @@ import unittest
 from listinvert import (
     Matrix,
     multiply_matrix,
+    GradClipper,
     Mod3l,
     Block,
     Data,
@@ -171,6 +172,41 @@ class TestMod3l(unittest.TestCase):
                 [3.2],
             ],
         )
+
+    def test_mod3l_grad_clipper(self):
+        m = Mod3l()
+
+        dy = Data(m, 1, 2)
+        m.set_data(dy, [[1, 2]])  # true labels
+
+        # "labels"
+        dl = Data(m, 1, 2)
+        m.set_data(dl, [[0, 4]])
+
+        dy_clip = GradClipper(dy, 0.1)
+
+        ds = SSE(dy_clip, dl)
+        Abs(ds)
+
+        self.assertEqual(value(ds.fval()), [[5]])
+
+        # Derivative of loss function is its value is 1.0 (aka df/df)
+        self.assertEqual( value(ds.bval()), [ [1], ],)
+
+        # Derivative of its args
+        self.assertEqual( value(dy_clip.bval()), [ [2, -4] ],)
+        self.assertNearlyEqual( m.global_grad_norm([dy_clip]), 4.472)
+
+        # Clipped derivative
+        self.assertNearlyEqual( value(dy.bval()), [ [0.0447, -0.0894], ],)
+        self.assertNearlyEqual( m.global_grad_norm([dy]), 0.1)
+
+        dy.apply_bval(0.1)
+        self.assertNearlyEqual( value(dy.fval()), [ [0.9955, 2.0089], ],)
+
+        # Calc loss again
+        self.assertNearlyEqual( value(ds.fval()), [ [4.955], ],)
+
 
     def test_mod3l_add(self):
         m = Mod3l()

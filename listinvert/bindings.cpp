@@ -31,7 +31,8 @@ PYBIND11_MODULE(_listinvert, m) {
 
     py::class_<Mod3l>(m, "Mod3l")
         .def(py::init<>())
-        .def("set_data", &Mod3l::set_data);
+        .def("set_data", &Mod3l::set_data)
+        .def("global_grad_norm", &Mod3l::global_grad_norm);
 
     py::class_<Block>(m, "Block")
         .def("apply_bval", &Block::apply_bval)
@@ -50,6 +51,7 @@ PYBIND11_MODULE(_listinvert, m) {
     m.def("Reshape", &Reshape, py::return_value_policy::reference_internal, "SSE loss func");
     m.def("Convo", &Convo, py::return_value_policy::reference_internal, "Convolution block");
     m.def("Convo2", &Convo2, py::return_value_policy::reference_internal, "Convolution block v2.0 - faster");
+    m.def("GradClipper", &GradClipper, py::return_value_policy::reference_internal, "Gradient Clipper block");
     m.def("Explode", &Explode, py::return_value_policy::reference_internal, "Explode block for chaining convolutions");
     m.def("ReLU", &ReLU, py::return_value_policy::reference_internal, "ReLU (leaky) func");
     m.def("Tanh", &Tanh, py::return_value_policy::reference_internal, "Tanh func");
