@@ -507,8 +507,8 @@ class TestPlayerV2(MyTestCase):
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 3.331)
-        self.assertAlmostEqualNested(policy_loss, 3.271)
+        self.assertAlmostEqualNested(value_loss, 3.322)
+        self.assertAlmostEqualNested(policy_loss, 6.146)
 
         for i in range(1200):
             value_before, policy_before = player2.get_loss_value()
@@ -525,7 +525,7 @@ class TestPlayerV2(MyTestCase):
 
         value_loss, policy_loss = player2.get_loss_value()
         self.assertAlmostEqualNested(value_loss, 0.00248)
-        self.assertAlmostEqualNested(policy_loss, 0.908)
+        self.assertAlmostEqualNested(policy_loss, 0.902)
 
         # TODO: get rid of "impl"
         self.assertAlmostEqualNested(value(player2.impl.policy.fval()), [

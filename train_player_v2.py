@@ -148,6 +148,21 @@ def train_single_round(trainee, model_x, model_o, m_student):
             m_student.set_board_and_value(_player, board, state_value)
 
             m_student.calc_grads()
+
+            if m_student.find_nan_grads():
+                # TODO: dump model, SAVE MODEL
+                print("BROOOOOKEN!!!")
+                m_student.save_to_file("BROKEN.json")
+                print("input: ", value(m_student.impl.dinput.fval()))
+                print("value Label: ", value(m_student.impl.value_label.fval()))
+                print("policy labels: ", value(m_student.impl.policy_labels.fval()))
+                print("Grads kernels1: ", value(m_student.impl.kernels1.bval()))
+                print("Grads kernels2: ", value(m_student.impl.kernels2.bval()))
+                print("Output kernels1: ", value(m_student.impl.kernels1.fval()))
+                print("Output kernels2: ", value(m_student.impl.kernels2.fval()))
+                import sys
+                sys.exit()
+
             m_student.apply_gradient(0.001)
 
             loss, policy_loss = m_student.get_loss_value()
@@ -178,6 +193,9 @@ def model_name(prefix, family, trainee, version):
     if family is None:
         return f"{prefix}-{trainee}-{version}.json"
     return f"{prefix}-{trainee}-{family}.{version}.json"
+
+def model_name_duo(prefix, version):
+    return f"{prefix}-{version}.json"
 
 
 def sorted_sample(n, m):
@@ -227,12 +245,12 @@ def versioned_competition(prefix, family, version, trainee):
     #prv_prefix = "models/try_again/model"
     #for prv_v in [1440, 2400]:
     #    opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
-    prv_prefix = "models/cpp/model"
+    prv_prefix = "models/cpp/duomodel"
     for prv_v in [1000, 3000, 13000]:
-        opponents.append(["player", model_name(prv_prefix, None, opponent, prv_v)])
-    prv_prefix = "models/cpp3.001/model"
+        opponents.append(["player", model_name_duo(prv_prefix, prv_v)])
+    prv_prefix = "models/cpp3.001/duomodel"
     for prv_v in [4000]:
-        opponents.append(["player", model_name(prv_prefix, "d", opponent, prv_v)])
+        opponents.append(["player", model_name_duo(prv_prefix, prv_v)])
 
     # This parallelization does not help yet, but let's keep for future improvements
     tasks = []
@@ -364,7 +382,7 @@ def main():
         # Compete and check if student wins now - this is optional and unnecessary here
         # TODO: extract into a separate tool
         #
-        if version % 5 == 0:
+        if version % 1 == 0:
             start_ts = print(f"Competitions for version {version} started")
             for family in families:
               versioned_competition(prefix, family, version, "crosses")

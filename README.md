@@ -1,3 +1,21 @@
+# 2026-02-14
+
+Grad Clipping did not help. But something did - finally trained a new playing model with PlayerV2.
+Likely (neet to be confirmed) the issue was with policy labels always set to all zeroes -
+which is incorrect (must sum up to 1) and possibly sometimes blew up the grads.
+```
+python3 train_player_v2.py --save_to_model models/playerv2/model
+```
+
+It does not REALLY train and plays stubbornly the same, probably 
+due to some bug in game generation - to be found yet. But at least all methods work
+```
+python3 generate_games.py --mode play_single_game \
+  --model_o playerv2:models/playerv2/model-zeroes-a.300.json \
+  --model_x player:models/cpp3.001/duomodel-4000.json \
+  --game_mode greedy
+```
+
 # 2026-02-10
 
 First attempt to fix the convolutional gradient blow up: proper initialization.

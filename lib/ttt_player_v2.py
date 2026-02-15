@@ -92,6 +92,31 @@ class TTTPlayerV2:
         return self.impl.get_loss_value()
 
 
+    # Somehow this function never triggered.
+    # TODO: remove it?
+    def find_nan_grads(self):
+       def contains_nan(block):
+           return any(math.isnan(x) for row in value(block.bval()) for x in row)
+
+       impl = self.impl
+       blocks = {
+           "w_policy": impl.w_policy,
+           "b_policy": impl.b_policy,
+           "w_value1": impl.w_value1,
+           "b_value1": impl.b_value1,
+           "w_value": impl.w_value,
+           "b_value": impl.b_value,
+           "kernel1": impl.kernels1,
+           "kernel2": impl.kernels2,
+           "fold":    impl.fold,
+       }
+       for name, block in blocks.items():
+           if contains_nan(block):
+               print(f"Block {name} contains nan!")
+               return True
+       return False
+
+
 # Single side player based on board position value
 # Can play either for X xor for O, but not both
 # Became private implementation detail, not to be used directly
@@ -110,13 +135,13 @@ class TTTPlayerImpl:
        self.kernels1 = Data(self.m, 9, CONVO_CHANNELS)
        self.kernels2 = Data(self.m, 9, CONVO_CHANNELS)
 
-       #rl = MatMul(Explode(self.dinput, 3, 3), self.kernels1)
-       rl = MatMul(Explode(GradClipper(self.dinput, 1.0), 3, 3), GradClipper(self.kernels1, 1.0))
+       rl = MatMul(Explode(self.dinput, 3, 3), self.kernels1)
+       #rl = MatMul(Explode(GradClipper(self.dinput, 1.0), 3, 3), GradClipper(self.kernels1, 1.0))
        rl = Reshape(rl, 6, 6)
        rl = Nonlinearity(rl)
 
-       #rl = MatMul(Explode(rl, 3, 3), self.kernels2) # dims:36,CONVO_CHANNELS
-       rl = MatMul(Explode(GradClipper(rl, 1.0), 3, 3), GradClipper(self.kernels2, 1.0)) # dims:36,CONVO_CHANNELS
+       rl = MatMul(Explode(rl, 3, 3), self.kernels2) # dims:36,CONVO_CHANNELS
+       #rl = MatMul(Explode(GradClipper(rl, 1.0), 3, 3), GradClipper(self.kernels2, 1.0)) # dims:36,CONVO_CHANNELS
        rl = Nonlinearity(rl) 
 
        rl = MatMul(rl, self.fold)  # dims:36,1
@@ -149,8 +174,10 @@ class TTTPlayerImpl:
        else:
            # Convolutions should be initialized very carefully to prevent gradient crazyness
            # TODO: add batch normalization and gradient clipping
-           self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
-           self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
+           #self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
+           #self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS, 0.0005))
+           self.m.set_data(self.kernels1, ml.random_matrix(9, CONVO_CHANNELS, 1.0))
+           self.m.set_data(self.kernels2, ml.random_matrix(9, CONVO_CHANNELS, 1.0))
 
            self.m.set_data(self.w_policy, ml.random_matrix(36, 36))
            self.m.set_data(self.b_policy, ml.random_matrix(1, 36))
@@ -163,7 +190,8 @@ class TTTPlayerImpl:
            # the game debugging test entirely (just because of different values).
            # A better test and initialization is needed to make sure the training is more or less
            # stable
-           self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 0.1))
+           #self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 0.1))
+           self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 1.0))
 
 
     def parse_model_file(self, file_name):

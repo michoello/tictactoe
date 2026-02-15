@@ -1,0 +1,4 @@
+{
+    "model_x": "models/cpp/model-crosses-3000.json", 
+    "model_o": "models/cpp/model-zeroes-3000.json"
+}
