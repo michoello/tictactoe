@@ -156,6 +156,7 @@ class TTTPlayerImpl:
 
        self.policy_labels = Data(self.m, 1, 36)
        self.policy_loss = SoftMaxCrossEntropy(self.policy_logits, self.policy, self.policy_labels)
+       self.rl1 = self.policy # !!!
 
        # Value
        self.w_value1 = Data(self.m, 36, 36)
@@ -261,7 +262,8 @@ class TTTPlayerImpl:
 
     def get_next_step_value(self, board):
         self.m.set_data(self.dinput, board)
-        step_value = value(self.value_label.fval())
+        #step_value = value(self.value_label.fval())
+        step_value = value(self.value.fval())
         return step_value[0][0] 
 
     def get_loss_value(self):

@@ -377,6 +377,8 @@ class Game:
         self.model_x = model_x
         self.model_o = model_o
 
+    # Returns coordinates of next step and the policy 6*6 matrix
+    # Args: board, next_move is 1 for Xs, -1 for Os
     def best_greedy_step(self, board, next_move):
 
         boards = board.all_next_steps(next_move)
@@ -386,11 +388,15 @@ class Game:
         best = -100 if next_move == 1 else 100
         best_xy = (-1, -1)
         m = self.model_x if next_move == 1 else self.model_o
+        
+        greedy_policy = [[0 for _ in range(6)] for _ in range(6)]
 
         for board, row, col in boards:
             value = m.get_next_step_value(next_move, board.state)
             if value is None:
                 continue
+
+            greedy_policy[row][col] = value
 
             if next_move == 1 and value > best:
                 best = value
@@ -399,7 +405,7 @@ class Game:
                 best = value
                 best_xy = (row, col)
 
-        return best_xy[0], best_xy[1]
+        return best_xy[0], best_xy[1], greedy_policy
 
 
     def best_mcts_step(self, game_state, num_simulations):
@@ -459,7 +465,7 @@ class Game:
             return game_state
 
         else:
-            row, col = self.best_greedy_step(board, next_move)
+            row, col, policy = self.best_greedy_step(board, next_move)
 
 
         game_state = GameState(

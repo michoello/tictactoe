@@ -15,6 +15,9 @@ python3 generate_games.py --mode play_single_game \
   --model_x player:models/cpp3.001/duomodel-4000.json \
   --game_mode greedy
 ```
+*UPD from 2026-02-15* omg the bug was so stupid -- PlayerV2 always returned a label instead of prediction.
+    Fixed and unittest added
+
 
 # 2026-02-10
 

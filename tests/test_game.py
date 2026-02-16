@@ -476,7 +476,7 @@ class TestPlayerV2(MyTestCase):
     # Add needed methods, update needed methods, init with rands, and test 
     # actual game and training
     #
-    def test_debugging(self):
+    def test_training_single_datapoint(self):
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -484,26 +484,31 @@ class TestPlayerV2(MyTestCase):
             "random.shuffle", new=rng.shuffle
       ):
         player2 = tttv2.TTTPlayerV2()
+
+        train_board = [
+           [1, 0, 0, 0, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0, 0,-1],
+           [0, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0, 0, 0],
+        ]
+        train_value = [[1.0]]
+        train_policy = [
+            [  0, 0, 0, 0, 0,   0] +
+            [  0, 0, 0, 0, 0.6, 0] +
+            [  0, 0, 0, 0, 0,   0] +
+            [0.3, 0, 0, 0, 0,   0] +
+            [  0, 0, 0, 0, 0,   0] +
+            [  0, 0, 0, 0, 0, 0.1]
+        ]
+        next_player = 1
+
         player2.set_board_and_value(
-            player = 1,
-            board = [
-                [1, 0, 0, 0, 0, 0],
-                [1, 0, 0, 0, 0,-1],
-                [1, 0, 0, 0, 0,-1],
-                [0, 0, 0, 0, 0,-1],
-                [1, 0, 0, 0, 0,-1],
-                [1, 0, 0, 0, 0, 0],
-            ],
-            _value = [[1]],
-            policy = [
-                [0, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0.6, 0] +
-                [0, 0, 0, 0, 0, 0] +
-                [0.3, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0,0.1]
-              ]
-            
+            player = next_player,
+            board = train_board,
+            _value = train_value,
+            policy = train_policy,
         )
  
         value_loss, policy_loss = player2.get_loss_value()
@@ -528,14 +533,59 @@ class TestPlayerV2(MyTestCase):
         self.assertAlmostEqualNested(policy_loss, 0.902)
 
         # TODO: get rid of "impl"
-        self.assertAlmostEqualNested(value(player2.impl.policy.fval()), [
-                [0, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0.6, 0] +
-                [0, 0, 0, 0, 0, 0] +
-                [0.3, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0, 0] +
-                [0, 0, 0, 0, 0,0.1]
-              ], delta=0.01)
+        self.assertAlmostEqualNested(value(player2.impl.policy.fval()), train_policy, delta=0.01)
+
+    def test_game_greedy_steps(self):
+      rng = SimpleRNG(seed=45)
+      with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+      ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+      ):
+        player2 = tttv2.TTTPlayerV2()
+
+        # Now check some of the Game methods
+        model_x = player2
+        model_o = player2
+        g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "greedy")
+
+        train_board = [
+           [1, 0,-1, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [0, 0, 1, 0, 0,-1],
+           [0,-1, 0, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0,-1, 0],
+        ]
+ 
+        
+        val = player2.get_next_step_value(1, train_board)
+        """
+        impl  = player2.impl
+        impl.m.set_data(impl.dinput, train_board)
+        print()
+        print("input: ", value(impl.dinput.fval()))
+        print("rl1: ", value(impl.rl1.fval()))
+        print("VALUE: ", value(impl.value.fval()))
+        print()
+        """
+
+        # Note the step is not done by this call, it only returns coordinates
+        # X to win
+        row, col, greedy_policy = g.best_greedy_step(game.Board(train_board), 1)
+        #self.assertAlmostEqual(row, 0)
+        #self.assertAlmostEqual(col, 1)
+        #print(greedy_policy)
+        self.assertAlmostEqualNested(greedy_policy, [
+         [0, -0.839, 0, 0, -0.812, -0.812],
+         [0, -0.850, -0.792, -0.809, -0.812, 0],
+         [-0.797, -0.845, 0, -0.812, -0.812, 0],
+         [-0.812, 0, -0.812, 0, -0.812, -0.812],
+         [0, -0.812, -0.812, -0.812, -0.812, 0],
+         [0, -0.812, -0.812, -0.812, 0, -0.812]
+        ])
+
+        #self.assertAlmostEqualNested(greedy_policy, [[0 for _ in range(6)] for _ in range(6)])
 
 
     def test_training_player_and_game_v2(self):
@@ -559,34 +609,33 @@ class TestPlayerV2(MyTestCase):
 
             g = game.Game(random_model, random_model)
 
-            #test_boards, test_values = g.generate_batch_from_games(20)
+            test_boards, test_values = g.generate_batch_from_games(20)
 
-            total_epochs = 50
+            total_epochs = 20
             for epoch in range(total_epochs):
                 #if epoch % 2 == 0:
                 g = game.Game(m, random_model)
                 #else:
                 #  g = game.Game(random_model, m)
                   
-
                 train_boards, train_values = g.generate_batch_from_games(20)
-                test_boards, test_values = g.generate_batch_from_games(20)
 
-                for i in range(4):
+                for i in range(20):
                     train_loss = 0
                     for board, val in zip(train_boards, train_values):
                         m.set_board_and_value( 1, board, val)
                         m.apply_gradient(0.001)
                         train_loss = train_loss + m.get_loss_value()[0]
 
+                if epoch % 2 == 0:
                     test_loss = 0
                     for board, val in zip(test_boards, test_values):
                         m.set_board_and_value( 1, board, val)
                         test_loss = test_loss + m.get_loss_value()[0]
+                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
                 if epoch % 10 == 0:
                     m.save_to_file(trained_model)
-                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
             print("Playing...")
             trained_model = tttv2.TTTPlayerV2(trained_model)
