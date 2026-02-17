@@ -485,11 +485,12 @@ class Game:
 
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
-    def play_game(self):
-        board = Board(game_type=self.game_type)
+    def play_game(self, start_board=None):
+        if start_board is None:
+            start_board = Board(game_type=self.game_type)
         steps = []
 
-        init_state = GameState(board=board.copy(), last_move=-1, x=None, y=None, step_no=0)
+        init_state = GameState(board=start_board.copy(), last_move=-1, x=None, y=None, step_no=0)
         steps.append(init_state)
         while steps[-1].winner is None:
             prev_state = steps[-1]

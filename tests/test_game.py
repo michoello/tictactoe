@@ -535,7 +535,95 @@ class TestPlayerV2(MyTestCase):
         # TODO: get rid of "impl"
         self.assertAlmostEqualNested(value(player2.impl.policy.fval()), train_policy, delta=0.01)
 
-    def test_game_greedy_steps(self):
+
+    def test_game_greedy_steps_v1(self):
+      rng = SimpleRNG(seed=45)
+      with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+      ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+      ):
+        player1 = ttt.TTTPlayer()
+
+        # Now check some of the Game methods
+        model_x = player1
+        model_o = player1
+        g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "greedy")
+
+        board_step_0 = [
+           [1, 0,-1, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [0, 0, 1, 0, 0,-1],
+           [0,-1, 0, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0,-1, 0],
+        ]
+ 
+        # Note the step is not done by this call, it only returns coordinates
+        # X to win
+        row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_0), 1)
+        self.assertAlmostEqual(row, 1)
+        self.assertAlmostEqual(col, 2)
+        # TODO: softmax it. currently it it's just values
+        self.assertAlmostEqualNested(greedy_policy, [
+           [0, -0.979, 0, 0, -0.977, -0.971],
+           [0, -0.978, -0.969, -0.975, -0.977, 0],
+           [-0.977, -0.975, 0, -0.977, -0.975, 0],
+           [-0.970, 0, -0.978, 0, -0.978, -0.973],
+           [0, -0.985, -0.977, -0.976, -0.979, 0],
+           [0, -0.981, -0.980, -0.974, 0, -0.973]
+        ], delta=1e-2)
+
+        board_step_1 = [
+           [1, 0,-1, 1, 0, 0],
+           [1, 0, 1, 0, 0,-1],  # <- here in the column 2 model thinks X will sit the best
+           [0, 0, 1, 0, 0,-1],
+           [0,-1, 0, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0,-1, 0],
+        ]
+
+        # Now the same, but the next step is O's
+        row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_1), -1)
+        self.assertAlmostEqual(row, 2)
+        self.assertAlmostEqual(col, 1)
+        # TODO: softmax it. currently it it's just values
+        self.assertAlmostEqualNested(greedy_policy, [
+           [0, -0.449, 0, 0, -0.259, -0.306],
+           [0, -0.350, 0, -0.331, -0.437, 0],
+           [-0.427, -0.540, 0, -0.453, -0.410, 0],
+           [-0.359, 0, -0.466, 0, -0.477, -0.442],
+           [0, -0.253, -0.290, -0.319, -0.429, 0],
+           [0, -0.470, -0.301, -0.312, 0, -0.373]
+        ], delta=1e-2)
+
+  
+        board_step_2 = [
+           [1, 0,-1, 1, 0, 0],
+           [1, 0, 1, 0, 0,-1], 
+           [0,-1, 1, 0, 0,-1], # <- here in the column 1 the model thinks O is the best reply
+           [0,-1, 0, 1, 0, 0],
+           [1, 0, 0, 0, 0,-1],
+           [1, 0, 0, 0,-1, 0],
+        ]
+
+        # Now let's play the full game and check that the first two steps are exactly the same:
+        steps = g.play_game(start_board=game.Board(board_step_0))
+        self.assertAlmostEqual(len(steps), 5)
+        
+        self.assertAlmostEqualNested(steps[0].board.state, board_step_1)
+        self.assertAlmostEqualNested(steps[0].reward, [[0.656]])
+        
+        self.assertAlmostEqualNested(steps[1].board.state, board_step_2)
+        self.assertAlmostEqualNested(steps[1].reward, [[0.729]])
+
+        steps[-1].print_state()
+        self.assertAlmostEqualNested(steps[-1].reward, [[1.0]])
+
+
+
+
+    def test_game_greedy_steps_v2(self):
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -558,24 +646,12 @@ class TestPlayerV2(MyTestCase):
            [1, 0, 0, 0,-1, 0],
         ]
  
-        
-        val = player2.get_next_step_value(1, train_board)
-        """
-        impl  = player2.impl
-        impl.m.set_data(impl.dinput, train_board)
-        print()
-        print("input: ", value(impl.dinput.fval()))
-        print("rl1: ", value(impl.rl1.fval()))
-        print("VALUE: ", value(impl.value.fval()))
-        print()
-        """
-
         # Note the step is not done by this call, it only returns coordinates
         # X to win
         row, col, greedy_policy = g.best_greedy_step(game.Board(train_board), 1)
-        #self.assertAlmostEqual(row, 0)
-        #self.assertAlmostEqual(col, 1)
-        #print(greedy_policy)
+        self.assertAlmostEqual(row, 1)
+        self.assertAlmostEqual(col, 2)
+        # TODO: softmax it. currently it it's just values
         self.assertAlmostEqualNested(greedy_policy, [
          [0, -0.839, 0, 0, -0.812, -0.812],
          [0, -0.850, -0.792, -0.809, -0.812, 0],
@@ -584,8 +660,6 @@ class TestPlayerV2(MyTestCase):
          [0, -0.812, -0.812, -0.812, -0.812, 0],
          [0, -0.812, -0.812, -0.812, 0, -0.812]
         ])
-
-        #self.assertAlmostEqualNested(greedy_policy, [[0 for _ in range(6)] for _ in range(6)])
 
 
     def test_training_player_and_game_v2(self):

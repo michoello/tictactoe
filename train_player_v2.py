@@ -149,19 +149,19 @@ def train_single_round(trainee, model_x, model_o, m_student):
 
             m_student.calc_grads()
 
-            if m_student.find_nan_grads():
-                # TODO: dump model, SAVE MODEL
-                print("BROOOOOKEN!!!")
-                m_student.save_to_file("BROKEN.json")
-                print("input: ", value(m_student.impl.dinput.fval()))
-                print("value Label: ", value(m_student.impl.value_label.fval()))
-                print("policy labels: ", value(m_student.impl.policy_labels.fval()))
-                print("Grads kernels1: ", value(m_student.impl.kernels1.bval()))
-                print("Grads kernels2: ", value(m_student.impl.kernels2.bval()))
-                print("Output kernels1: ", value(m_student.impl.kernels1.fval()))
-                print("Output kernels2: ", value(m_student.impl.kernels2.fval()))
-                import sys
-                sys.exit()
+            #if m_student.find_nan_grads():
+            #    # TODO: dump model, SAVE MODEL
+            #    print("BROOOOOKEN!!!")
+            #    m_student.save_to_file("BROKEN.json")
+            #    print("input: ", value(m_student.impl.dinput.fval()))
+            #    print("value Label: ", value(m_student.impl.value_label.fval()))
+            #    print("policy labels: ", value(m_student.impl.policy_labels.fval()))
+            #    print("Grads kernels1: ", value(m_student.impl.kernels1.bval()))
+            #    print("Grads kernels2: ", value(m_student.impl.kernels2.bval()))
+            #    print("Output kernels1: ", value(m_student.impl.kernels1.fval()))
+            #    print("Output kernels2: ", value(m_student.impl.kernels2.fval()))
+            #    import sys
+            #    sys.exit()
 
             m_student.apply_gradient(0.001)
 
