@@ -53,7 +53,7 @@ class TTTPlayer:
 
     def get_next_step_value(self, player, board):
         impl = self.model_x if player == 1 else self.model_o
-        return impl.get_next_step_value(board)
+        return player * impl.get_next_step_value(board)
 
     def calc_grads(self):
         self.model_x.calc_grads()

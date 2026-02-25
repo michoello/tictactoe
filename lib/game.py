@@ -385,7 +385,8 @@ class Game:
         if len(boards) == 0:
             return None, None, None
 
-        best = -100 if next_move == 1 else 100
+        #best = -100 if next_move == 1 else 100
+        best = -100
         best_xy = (-1, -1)
         m = self.model_x if next_move == 1 else self.model_o
         
@@ -398,10 +399,7 @@ class Game:
 
             greedy_policy[row][col] = value
 
-            if next_move == 1 and value > best:
-                best = value
-                best_xy = (row, col)
-            if next_move == -1 and value < best:
+            if value > best:
                 best = value
                 best_xy = (row, col)
 
