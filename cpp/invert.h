@@ -476,8 +476,28 @@ static Block *MulEl(Block *a, double n) {
          [n](double _) { return n; });
 }
 
+// Per element multiply of two matrices.
+// Currently implemented only for 1*1 second matrix.
+static Block *MulEl2(Block *a, Block* b) {
+  // TODO: check b dimensions
+  auto *res = new Block({a, b}, a->rows(), a->cols());
+
+  res->set_fowd_fun([=](Matrix *out) {
+    double n = b->fval().get(0, 0);
+    for_each_ella([n](double i, double& o) { o = i * n; }, a->fval(), *out);
+  });
+
+  a->add_bawd_fun([b, res](Matrix *out) {
+    double n = b->fval().get(0, 0);
+    for_each_ella([n](double &grad_out) { grad_out = n; }, *out);
+  });
+
+  return res;
+}
+
+
 static Block *Add(Block *a1, Block *a2) {
-  auto *res = new Block({a1, a2}, a1->fval().rows, a1->fval().cols);
+  auto *res = new Block({a1, a2}, a1->rows(), a1->cols());
 
   res->set_fowd_fun([=](Matrix *out) {
     for_each_ella([](double a, double b, double &c) { c = a + b; }, a1->fval(),
@@ -497,7 +517,7 @@ static Block *Add(Block *a1, Block *a2) {
   return res;
 };
 
-// Difference
+// Difference - made it too complex just to check if blocks combine correctly
 static Block *Dif(Block *a1, Block *a2) { return Add(a1, MulEl(a2, -1)); };
 
 // This implementation does not respect rows of matrix,
@@ -648,7 +668,3 @@ static Block *BCE(Block *a1, Block *a2) {
 
   return res;
 }
-
-
-
-

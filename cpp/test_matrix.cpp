@@ -512,18 +512,19 @@ TEST_CASE(dif_matrix) {
 TEST_CASE(mul_el) {
   Mod3l m;
   Block *da = Data(&m, 2, 3);
+  Block *dn = Data(&m, 1, 1);
+  Block *db = MulEl2(da, dn);
 
   m.set_data(da, {{1, 2, 3}, {4, 5, 6}});
 
-  Block *db = MulEl(da, 2);
-  Block *dc = MulEl(db, -1);
-
+  m.set_data(dn, {{2}});
   CHECK(assertEqualVectors(db->fval(), {
                                            {2, 4, 6},
                                            {8, 10, 12},
                                        }));
 
-  CHECK(assertEqualVectors(dc->fval(), {
+  m.set_data(dn, {{-2}});
+  CHECK(assertEqualVectors(db->fval(), {
                                            {-2, -4, -6},
                                            {-8, -10, -12},
                                        }));
