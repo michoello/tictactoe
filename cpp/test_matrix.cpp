@@ -139,7 +139,7 @@ TEST_CASE(multiply) {
   assert(C.get(1, 1) == 50);
 }
 
-TEST_CASE(shared_data) {
+TEST_CASE(value_semantics) {
   Matrix A(2, 2);
   A.set_data({{1, 2}, {3, 4}});
 
@@ -150,7 +150,7 @@ TEST_CASE(shared_data) {
   assert(B.rows == 2);
   assert(B.cols == 2);
   assert(B.get(0, 0) == 1);
-  assert(B.get(1, 1) == 5);
+  assert(B.get(1, 1) == 4);
 }
 
 template <typename T> bool approxEqual(T a, T b, double tol = 1e-3) {

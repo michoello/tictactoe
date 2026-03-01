@@ -67,15 +67,17 @@ struct Block {
 
   template <typename F> void set_fowd_fun(F &&f) { fowd_fun.set_fun(f); }
   template <typename F> void add_bawd_fun(F &&f) {
-    auto ff = [prev_one = bawd_fun, f](Matrix *out) mutable {
+    size_t rows = bawd_fun.mtx.rows;
+    size_t cols = bawd_fun.mtx.cols;
+    auto ff = [prev_one = std::move(bawd_fun), f = std::forward<F>(f)](Matrix *out) mutable {
         prev_one.is_calculated = false;
         prev_one.calc();
         f(out);
         for_each_ella([](double p, double &out) { out += p; }, prev_one.val(), *out);
       };
 
-    bawd_fun = LazyFunc(bawd_fun.mtx.rows, bawd_fun.mtx.cols);
-    bawd_fun.set_fun(ff);
+    bawd_fun = LazyFunc(rows, cols);
+    bawd_fun.set_fun(std::move(ff));
 
     // The graph updated, invalidate all values
     reset_model();
@@ -156,14 +158,15 @@ static Block *MatMul(Block *inputs, Block *weights) {
   Block *res = new Block({inputs, weights}, in.rows, w.cols);
 
   res->set_fowd_fun([=](Matrix *out) {
-    auto [in, w] = std::tuple(inputs->fval(), weights->fval());
+    const Matrix &in = inputs->fval();
+    const Matrix &w = weights->fval();
     multiply_matrix(in,   // m, n
                     w,    // n, k
                     out); // m, k
   });
 
   inputs->add_bawd_fun([=](Matrix *dinputs) {
-    auto [in, w] = std::pair(inputs->fval(), weights->fval());
+    const Matrix &w = weights->fval();
     const Matrix &dout = res->bval();
     multiply_matrix(dout,              // m, k
                     TransposedView(w), // k, n
@@ -171,7 +174,7 @@ static Block *MatMul(Block *inputs, Block *weights) {
   });
 
   weights->add_bawd_fun([=](Matrix *dweights) {
-    auto [in, w] = std::pair(inputs->fval(), weights->fval());
+    const Matrix &in = inputs->fval();
     const Matrix &dout = res->bval();
     multiply_matrix(TransposedView(in), // n, m
                     dout,               // m, k
