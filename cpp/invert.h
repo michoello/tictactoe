@@ -517,8 +517,27 @@ static Block *Add(Block *a1, Block *a2) {
   return res;
 };
 
-// Difference - made it too complex just to check if blocks combine correctly
-static Block *Dif(Block *a1, Block *a2) { return Add(a1, MulEl(a2, -1)); };
+// Difference - made it straight and plain
+static Block *Dif(Block *a1, Block *a2) {
+  auto *res = new Block({a1, a2}, a1->rows(), a1->cols());
+
+  res->set_fowd_fun([=](Matrix *out) {
+    for_each_ella([](double a, double b, double &c) { c = a - b; }, a1->fval(),
+                  a2->fval(), *out);
+  });
+
+  a1->add_bawd_fun([res](Matrix *out) {
+    for_each_ella([](double grad_in, double &grad_out) { grad_out = grad_in; },
+                  res->bval(), *out);
+  });
+
+  a2->add_bawd_fun([res](Matrix *out) {
+    for_each_ella([](double grad_in, double &grad_out) { grad_out = -grad_in; },
+                  res->bval(), *out);
+  });
+
+  return res;
+}
 
 // This implementation does not respect rows of matrix,
 //and calculates the softmax over entire matrix
