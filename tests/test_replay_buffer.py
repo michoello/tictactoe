@@ -6,13 +6,13 @@ from unittest.mock import patch
 
 
 class TestReplayBuffer(unittest.TestCase):
-    def test_buffer_never_exceeds_max_size(self):
+    def test_buffer_never_exceeds_max_size(self) -> None:
         buf = replay_buffer.ReplayBuffer(max_size=10)
         for i in range(100):
             buf.maybe_add(i)
         self.assertLessEqual(len(buf.buffer), 10)
 
-    def test_get_random_returns_item_from_buffer(self):
+    def test_get_random_returns_item_from_buffer(self) -> None:
         buf = replay_buffer.ReplayBuffer(max_size=3)
         buf.maybe_add("a")
         buf.maybe_add("b")
@@ -20,14 +20,14 @@ class TestReplayBuffer(unittest.TestCase):
         random_item = buf.get_random()
         self.assertIn(random_item, buf.buffer)
 
-    def test_get_uniformity(self):
+    def test_get_uniformity(self) -> None:
         buf = replay_buffer.ReplayBuffer(max_size=5)
         trials = 100_000
         for i in range(trials):
             buf.maybe_add(i)
 
         # Count how often each item is selected
-        counts = Counter()
+        counts: Counter[int] = Counter()
         for _ in range(10_000):
             item = buf.get_random()
             counts[item] += 1
@@ -38,7 +38,7 @@ class TestReplayBuffer(unittest.TestCase):
         max_count = max(counts.values())
         self.assertLess(max_count - min_count, 0.2 * max_count)
 
-    def test_maybe_add_bucket_distribution(self):
+    def test_maybe_add_bucket_distribution(self) -> None:
 
         rng = SimpleRNG(seed=42)  # best so far
         with patch("random.randint", new=rng.randint):

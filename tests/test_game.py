@@ -1,4 +1,5 @@
 import unittest
+from typing import Any
 from lib import ml
 from lib import game
 import tempfile
@@ -32,14 +33,15 @@ from listinvert import (
 )
 
 
-def DData(mod3l, rows, cols, values):
+def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
     return res
 
 
 class MyTestCase(unittest.TestCase):
-    def assertAlmostEqualNested(self, a, b, delta=1e-3):
+    from typing import Any
+    def assertAlmostEqualNested(self, a: Any, b: Any, delta: float = 1e-3) -> None:
         if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
             self.assertEqual(len(a), len(b), "Lengths differ")
             for x, y in zip(a, b):
@@ -49,7 +51,7 @@ class MyTestCase(unittest.TestCase):
 
 class TestTrainingCycle(MyTestCase):
 
-    def test_omg(self):
+    def test_omg(self) -> None:
         x = [[1, 2]]
         w1 = [[3, 4, 5], [6, 7, 8]]
         w_wrong = [[3, 4, 5]]
@@ -81,7 +83,7 @@ class TestTrainingCycle(MyTestCase):
         # Check that yy (which is xx @ ww) is also updated
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
-    def test_training_player_and_game_cpp(self):
+    def test_training_player_and_game_cpp(self) -> None:
         rng = SimpleRNG(seed=45)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -131,23 +133,23 @@ class TestTrainingCycle(MyTestCase):
 
 
             print("Playing...")
-            trained_model = ttt.TTTPlayer(trained_model, enable_cpp=True)
+            trained_model_obj = ttt.TTTPlayer(trained_model, enable_cpp=True)
 
             # ctw = crosses_trained_winners
-            g = game.Game(trained_model, random_model)
+            g = game.Game(trained_model_obj, random_model)
             ctw = g.competition(20)
             print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
             self.assertGreater(ctw[1], ctw[-1])
 
             # ztw = zeroes_trained_winners
-            g = game.Game(random_model, trained_model)
+            g = game.Game(random_model, trained_model_obj)
             ztw = g.competition(20)
             print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
             self.assertLess(ztw[1], ztw[-1])
 
 
 
-    def test_mod3l_sse_with_grads(self):
+    def test_mod3l_sse_with_grads(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 1, 2)
@@ -193,7 +195,7 @@ class TestTrainingCycle(MyTestCase):
             ],
         )
 
-    def test_training_player_single_iter(self):
+    def test_training_player_single_iter(self) -> None:
         rng = SimpleRNG(seed=1)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -216,7 +218,7 @@ class TestTrainingCycle(MyTestCase):
             self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.631000]], 1e-6)
 
 
-    def test_py_cpp_models_compare(self):
+    def test_py_cpp_models_compare(self) -> None:
         rng = SimpleRNG(seed=1)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -286,7 +288,7 @@ class TestTrainingCycle(MyTestCase):
         self.assertAlmostEqualNested(value(m_cpp2.model_x.loss.fval()), m_py2.model_x.loss.val(), 1e-3)
 
 
-    def test_ratings(self):
+    def test_ratings(self) -> None:
         rats = ratings.elo_ratings([ ('a', 1, 'b', 0) ])
         self.assertAlmostEqual(rats['a'], 1510)
         self.assertAlmostEqual(rats['b'], 1490)
@@ -297,7 +299,7 @@ class TestTrainingCycle(MyTestCase):
 
 
 class TestMcts(MyTestCase):
-    def test_terminal_win(self):
+    def test_terminal_win(self) -> None:
 
        # Models don't matter here as we test terminal states behavior which is fixed
        model_x = ttt.TTTPlayer(enable_cpp=True)
@@ -318,18 +320,18 @@ class TestMcts(MyTestCase):
        # X to win
        game_state_x = game.GameState(board.copy(), 1)
        row, col = g.best_mcts_step(game_state_x, 100)
-       self.assertAlmostEqual([row, col], [2, 2])
+       self.assertEqual([row, col], [2, 2])
        self.assertAlmostEqualNested(game_state_x.winner, 1)
        self.assertAlmostEqualNested(game_state_x.xyo, [(2, 2), (3, 3), (4, 4), (5, 5)])
 
        # Put O to first row to win
        game_state_o = game.GameState(board.copy(), -1)
        row, col = g.best_mcts_step(game_state_o, 100)
-       self.assertAlmostEqual([row, col], [0, 4])
+       self.assertEqual([row, col], [0, 4])
        self.assertAlmostEqualNested(game_state_o.winner, -1)
        self.assertAlmostEqualNested(game_state_o.xyo, [ (0, 2), (0, 3), (0, 4), (0, 5)])
 
-    def test_terminal_defense(self):
+    def test_terminal_defense(self) -> None:
 
        rng = SimpleRNG(seed=2)
        with patch("random.random", new=rng.random):
@@ -381,7 +383,7 @@ class TestMcts(MyTestCase):
        # - test tie
 
     # Clone of cpp testcase larger_model
-    def test_larger_model(self):
+    def test_larger_model(self) -> None:
         m = Mod3l()
         dinput = Data(m, 3, 3)
         m.set_data(
@@ -476,7 +478,7 @@ class TestPlayerV2(MyTestCase):
     # Add needed methods, update needed methods, init with rands, and test 
     # actual game and training
     #
-    def test_training_single_datapoint(self):
+    def test_training_single_datapoint(self) -> None:
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -536,7 +538,7 @@ class TestPlayerV2(MyTestCase):
         self.assertAlmostEqualNested(value(player2.impl.policy.fval()), train_policy, delta=0.01)
 
 
-    def test_game_greedy_steps_v1(self):
+    def test_game_greedy_steps_v1(self) -> None:
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -562,6 +564,7 @@ class TestPlayerV2(MyTestCase):
         # Note the step is not done by this call, it only returns coordinates
         # X to win
         row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_0), 1)
+        assert row is not None and col is not None
         self.assertAlmostEqual(row, 1)
         self.assertAlmostEqual(col, 2)
         # TODO: softmax it. currently it it's just values
@@ -585,6 +588,7 @@ class TestPlayerV2(MyTestCase):
 
         # Now the same, but the next step is O's
         row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_1), -1)
+        assert row is not None and col is not None
         self.assertAlmostEqual(row, 2)
         self.assertAlmostEqual(col, 1)
         # TODO: softmax it. currently it it's just values
@@ -623,7 +627,7 @@ class TestPlayerV2(MyTestCase):
 
 
 
-    def test_game_greedy_steps_v2(self):
+    def test_game_greedy_steps_v2(self) -> None:
       rng = SimpleRNG(seed=45)
       with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -649,6 +653,7 @@ class TestPlayerV2(MyTestCase):
         # Note the step is not done by this call, it only returns coordinates
         # X to win
         row, col, greedy_policy = g.best_greedy_step(game.Board(train_board), 1)
+        assert row is not None and col is not None
         self.assertAlmostEqual(row, 1)
         self.assertAlmostEqual(col, 2)
         # TODO: softmax it. currently it it's just values
@@ -662,7 +667,7 @@ class TestPlayerV2(MyTestCase):
         ])
 
 
-    def test_training_player_and_game_v2(self):
+    def test_training_player_and_game_v2(self) -> None:
         rng = SimpleRNG(seed=44)
         with patch("random.random", new=rng.random), patch(
             "random.randint", new=rng.randint
@@ -712,16 +717,16 @@ class TestPlayerV2(MyTestCase):
                     m.save_to_file(trained_model)
 
             print("Playing...")
-            trained_model = tttv2.TTTPlayerV2(trained_model)
+            trained_model_obj = tttv2.TTTPlayerV2(trained_model)
 
             # ctw = crosses_trained_winners
-            g = game.Game(trained_model, random_model)
+            g = game.Game(trained_model_obj, random_model)
             ctw = g.competition(20)
             print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
             self.assertGreater(ctw[1], ctw[-1])
 
             # ztw = zeroes_trained_winners
-            g = game.Game(random_model, trained_model)
+            g = game.Game(random_model, trained_model_obj)
             ztw = g.competition(20)
             print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
             # TODO: uncomment. There is a lot to do to make it work yet ahead

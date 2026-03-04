@@ -6,9 +6,9 @@ from utils import roughlyEqual
 
 class TestHelloWorld(unittest.TestCase):
 
-    def test_basic_ops(self):
+    def test_basic_ops(self) -> None:
         x = [[1, 2]]
-        w1 = [[3, 4, 5], [6, 7, 8]]
+        w1 = [[3.0, 4.0, 5.0], [6.0, 7.0, 8.0]]
         w_wrong = [[3, 4, 5]]
 
         xx = ml.BB(x)
@@ -38,7 +38,7 @@ class TestHelloWorld(unittest.TestCase):
         # Check that yy (which is xx @ ww) is also updated
         self.assertEqual(yy.val(), [[165, 198, 231]])
 
-    def test_bme_loss(self):
+    def test_bme_loss(self) -> None:
 
         xx = ml.BB([[1], [2]])
         yy = ml.BB([[4], [6]])
@@ -54,7 +54,7 @@ class TestHelloWorld(unittest.TestCase):
         self.assertTrue(roughlyEqual(ll.val(), [[7.29], [12.96]]))
 
     # TODO: should be MCE (mean cross entropy)
-    def test_mse_loss(self):
+    def test_mse_loss(self) -> None:
         x = ml.BB([[1, 2]])
         w = ml.BB([[3, 4, 5], [6, 7, 8]])
 
@@ -78,7 +78,7 @@ class TestHelloWorld(unittest.TestCase):
         x.appl(0.001)
         self.assertTrue(roughlyEqual(loss.val(), [[84.42, 113.07, 145.9]]))
 
-    def test_bce_loss(self):
+    def test_bce_loss(self) -> None:
         x = ml.BB([[0.1, -0.2]])
         w = ml.BB([[-0.1, 0.5, 0.3], [-0.6, 0.7, 0.8]])
 
@@ -123,8 +123,8 @@ class TestHelloWorld(unittest.TestCase):
         # Check that updating x also reduces the loss
         self.assertTrue(roughlyEqual(loss.val(), [[0.734, 0.723, 0.691]], 3))
 
-    def test_reshape(self):
-        w1 = [[3, 4, 5], [6, 7, 8]]
+    def test_reshape(self) -> None:
+        w1 = [[3.0, 4.0, 5.0], [6.0, 7.0, 8.0]]
         assert ml.reshape(w1, 3, 2) == [[3, 4], [5, 6], [7, 8]]
 
         ww1 = ml.BB(w1)
@@ -135,7 +135,7 @@ class TestHelloWorld(unittest.TestCase):
 
         assert ww2.val() == [[3], [4], [5], [6], [7], [8]], f"actual value {ww2.val()}"
 
-    def test_game_reshape(self):
+    def test_game_reshape(self) -> None:
         board = [
             [ 1, 0, 1, 0, 0, 0 ],
             [ 1, 0,-1, 0,-1, 0 ],
@@ -154,7 +154,7 @@ class TestHelloWorld(unittest.TestCase):
         zz0 = ml.BBReshape(xx, 1, 36)
         self.assertEqual(zz0.dims(), [1, 36])
 
-    def test_serialize(self):
+    def test_serialize(self) -> None:
         x = ml.BB([[1, 2, 3], [4, 5, 6]])
 
         x_saved = x.save()
@@ -189,7 +189,7 @@ class TestHelloWorld(unittest.TestCase):
         self.assertEqual(z.arg(0).val(), [[11, 22, 33], [44, 55, 66]])
         self.assertEqual(z.input.val(), [[11, 22, 33], [44, 55, 66]])
 
-    def test_game_winner(self):
+    def test_game_winner(self) -> None:
         board = [
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],

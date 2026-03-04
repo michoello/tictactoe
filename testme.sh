@@ -1,3 +1,6 @@
+./run_mypy.sh || { echo "MyPy failed"; exit 1; }
+
+echo Running unittests
 python3 -m unittest discover -s tests --verbose
 
 # To test only game training:

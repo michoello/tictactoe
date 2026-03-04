@@ -7,9 +7,10 @@ import json
 import random
 from utils import compress, decompress
 
+from typing import Any, Optional
 from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
-START_VALUES = [
+START_VALUES: list[list[Optional[float]]] = [
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
@@ -18,30 +19,31 @@ START_VALUES = [
     [None, None, None, None, None, None],
 ]
 # For some reason this does not work
-# START_VALUES = [ [None]*6 for _ in range(6)]
+# START_VALUES: list[list[Optional[float]]] = [ [None]*6 for _ in range(6)]
 
 
-def DData(mod3l, rows, cols, values):
+def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
     return res
 
 
 class TTTRandom:
-    def get_next_step_values(self, boards):
+    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+        values: list[list[Optional[float]]] = copy.deepcopy(START_VALUES)
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
-            values[x][y] = self.get_next_step_value(b)
+            values[x][y] = self.get_next_step_value(1, board)
         return values
 
-    def get_next_step_value(self, player, board):
+    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
         return random.random()
 
 
 # Simple player based on board position value
 # Works both sides as it encapsulates two models inside
 class TTTPlayer:
-    def __init__(self, spec_file=None, enable_cpp=False):
+    def __init__(self, spec_file: Optional[str] = None, enable_cpp: bool = False) -> None:
       if spec_file:
         with open(spec_file, "r") as file:
             spec = json.loads(file.read())
@@ -51,21 +53,21 @@ class TTTPlayer:
         self.model_x = TTTPlayerImpl(enable_cpp=enable_cpp)
         self.model_o = TTTPlayerImpl(enable_cpp=enable_cpp)
 
-    def get_next_step_value(self, player, board):
+    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
         impl = self.model_x if player == 1 else self.model_o
         return player * impl.get_next_step_value(board)
 
-    def calc_grads(self):
+    def calc_grads(self) -> None:
         self.model_x.calc_grads()
         self.model_o.calc_grads()
 
-    def apply_gradient(self, alpha = 0.01):
+    def apply_gradient(self, alpha: float = 0.01) -> None:
         self.model_x.apply_gradient(alpha)
         self.model_o.apply_gradient(alpha)
 
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
-    def set_board_and_value(self, player, board, _value):
+    def set_board_and_value(self, player: int, board: list[list[int]], _value: list[list[float]]) -> None:
         impl = self.model_x if player == 1 else self.model_o
 
         # For sigmoid [0;1] range compatibility
@@ -74,7 +76,7 @@ class TTTPlayer:
         impl.m.set_data(impl.x, board)
         impl.m.set_data(impl.y, _value)
 
-    def save_to_file(self, file_name):
+    def save_to_file(self, file_name: str) -> None:
         x_file = file_name + "x"
         o_file = file_name + "o"
         with open(file_name, "w") as file:
@@ -86,10 +88,10 @@ class TTTPlayer:
         self.model_x.save_to_file(x_file)
         self.model_o.save_to_file(o_file)
 
-    def replay_buffer(self):
+    def replay_buffer(self) -> Any:
         return self.model_x.replay_buffer
 
-    def get_loss_value(self, player):
+    def get_loss_value(self, player: int) -> float:
         impl = self.model_x if player == 1 else self.model_o
         return impl.get_loss_value()
 
@@ -99,7 +101,7 @@ class TTTPlayer:
 # Can play either for X xor for O, but not both
 # Became private implementation detail, not to be used directly
 class TTTPlayerImpl:
-    def __init__(self, file_to_load_from=None, enable_cpp=False):
+    def __init__(self, file_to_load_from: Optional[str] = None, enable_cpp: bool = False) -> None:
       self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
 
       model_json = None
@@ -171,14 +173,14 @@ class TTTPlayerImpl:
       if model_json:
         self.load_from_json(model_json)
 
-    def parse_model_file(self, file_name):
+    def parse_model_file(self, file_name: str) -> Any:
         with open(file_name, "r") as file:
             return json.loads(file.read())
 
-    def load_from_file(self, file_name):
+    def load_from_file(self, file_name: str) -> None:
         self.load_from_json(self.parse_model_file(file_name))
 
-    def load_from_json(self, model_json):
+    def load_from_json(self, model_json: Any) -> None:
             if isinstance(model_json, list):
                 # Old format
                 self.loss.from_json(model_json)
@@ -201,15 +203,15 @@ class TTTPlayerImpl:
                     self.replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
 
 
-    def calc_grads(self):
+    def calc_grads(self) -> None:
         if self.enable_cpp:
            pass  # it is now calculate under the hood whenver needed
         else:
            self.loss.dif()
             
 
-    def save_to_file(self, file_name):
-        def rounded(mtx):
+    def save_to_file(self, file_name: str) -> None:
+        def rounded(mtx: list[list[float]]) -> list[list[float]]:
             return [[round(x, 5) for x in row] for row in mtx]
 
         with open(file_name, "w") as file:
@@ -234,13 +236,14 @@ class TTTPlayerImpl:
 
     # For a set of next step boards and coords of next step
     # calculates value and stores it in the coords of next step.
-    def get_next_step_values(self, boards):
+    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+        values: list[list[Optional[float]]] = copy.deepcopy(START_VALUES)
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
             values[x][y] = self.get_next_step_value(board)
         return values
 
-    def get_next_step_value(self, board):
+    def get_next_step_value(self, board: list[list[int]]) -> float:
         if self.enable_cpp:
             self.m.set_data(self.x, board)
             step_value = value(self.z3.fval())
@@ -250,10 +253,10 @@ class TTTPlayerImpl:
         # Normalize the value to [-1;+1] range from sigmoid's output of [0;+1]
         return step_value[0][0] * 2 - 1
 
-    def get_loss_value(self):
+    def get_loss_value(self) -> float:
         return value(self.loss.fval())[0][0]
 
-    def apply_gradient(self, alpha = 0.01):
+    def apply_gradient(self, alpha: float = 0.01) -> None:
 
       # TODO: interesting! explore more
       # norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))

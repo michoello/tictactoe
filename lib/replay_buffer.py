@@ -1,15 +1,20 @@
 import random
 import json
+from typing import Any
 
 
 class ReplayBuffer:
-    def __init__(self, max_size):
+    max_size: int
+    buffer: list[Any]
+    count: int
+
+    def __init__(self, max_size: int) -> None:
         self.max_size = max_size
         self.buffer = []
         self.count = 0  # Total items seen
 
     # Returns True if item is added
-    def maybe_add(self, item):
+    def maybe_add(self, item: Any) -> bool:
         self.count += 1
         added = False
         if len(self.buffer) < self.max_size:
@@ -24,10 +29,10 @@ class ReplayBuffer:
                 return True
         return False
 
-    def get_random(self):
+    def get_random(self) -> Any:
         return random.choice(self.buffer)
 
-    def to_json(self):
+    def to_json(self) -> str:
         return json.dumps(
             {
                 "count": self.count,
@@ -36,7 +41,7 @@ class ReplayBuffer:
             }
         )
 
-    def from_json(self, jsonx):
+    def from_json(self, jsonx: str) -> None:
         s = json.loads(jsonx)
         self.count = s["count"]
         self.max_size = s["max_size"]

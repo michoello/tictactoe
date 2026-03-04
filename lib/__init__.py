@@ -7,9 +7,10 @@ from . import ttt_player_v2 as tttv2
 import random
 
 
-def pickup_model(tp, file):
+from typing import Any
+def pickup_model(tp: str, file: str) -> Any:
     if tp not in ["classifier", "player", "random", "playerv2"]:
-        raise f"Bad type: {tp}"
+        raise Exception(f"Bad type: {tp}")
 
     if tp == "classifier":
        return tttc.TTTClass(file)

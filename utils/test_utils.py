@@ -1,4 +1,5 @@
-def roughlyEqual(m1, m2, digs=2):
+from typing import Any
+def roughlyEqual(m1: Any, m2: Any, digs: int = 2) -> bool:
     if all(
         [
             round(a, digs) == round(b, digs)

@@ -1,8 +1,8 @@
 import math
 import random
 
-def scores(matches):
-    scores = {}
+def scores(matches: list[tuple[str, int, str, int]]) -> dict[str, int]:
+    scores: dict[str, int] = {}
     for p1, w1, p2, w2 in matches:
         scores.setdefault(p1, 0)
         scores.setdefault(p2, 0)
@@ -11,12 +11,12 @@ def scores(matches):
     return scores
          
 
-def elo_ratings(matches, expand_matches=False):
+def elo_ratings(matches: list[tuple[str, int, str, int]], expand_matches: bool = False) -> dict[str, float]:
     """
     matches: list of (player1, wins1, player2, wins2)
     returns: list of (player, rating)
     """
-    ratings = {}
+    ratings: dict[str, float] = {}
     K_per_game=20
     initial_rating=1500
 
@@ -48,8 +48,9 @@ def elo_ratings(matches, expand_matches=False):
 
     return ratings
 
-def second_best(inputs):
-    def outs(figure):
+from typing import Any
+def second_best(inputs: dict[str, Any]) -> tuple[list[tuple[str, float]], list[tuple[str, float]]]:
+    def outs(figure: str) -> list[tuple[str, float]]:
       return sorted([(name, rating) for name, rating in inputs.items() if figure in name], key=lambda x: -x[1])
 
     return outs("crosses"), outs("zeroes")

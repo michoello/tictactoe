@@ -3,7 +3,8 @@ from . import ml
 import copy
 import math
 
-START_VALUES = [
+from typing import Any, Optional
+START_VALUES: list[list[Optional[float]]] = [
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
@@ -12,12 +13,12 @@ START_VALUES = [
     [None, None, None, None, None, None],
 ]
 # For some reason this does not work
-# START_VALUES = [ [None]*6 for _ in range(6)]
+# START_VALUES_COMMENTED = [ [None]*6 for _ in range(6)]
 
 
 # Simple classifier of board position
 class TTTClass:
-    def __init__(self, file_to_load_from=None):
+    def __init__(self, file_to_load_from: Optional[str] = None) -> None:
 
         self.x = ml.BB(ml.random_matrix(6, 6))
 
@@ -44,30 +45,30 @@ class TTTClass:
         if file_to_load_from is not None:
             self.load_from_file(file_to_load_from)
 
-    def load_from_file(self, file_name):
+    def load_from_file(self, file_name: str) -> None:
         with open(file_name, "r") as file:
             model_dump = file.read()
             self.loss.load(model_dump)
 
-    def save_to_file(self, file_name):
+    def save_to_file(self, file_name: str) -> None:
         with open(file_name, "w") as file:
             model_dump = self.loss.save()
             file.write(model_dump)
 
     # For a set of next step boards and coords of next step
     # calculates value and stores it in the coords of next step.
-    def get_next_step_values(self, boards):
+    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
-            values[x][y] = self.get_next_step_value(b)
+            values[x][y] = self.get_next_step_value(board)
         return values
 
-    def get_next_step_value(self, board):
+    def get_next_step_value(self, board: list[list[int]]) -> float:
         self.x.set(board)
         return self.prediction.val()[0][0]
 
 
-    def apply_gradient(self):
+    def apply_gradient(self) -> None:
 
         norm = lambda matrix: math.sqrt(sum(sum(x**2 for x in row) for row in matrix))
 

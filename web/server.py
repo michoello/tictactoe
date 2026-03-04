@@ -3,6 +3,7 @@ import json
 import random
 from lib import tttc, tttp, pickup_model
 from lib import game
+from typing import cast, Any
 
 import argparse
 import math
@@ -14,10 +15,10 @@ args = parser.parse_args()
 
 
 class TicTacToeHandler(BaseHTTPRequestHandler):
-    def address_string(self):
+    def address_string(self) -> str:
         return self.client_address[0]  # skip reverse DNS
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path.startswith("/tictactoe"):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -39,7 +40,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404, "gtfo por favor")
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         if self.path == "/click":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
@@ -53,21 +54,26 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             for row in board:
                 print(row)
 
-            # Choosing the best next step with model!
+            server = cast(TicTacToeServer, self.server)
+            g = game.Game(server.model_x, server.model_o) ## TODO: , game_type, game_mode)
+            b = game.Board()
+            b.set(board)
 
-            g = game.Game(self.server.model_x, self.server.model_o) ## TODO: , game_type, game_mode)
-            g.board.board = board  ## TODO: make it less java
+            winner, xyo = b.check_winner()
 
-            winner, xyo = g.board.check_winner()
-
-            response = {"status": "ok"}
+            response: dict[str, Any] = {"status": "ok"}
             if not winner:
                 ply = -1 if human_plays == "X" else 1  ## who goes next
 
                 # Step number is count of O's on the board. TODO: move it inside Game()
                 step_no = sum([1 for row in board for x in row if x == -1])
            
-                x, y, values = g.choose_next_step(ply, step_no)
+                prev_state = game.GameState(board=b, last_move=-ply, step_no=step_no - 1)
+                next_state = g.choose_next_step(prev_state)
+                x, y = next_state.x, next_state.y
+                
+                _, _, values = g.best_greedy_step(b, ply)
+                
                 if x is None or y is None:
                     print("sorry")
 
@@ -83,7 +89,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                     print(row)
 
                 board[x][y] = ply 
-                winner, xyo = g.board.check_winner()
+                winner, xyo = b.check_winner()
 
             # respond
             self.send_response(200)
@@ -102,7 +108,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
 
 class TicTacToeServer(HTTPServer):
-    def __init__(self, server_address, RequestHandlerClass, crosses_model, zeroes_model):
+    def __init__(self, server_address: tuple[str, int], RequestHandlerClass: Any, crosses_model: Any, zeroes_model: Any) -> None:
         super().__init__(server_address, RequestHandlerClass)
         self.model_x = crosses_model
         self.model_o = zeroes_model

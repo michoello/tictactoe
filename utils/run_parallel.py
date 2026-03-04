@@ -38,13 +38,13 @@ import time
 
 if __name__ == "__main__":
 
-    def add(a, b):
+    def add(a: int, b: int) -> int:
         print("add ", a, b)
         time.sleep(1)
         print("added ", a, b)
         return a + b
 
-    def mul(a, b):
+    def mul(a: int, b: int) -> int:
         print("mul ", a, b)
         time.sleep(2)
         print("muled ", a, b)

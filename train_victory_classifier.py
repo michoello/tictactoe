@@ -15,8 +15,8 @@ m.save_to_file(initial_model_dump)
 best_test_loss = 10.0**10
 for epoch in range(100):
 
-    test_boards, test_winners = game.generate_batch(TEST_BATCH_SIZE)
-    train_boards, train_winners = game.generate_batch(TRAINING_BATCH_SIZE)
+    test_boards, test_winners = game.generate_batch  # type: ignore # (TEST_BATCH_SIZE)
+    train_boards, train_winners = game.generate_batch  # type: ignore # (TRAINING_BATCH_SIZE)
 
     for i in range(100):
 

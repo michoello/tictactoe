@@ -34,7 +34,7 @@ prev_ts = -1
 _TS_RE = re.compile(r"\[ts:(\d+)\]")
 
 
-def timestamped_print(*args, sep=" ", end="\n", file=None, flush=False):
+def timestamped_print(*args: Any, sep: str = " ", end: str = "\n", file: Any = None, flush: bool = False) -> int:
     ts = int(time.time())
 
     global prev_ts
@@ -64,14 +64,12 @@ print = timestamped_print
 
 # Duplicate all output to a file
 class Tee:
-    def __init__(self, *streams):
+    def __init__(self, *streams: Any) -> None:
         self.streams = streams
-
-    def write(self, data):
+    def write(self, data: Any) -> None:
         for s in self.streams:
             s.write(data)
-
-    def flush(self):
+    def flush(self) -> None:
         for s in self.streams:
             s.flush()
 
@@ -91,7 +89,7 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def calc_loss(player, m, boards, values):
+def calc_loss(player: int, m: Any, boards: list[list[list[int]]], values: list[list[list[float]]]) -> float:
     sum_loss = 0
     for board, state_value in zip(boards, values):
         m.set_board_and_value(player, board, state_value)
@@ -107,7 +105,7 @@ TRAIN_ITERATIONS = 100
 
 
 import math
-def grad_norm(grads):
+def grad_norm(grads: list[list[float]]) -> float:
   total_sq = 0.0
   for row in grads:
     for g in row:
@@ -115,7 +113,7 @@ def grad_norm(grads):
   return math.sqrt(total_sq)
 
 
-def train_single_round(trainee, model_x, model_o, m_student):
+def train_single_round(trainee: str, model_x: Any, model_o: Any, m_student: Any) -> None:
 
     g = game.Game(model_x, model_o)
     train_boards, train_values = g.generate_batch_from_games(BATCH_SIZE)
@@ -142,7 +140,7 @@ def train_single_round(trainee, model_x, model_o, m_student):
     #
 
     for i in range(TRAIN_ITERATIONS):
-        sloss, k1norm, k2norm, cnt = 0, 0, 0, 0
+        sloss, k1norm, k2norm, cnt = 0.0, 0.0, 0.0, 0
         for board, state_value in zip(train_boards, train_values):
             _player = 1 if trainee == "crosses" else -1
             m_student.set_board_and_value(_player, board, state_value)
@@ -189,23 +187,23 @@ def train_single_round(trainee, model_x, model_o, m_student):
             print("    Loss: ", sloss, " k1norm=", k1norm, "  k2norm=", k2norm)
 
 
-def model_name(prefix, family, trainee, version):
+def model_name(prefix: str, family: Any, trainee: str, version: int) -> str:
     if family is None:
         return f"{prefix}-{trainee}-{version}.json"
     return f"{prefix}-{trainee}-{family}.{version}.json"
 
-def model_name_duo(prefix, version):
+def model_name_duo(prefix: str, version: int) -> str:
     return f"{prefix}-{version}.json"
 
 
-def sorted_sample(n, m):
+def sorted_sample(n: int, m: int) -> list[int]:
     return list(range(n)) if n <= m else sorted(random.sample(range(n), m))
 
 
 NUM_GAMES = 20
 
 
-def fight(trainee, student_path, opponent_type, opponent_path):
+def fight(trainee: str, student_path: str, opponent_type: str, opponent_path: str) -> Any:
     m_student = tttv2.TTTPlayerV2(student_path)
     m_opponent = pickup_model(opponent_type, opponent_path)
 
@@ -222,7 +220,7 @@ def fight(trainee, student_path, opponent_type, opponent_path):
 
 
 # Returns true if student wins over previous version
-def versioned_competition(prefix, family, version, trainee):
+def versioned_competition(prefix: str, family: str, version: int, trainee: str) -> None:
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
 
     student_model = model_name(prefix, family, trainee, version)
@@ -259,7 +257,7 @@ def versioned_competition(prefix, family, version, trainee):
 
     all_winners = run_parallel(tasks, max_workers=1)
 
-    losing_versions = []
+    losing_versions: list[Any] = []
     total, winning = 0, 0
     for winners in all_winners:
         total += winners[-1] + winners[1]
@@ -274,7 +272,7 @@ def versioned_competition(prefix, family, version, trainee):
     )
 
 
-def clone_new_version(prefix, family, from_version, to_version):
+def clone_new_version(prefix: str, family: str, from_version: int, to_version: int) -> None:
     shutil.copyfile(
         model_name(prefix, family, "crosses", from_version),
         model_name(prefix, family, "crosses", to_version),
@@ -289,7 +287,7 @@ def clone_new_version(prefix, family, from_version, to_version):
 NUM_ROUNDS = 4
 
 
-def train(prefix, family_cross, family_zero, version, trainee):
+def train(prefix: str, family_cross: str, family_zero: str, version: int, trainee: str) -> None:
     crosses_name = model_name(prefix, family_cross, "crosses", version)
     zeroes_name = model_name(prefix, family_zero, "zeroes", version)
     model_x = tttv2.TTTPlayerV2(crosses_name)
@@ -326,7 +324,7 @@ def train(prefix, family_cross, family_zero, version, trainee):
     print(f"[ts:{tr_ts}] Saved {student_name}")
 
 
-def cross_competition(prefix, families, version):
+def cross_competition(prefix: str, families: list[str], version: int) -> None:
     start_ts = print(f"Cross competition {version} started")
     matches = []
     for i in range(len(families)):
@@ -338,7 +336,7 @@ def cross_competition(prefix, families, version):
             g = game.Game(model_x, model_o)
             winners = g.competition(NUM_GAMES)
             print(f"TGIFH: {crosses_path} vs {zeroes_path}: {winners}")
-            matches.append([crosses_path, winners[1], zeroes_path, winners[-1]])
+            matches.append((crosses_path, winners[1], zeroes_path, winners[-1]))
      
     print("CrossCompete results")
     results = ratings.second_best(ratings.scores(matches))
@@ -348,7 +346,7 @@ def cross_competition(prefix, families, version):
     print(f"[ts:{start_ts}] Cross competition {version} finished")
 
 
-def main():
+def main() -> None:
     prefix = args.save_to_model
 
     #families = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']

@@ -17,14 +17,12 @@ parser.add_argument("--save_to_model", type=str, help="Path to save the trained 
 # -------------------------------------------
 # Duplicate all output to a file
 class Tee:
-    def __init__(self, *streams):
+    def __init__(self, *streams: Any) -> None:
         self.streams = streams
-
-    def write(self, data):
+    def write(self, data: Any) -> None:
         for s in self.streams:
             s.write(data)
-
-    def flush(self):
+    def flush(self) -> None:
         for s in self.streams:
             s.flush()
 
@@ -42,15 +40,16 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def generate_playing_batch(num_games, m_crosses, m_zeroes):
+def generate_playing_batch(num_games: int, m_crosses: Any, m_zeroes: Any) -> tuple[list[Any], list[Any]]:
 
     g = game.Game(m_crosses, m_zeroes)
 
     boards, values = [], []
 
     for i in range(num_games):
-        steps, value = g.play_game(0.5, 2)
-        for step in steps:
+        steps, value = g.play_game()  # type: ignore
+        steps = steps # type: ignore
+        for step in steps: # type: ignore
             boards.append(step.board.board)
             train_reward = [(step.reward + 1) / 2]
             values.append(train_reward)
@@ -58,8 +57,8 @@ def generate_playing_batch(num_games, m_crosses, m_zeroes):
     return boards, values
 
 
-def generate_balanced_batch(num_boards, m_crosses, m_zeroes):
-    outboards, outvalues = [], []
+def generate_balanced_batch(num_boards: int, m_crosses: Any, m_zeroes: Any) -> tuple[list[Any], list[Any]]:
+    outboards: list[Any] = []; outvalues: list[Any] = []
     num_games_played = 0
 
     while len(outboards) < num_boards:
@@ -79,8 +78,8 @@ def generate_balanced_batch(num_boards, m_crosses, m_zeroes):
     return outboards, outvalues
 
 
-def calc_loss_buckets(m, boards, values):
-    loss_buckets = [[0, 0] for _ in range(10)]
+def calc_loss_buckets(m: Any, boards: list[Any], values: list[Any]) -> list[Any]:
+    loss_buckets: list[Any] = [[0, 0] for _ in range(10)]
     for board, value in zip(boards, values):
         m.x.set(board)
         m.y.set([value])
@@ -96,7 +95,7 @@ def calc_loss_buckets(m, boards, values):
     return loss_buckets
 
 
-def calc_loss(m, boards, values):
+def calc_loss(m: Any, boards: list[Any], values: list[Any]) -> float:
     sum_loss = 0
     for board, value in zip(boards, values):
         m.x.set(board)
@@ -108,7 +107,7 @@ def calc_loss(m, boards, values):
     return sum_loss / len(boards)
 
 
-def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
+def train_single_epoch(epoch: int, m_crosses: Any, m_zeroes: Any, m_student: Any) -> None:
     train_boards, train_values = generate_balanced_batch(32, m_crosses, m_zeroes)
 
     for i in range(len(train_boards)):
@@ -117,7 +116,7 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
     # Backward pass
     train_iterations = 25
     for i in range(train_iterations):
-        train_loss = 0
+        train_loss = 0.0
         for board, value in zip(train_boards, train_values):
             m_student.x.set(board)
             m_student.y.set([value])
@@ -133,8 +132,8 @@ def train_single_epoch(epoch, m_crosses, m_zeroes, m_student):
 
 
 # Returns true if student wins
-def competition(m_crosses, m_zeroes, trainee):
-    winners = game.competition(m_crosses, m_zeroes, 20)
+def competition(m_crosses: Any, m_zeroes: Any, trainee: str) -> bool:
+    winners = game.Game(m_crosses, m_zeroes).competition(20)
     print("COMPETITION RESULTS: ", winners)
 
     if trainee == "zeroes" and winners[-1] > winners[1] + 2:
@@ -145,11 +144,11 @@ def competition(m_crosses, m_zeroes, trainee):
     return False
 
 
-def model_name(prefix, trainee, version):
+def model_name(prefix: str, trainee: str, version: int) -> str:
     return f"{prefix}-{trainee}-{version}.json"
 
 
-def versioned_competition(trainee, m_student, version, prefix):
+def versioned_competition(trainee: str, m_student: Any, version: int, prefix: str) -> None:
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
     for v in range(1, version):
         m_opponent = tttp.TTTPlayer(model_name(prefix, opponent, v))
@@ -158,12 +157,12 @@ def versioned_competition(trainee, m_student, version, prefix):
         else:
             m_crosses, m_zeroes = m_student, m_opponent
 
-        winners = game.competition(m_opponent, m_zeroes, 20)
+        winners = game.Game(m_opponent, m_zeroes).competition(20)
         print(f"COMPETITION RESULTS: for version {v} ", winners)
 
 
 # --------------------------------------------
-def main():
+def main() -> None:
     m_student: Any = tttp.TTTPlayer()
     if args.init_model is not None:
         print(f"Init player model: {args.init_model}")

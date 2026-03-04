@@ -10,7 +10,7 @@ from utils import compress, decompress
 
 
 class TestSimpleRNG(unittest.TestCase):
-    def test_random_reproducibility(self):
+    def test_random_reproducibility(self) -> None:
         rng1 = SimpleRNG(12345)
         seq1 = [rng1.random() for _ in range(100)]
 
@@ -22,7 +22,7 @@ class TestSimpleRNG(unittest.TestCase):
         # all elements are unique
         self.assertEqual(len(seq1), len(set(seq1)))
 
-    def test_repro_random_matrix(self):
+    def test_repro_random_matrix(self) -> None:
         rng = SimpleRNG(seed=42)
         with patch("random.random", new=rng.random):
             m = ml.random_matrix(6, 6)
@@ -41,7 +41,7 @@ class TestSimpleRNG(unittest.TestCase):
                 )
             )
 
-    def test_compress_decompress(self):
+    def test_compress_decompress(self) -> None:
         s = 'hello'
         self.assertEqual(decompress(compress(s)), s)
 

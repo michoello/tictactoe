@@ -1,7 +1,7 @@
 from lib import ml
 
-
-def gradient_backpropagation(x, y, w1, b1, w2, b2):
+from typing import Any
+def gradient_backpropagation(x: list[list[float]], y: list[list[float]], w1: list[list[float]], b1: list[list[float]], w2: list[list[float]], b2: list[list[float]]) -> tuple[float, Any, Any, Any, Any, Any]:
 
     xx = ml.BB(x)
     ww1 = ml.BB(w1)
@@ -28,10 +28,10 @@ def gradient_backpropagation(x, y, w1, b1, w2, b2):
 
 
 # Run the example
-xs = [
+xs: list[list[float]] = [
     [0.5, 0.9],
     [0.1, 0.3],
-    [10, 4],
+    [10.0, 4.0],
 ]  # Input (each sample 2 features)
 w1 = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]  # Weights for layer 1 (2x2)
 b1 = [[0.1, 0.2, 0.3]]  # Biases for layer 1 (1x2)

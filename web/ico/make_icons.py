@@ -3,8 +3,8 @@ import string
 from colorsys import hsv_to_rgb
 import random
 import os
-
-def make_icon(char: str, color: str, filename: str = "icon.ico", size: int = 256):
+from typing import Any
+def make_icon(char: str, color: tuple[int, int, int], filename: str = "icon.ico", size: int = 256) -> None:
     """
     Generate an .ico file with a colored background and a negative character on top.
 
@@ -22,9 +22,9 @@ def make_icon(char: str, color: str, filename: str = "icon.ico", size: int = 256
     img = Image.new("RGB", (size, size), color=color)
     draw = ImageDraw.Draw(img)
 
-    letter_color = tuple(255 - c for c in color)
+    letter_color: tuple[int, int, int] = (255 - color[0], 255 - color[1], 255 - color[2])
 
-    # Choose font
+    font: Any
     try:
         font_path = "/usr/share/fonts/google-droid-sans-fonts/DroidSans.ttf"
         font = ImageFont.truetype(font_path, size)
@@ -45,8 +45,7 @@ def make_icon(char: str, color: str, filename: str = "icon.ico", size: int = 256
     img.save(filename, format="ICO")
     print(f"Icon for {char} saved as {filename}")
 
-
-def random_distinct_color(min_saturation=0.9, min_value=0.85):
+def random_distinct_color(min_saturation: float = 0.9, min_value: float = 0.85) -> tuple[int, int, int]:
     """
     Generate a random, visually distinct RGB color.
     Returns a tuple (R, G, B) with values 0-255.
@@ -58,9 +57,8 @@ def random_distinct_color(min_saturation=0.9, min_value=0.85):
     r, g, b = hsv_to_rgb(h, s, v)
     return (int(r * 255), int(g * 255), int(b * 255))
 
-
-def random_dark_color():
-    return tuple(random.randint(50, 250) for _ in range(3))  # RGB 0–150
+def random_dark_color() -> tuple[int, int, int]:
+    return (random.randint(50, 250), random.randint(50, 250), random.randint(50, 250))
 
 
 for c in string.ascii_uppercase:

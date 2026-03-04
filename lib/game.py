@@ -1,3 +1,4 @@
+from __future__ import annotations
 import random
 import copy
 from dataclasses import dataclass
@@ -16,19 +17,20 @@ class GameType(Enum):
 
 
 class Board:
-    # values: list[list[float]]
+    state: list[list[int]]
+    game_type: GameType
 
-    def __init__(self, board=None, game_type=GameType.TICTACTOE_6_6_4):
+    def __init__(self, board: Optional[list[list[int]]] = None, game_type: GameType = GameType.TICTACTOE_6_6_4) -> None:
         if not board:
             self.reset()
         else:
             self.set(board)
         self.game_type = game_type
 
-    def reset(self):
+    def reset(self) -> None:
         self.state = copy.deepcopy(START_BOARD)
 
-    def set(self, board):
+    def set(self, board: list[list[int]]) -> None:
         if len(board) != 6:
             raise ValueError("board must have 6 rows sharp")
         for row in board:
@@ -36,10 +38,10 @@ class Board:
                 raise ValueError("each row must have 6 cols sharp")
         self.state = board
 
-    def copy(self):
+    def copy(self) -> Board:
         return Board(copy.deepcopy(self.state), self.game_type)
 
-    def asstr(self):
+    def asstr(self) -> str:
         s = ""
         for row in range(6):
             for col in range(6):
@@ -48,7 +50,7 @@ class Board:
 
     # Generates all boards for next single step (last_move=1 crosses, last_move=-1 zeroes)
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-    def all_next_steps(self, last_move):
+    def all_next_steps(self, last_move: int) -> list[tuple[Board, int, int]]:
         boards = []
         for row in range(6):
             for col in range(6):
@@ -60,13 +62,13 @@ class Board:
 
     # Returns 1 if crosses win, -1 if zeroes win, 0 if tie,
     # and None if board is invalid
-    def check_winner(self):
+    def check_winner(self) -> tuple[Optional[int], list[tuple[int, int]]]:
         if self.game_type == GameType.TICTACTOE_6_6_4:
             return self.check_winner_tictactoe_6_6_4()
         else:
             return self.check_winner_tictactoe_6_6_5_tor()
 
-    def check_winner_tictactoe_6_6_4(self):
+    def check_winner_tictactoe_6_6_4(self) -> tuple[Optional[int], list[tuple[int, int]]]:
         b = self.state
 
         lll = [
@@ -78,8 +80,8 @@ class Board:
 
         g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
 
-        xyo = []
-        winner = None
+        xyo: list[tuple[int, int]] = []
+        winner: Optional[int] = None
         there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
@@ -99,7 +101,7 @@ class Board:
 
         return winner, sorted(set(xyo))
 
-    def check_winner_tictactoe_6_6_5_tor(self):
+    def check_winner_tictactoe_6_6_5_tor(self) -> tuple[Optional[int], list[tuple[int, int]]]:
         b = self.state
 
         lll = [
@@ -111,8 +113,8 @@ class Board:
 
         g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
 
-        xyo = []
-        winner = None
+        xyo: list[tuple[int, int]] = []
+        winner: Optional[int] = None
         there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
@@ -142,17 +144,17 @@ class GameState:
     y: int
     step_no: int
     winner: Optional[int] = None
-    xyo: Optional[list[int]] = None  # if the state is terminal, contains list of winning cells
-    reward: Optional[float] = None
+    xyo: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
+    reward: Optional[list[list[float]]] = None
 
-    def __init__(self, board, last_move, step_no=None, x=None, y=None):
+    def __init__(self, board: Board, last_move: int, step_no: int = 0, x: int = -1, y: int = -1) -> None:
         self.board = board
         self.last_move = last_move
         self.step_no = step_no
         self.x = x
         self.y = y
 
-    def print_state(self):
+    def print_state(self) -> None:
         bgs = {
             # 256colors
             # bash for i in {0..255}; do printf "\033[48;5;%sm %3d \033[0m" "$i" "$i"; done; echo
@@ -170,7 +172,7 @@ class GameState:
 
         cancel_color = "\033[0m"
 
-        def cprint(fg, bg, what):
+        def cprint(fg: str, bg: str, what: str) -> None:
             if bg in bgs:
                 what = bgs[bg] + what + cancel_color
             if fg in fgs:
@@ -208,28 +210,29 @@ class MctsNode:
     
     # these guys will be replaced by state
     board: Board
-    row: int
-    col: int
+    row: Optional[int]
+    col: Optional[int]
     next_move: int  ## 1 or -1
-    is_terminal = False
+    is_terminal: bool = False
+    xyo: Optional[list[tuple[int, int]]] = None
 
     # Possibly too
     state_value: float = 0  # state value taken from model
     prior: float = 0.0
 
 
-    parent = None  # previous step node, None for root
+    parent: Optional[MctsNode] = None  # previous step node, None for root
 
 
 
-    all_moves: list[Board] = []
-    tried_nodes: list[Board] = []
+    all_moves: list[tuple[Board, int, int]] = []
+    tried_nodes: list[MctsNode] = []
 
     # These two are to be used to sort out the best move
     value: float = 0.0  # accumulated value collected from child nodes
     num_visits: int = 0  # number of times simulation passed through the node
 
-    def __init__(self, board, row, col, next_move):
+    def __init__(self, board: Board, row: Optional[int], col: Optional[int], next_move: int) -> None:
         self.board = board
         self.row = row
         self.col = col
@@ -238,12 +241,12 @@ class MctsNode:
         self.all_moves = self.board.all_next_steps(self.next_move)
         self.tried_nodes = []
 
-    def mcts_get_best_node_to_continue(self):
+    def mcts_get_best_node_to_continue(self) -> MctsNode:
         n_total = self.num_visits
         n_sqrt_total = math.sqrt(n_total)
         c_puct = 1.0  # TODO: experiment with that
-        best_puct = -1000
-        best_node = None
+        best_puct = -1000.0
+        best_node: Optional[MctsNode] = None
         for node in self.tried_nodes:
             value = node.value
             if self.next_move == -1:
@@ -255,12 +258,13 @@ class MctsNode:
                 best_puct = node_puct
                 best_node = node
 
+        assert best_node is not None
         return best_node
 
     # Currently the values are taken from the model value outputs, so they are not normalized
     # Therefore have to softmax them for puct to work
     # TODO: make a policy network and take those priors from there
-    def mcts_softmax_priors(self):
+    def mcts_softmax_priors(self) -> None:
         next_move = self.next_move
         tried_nodes = self.tried_nodes
 
@@ -283,7 +287,7 @@ class MctsNode:
             node.prior = priors[i]
 
     # Returns the last visited node
-    def mcts_run_simulation(self, gm):  ## `gm` is game object
+    def mcts_run_simulation(self, gm: Game) -> MctsNode:
         if self.is_terminal:
             # no more walking after terminal
             return self
@@ -317,20 +321,20 @@ class MctsNode:
         next_node = self.mcts_get_best_node_to_continue()
         return next_node.mcts_run_simulation(gm)
 
-    def mcts_back_propagate(self):
-        cur_node = self
+    def mcts_back_propagate(self) -> None:
+        cur_node: Optional[MctsNode] = self
         while cur_node is not None:
             cur_node.num_visits += 1
             cur_node.value += self.state_value
             cur_node = cur_node.parent
 
-    def mcts_node_count(self):
+    def mcts_node_count(self) -> int:
         count = 0
         for node in self.tried_nodes:
             count += node.mcts_node_count()
         return count + 1
 
-    def mcts_depth(self):
+    def mcts_depth(self) -> int:
         depth = 0
         if len(self.tried_nodes) == 0:
             return 1
@@ -341,7 +345,7 @@ class MctsNode:
                 depth = subdepth
         return depth + 1
 
-    def mcts_unique_node_count(self, accum=None):
+    def mcts_unique_node_count(self, accum: Optional[dict[str, int]] = None) -> int:
         if accum is None:
             accum = {}
         hsh = self.board.asstr()
@@ -351,7 +355,7 @@ class MctsNode:
             node.mcts_unique_node_count(accum)
         return len(accum.keys())
 
-    def mcts_terminal_node_count(self):
+    def mcts_terminal_node_count(self) -> int:
         if self.is_terminal:
             return 1
         cnt = 0
@@ -359,7 +363,7 @@ class MctsNode:
             cnt += node.mcts_terminal_node_count()
         return cnt
 
-    def mcts_analyze_tree(self):
+    def mcts_analyze_tree(self) -> None:
         print("MCTS available moves: ", len(self.all_moves))
         print("MCTS node count: ", self.mcts_node_count())
         print("MCTS unique count: ", self.mcts_unique_node_count())
@@ -368,10 +372,16 @@ class MctsNode:
         print()
 
 
+from typing import Any
 class Game:
+    game_type: GameType
+    game_mode: str
+    model_x: Any
+    model_o: Any
+    
     def __init__(
-        self, model_x, model_o, game_type=GameType.TICTACTOE_6_6_4, game_mode="greedy"
-    ):
+        self, model_x: Any, model_o: Any, game_type: GameType = GameType.TICTACTOE_6_6_4, game_mode: str = "greedy"
+    ) -> None:
         self.game_type = game_type
         self.game_mode = game_mode
         self.model_x = model_x
@@ -379,18 +389,18 @@ class Game:
 
     # Returns coordinates of next step and the policy 6*6 matrix
     # Args: board, next_move is 1 for Xs, -1 for Os
-    def best_greedy_step(self, board, next_move):
+    def best_greedy_step(self, board: Board, next_move: int) -> tuple[Optional[int], Optional[int], list[list[float]]]:
 
         boards = board.all_next_steps(next_move)
         if len(boards) == 0:
-            return None, None, None
+            return None, None, []
 
         #best = -100 if next_move == 1 else 100
-        best = -100
+        best = -100.0
         best_xy = (-1, -1)
         m = self.model_x if next_move == 1 else self.model_o
         
-        greedy_policy = [[0 for _ in range(6)] for _ in range(6)]
+        greedy_policy: list[list[float]] = [[0.0 for _ in range(6)] for _ in range(6)]
 
         for board, row, col in boards:
             value = m.get_next_step_value(next_move, board.state)
@@ -406,7 +416,7 @@ class Game:
         return best_xy[0], best_xy[1], greedy_policy
 
 
-    def best_mcts_step(self, game_state, num_simulations):
+    def best_mcts_step(self, game_state: GameState, num_simulations: int) -> tuple[int, int]:
         board = game_state.board
         next_move = game_state.last_move
 
@@ -419,7 +429,7 @@ class Game:
         root.mcts_analyze_tree()
 
         # Choose the node that got the most visits
-        best_node = None
+        best_node: Optional[MctsNode] = None
         best_count = -1
         for node in root.tried_nodes:
             # TODO: break the even: if counts are the same, compare values
@@ -427,30 +437,33 @@ class Game:
                 best_count = node.num_visits
                 best_node = node
         
+        assert best_node is not None
+        assert best_node.row is not None and best_node.col is not None
         game_state.x = best_node.row
         game_state.y = best_node.col
 
         board.state[best_node.row][best_node.col] = next_move
         if best_node.is_terminal:
-            game_state.winner=best_node.state_value
+            game_state.winner=int(best_node.state_value)
             game_state.xyo=best_node.xyo
 
         return best_node.row, best_node.col
 
-    def random_step(self):
+    def random_step(self) -> tuple[int, int]:
         cell = random.randint(0, 35)
         return int(cell / 6), int(cell % 6)
 
-    def step_no(self, board):
+    def step_no(self, board: Board) -> int:
         # GameState number is count of O's on the board.
         return sum([1 for row in board.state for x in row if x == -1])
 
-    def choose_next_step(self, prev_state):
+    def choose_next_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
         next_move = -prev_state.last_move if prev_state.last_move is not None else 1
 
         # First step is always random to increase diversity
-        row, col = None, None
+        row: Optional[int] = None
+        col: Optional[int] = None
         if self.step_no(board) == 0:
             row, col = self.random_step()
         elif self.game_mode == "mcts":
@@ -471,6 +484,7 @@ class Game:
                 last_move=next_move, 
                 step_no=prev_state.step_no + 1)
 
+        assert row is not None and col is not None
         game_state.x=row 
         game_state.y=col
 
@@ -483,12 +497,12 @@ class Game:
 
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
-    def play_game(self, start_board=None):
+    def play_game(self, start_board: Optional[Board] = None) -> list[GameState]:
         if start_board is None:
             start_board = Board(game_type=self.game_type)
         steps = []
 
-        init_state = GameState(board=start_board.copy(), last_move=-1, x=None, y=None, step_no=0)
+        init_state = GameState(board=start_board.copy(), last_move=-1, x=-1, y=-1, step_no=0)
         steps.append(init_state)
         while steps[-1].winner is None:
             prev_state = steps[-1]
@@ -496,7 +510,8 @@ class Game:
             steps.append(next_state)
 
         # Set desired rewards to the boards
-        reward = steps[-1].winner
+        assert steps[-1].winner is not None
+        reward: float = float(steps[-1].winner)
         for step in reversed(steps):
             step.reward = [[reward]]
             reward = reward * 0.9
@@ -506,20 +521,21 @@ class Game:
 
         return steps
 
-    def competition(self, num_games):
+    def competition(self, num_games: int) -> dict[int, int]:
       winners = {-1: 0, 0: 0, 1: 0}
       for f in range(num_games):
         steps = self.play_game()
+        assert steps[-1].reward is not None
         winner = steps[-1].reward[0][0]
-        winners[winner] = winners[winner] + 1
+        winners[int(winner)] = winners[int(winner)] + 1
 
       return winners
 
-    def generate_batch_from_games(self, num_boards):
-        all_steps = []
+    def generate_batch_from_games(self, num_boards: int) -> tuple[list[list[list[int]]], list[list[list[float]]]]:
+        all_steps: list[GameState] = []
         while len(all_steps) < num_boards:
             all_steps.extend(self.play_game())
 
         random.shuffle(all_steps)
-        return [step.board.state for step in all_steps], [ step.reward for step in all_steps]
+        return [step.board.state for step in all_steps], [ step.reward for step in all_steps if step.reward is not None]
     
