@@ -265,10 +265,12 @@ def cross_competition(prefix: str, families: list[str], version: int) -> None:
 
     print(f"[ts:{start_ts}] Cross competition {version} finished")
 
-def main_loop(args: Any) -> None:
-    prefix = args.save_to_model
-
-    families = ['a']
+def main_loop(
+    prefix: str,
+    families: list[str],
+    max_workers: int,
+    max_version: int
+) -> None:
     version = 0
     for family in families:
        model_x = tttv2.TTTPlayerV2()
@@ -276,7 +278,7 @@ def main_loop(args: Any) -> None:
        model_o = tttv2.TTTPlayerV2()
        model_o.save_to_file(model_name(prefix, family, "zeroes", version))
 
-    while True:
+    while version < max_version:
         cross_families = random.sample(families, len(families))
         zero_families = random.sample(families, len(families))
 
@@ -285,7 +287,7 @@ def main_loop(args: Any) -> None:
         for family_cross, family_zero in zip(cross_families, zero_families):
             tasks.append((train, [prefix, family_cross, family_zero, version, "crosses"]))
             tasks.append((train, [prefix, family_cross, family_zero, version, "zeroes"]))
-        results = run_parallel(tasks, max_workers=1)
+        results = run_parallel(tasks, max_workers=max_workers)
         print(f"[ts:{start_ts}] Training for version {version} finished")
 
         version += 1
@@ -298,6 +300,3 @@ def main_loop(args: Any) -> None:
             print(f"[ts:{start_ts}] Competition for version {version} finished")
 
             cross_competition(prefix, families, version)
-
-        if version == 4001:
-           sys.exit(0)
