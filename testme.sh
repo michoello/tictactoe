@@ -2,15 +2,12 @@
 
 ARG=$1
 
-if [ "$ARG" == "mcts" ]; then
-    echo "Running mcts tests"
-    python3 -m unittest tests.test_mcts --verbose
-elif [ "$ARG" == "game" ]; then
-    echo "Running game tests"
-    python3 -m unittest tests.test_game --verbose
-else
+if [ -z "$ARG" ]; then
     echo "Running all unittests"
     python3 -m unittest discover -s tests --verbose
+else
+    echo "Running $ARG tests"
+    python3 -m unittest tests.test_$ARG --verbose
 fi
 
 # To test only game training:
