@@ -12,6 +12,9 @@ parser.add_argument("--save_to_model", type=str, help="Path to save the trained 
 parser.add_argument("--families", type=str, nargs="+", default=["a"], help="Families to train")
 parser.add_argument("--max_workers", type=int, default=1, help="Max parallel workers")
 parser.add_argument("--max_version", type=int, default=4001, help="Max versions")
+parser.add_argument("--num_rounds", type=int, default=4, help="Number of training rounds per version")
+parser.add_argument("--train_iterations", type=int, default=100, help="Training iterations per round")
+parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
 
 args = parser.parse_args()
 
@@ -23,7 +26,10 @@ def main() -> None:
         prefix=args.save_to_model,
         families=args.families,
         max_workers=args.max_workers,
-        max_version=args.max_version
+        max_version=args.max_version,
+        num_rounds=args.num_rounds,
+        train_iterations=args.train_iterations,
+        batch_size=args.batch_size
     )
 
 if __name__ == "__main__":

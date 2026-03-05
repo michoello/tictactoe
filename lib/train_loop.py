@@ -74,9 +74,6 @@ def calc_loss(player: int, m: Any, boards: list[list[list[int]]], values: list[l
         sum_loss = sum_loss + m.get_loss_value()[0]
     return sum_loss / len(boards)
 
-BATCH_SIZE = 32
-TRAIN_ITERATIONS = 100
-
 def grad_norm(grads: list[list[float]]) -> float:
   total_sq = 0.0
   for row in grads:
@@ -84,9 +81,16 @@ def grad_norm(grads: list[list[float]]) -> float:
       total_sq += g * g
   return math.sqrt(total_sq)
 
-def train_single_round(trainee: str, model_x: Any, model_o: Any, m_student: Any) -> None:
+def train_single_round(
+    trainee: str,
+    model_x: Any,
+    model_o: Any,
+    m_student: Any,
+    batch_size: int,
+    train_iterations: int
+) -> None:
     g = game.Game(model_x, model_o)
-    train_boards, train_values = g.generate_batch_from_games(BATCH_SIZE)
+    train_boards, train_values = g.generate_batch_from_games(batch_size)
 
     # Get old memories from buffer
     replay_buffer = m_student.replay_buffer()
@@ -104,7 +108,7 @@ def train_single_round(trainee: str, model_x: Any, model_o: Any, m_student: Any)
     train_values.extend(replay_values)
 
     # Backward pass
-    for i in range(TRAIN_ITERATIONS):
+    for i in range(train_iterations):
         sloss, k1norm, k2norm, cnt = 0.0, 0.0, 0.0, 0
         for board, state_value in zip(train_boards, train_values):
             _player = 1 if trainee == "crosses" else -1
@@ -205,9 +209,16 @@ def clone_new_version(prefix: str, family: str, from_version: int, to_version: i
         model_name(prefix, family, "zeroes", to_version),
     )
 
-NUM_ROUNDS = 4
-
-def train(prefix: str, family_cross: str, family_zero: str, version: int, trainee: str) -> None:
+def train(
+    prefix: str,
+    family_cross: str,
+    family_zero: str,
+    version: int,
+    trainee: str,
+    num_rounds: int,
+    batch_size: int,
+    train_iterations: int
+) -> None:
     crosses_name = model_name(prefix, family_cross, "crosses", version)
     zeroes_name = model_name(prefix, family_zero, "zeroes", version)
     model_x = tttv2.TTTPlayerV2(crosses_name)
@@ -224,9 +235,9 @@ def train(prefix: str, family_cross: str, family_zero: str, version: int, traine
 
     print("-------------------------------------------------")
     tr_ts = print(f"Start {student_name}")
-    for i in range(NUM_ROUNDS):
+    for i in range(num_rounds):
         it_ts = print(f"Start {student_name} vs {opponent_name} ITER {i}")
-        train_single_round(trainee, model_x, model_o, m_student)
+        train_single_round(trainee, model_x, model_o, m_student, batch_size, train_iterations)
         print(
             f"[ts:{it_ts}] Finish {student_name} vs {opponent_name} ITER {i}"
         )
@@ -269,7 +280,10 @@ def main_loop(
     prefix: str,
     families: list[str],
     max_workers: int,
-    max_version: int
+    max_version: int,
+    num_rounds: int,
+    batch_size: int,
+    train_iterations: int
 ) -> None:
     version = 0
     for family in families:
@@ -285,8 +299,8 @@ def main_loop(
         start_ts = print(f"Training for version {version} started")
         tasks = []
         for family_cross, family_zero in zip(cross_families, zero_families):
-            tasks.append((train, [prefix, family_cross, family_zero, version, "crosses"]))
-            tasks.append((train, [prefix, family_cross, family_zero, version, "zeroes"]))
+            tasks.append((train, [prefix, family_cross, family_zero, version, "crosses", num_rounds, batch_size, train_iterations]))
+            tasks.append((train, [prefix, family_cross, family_zero, version, "zeroes", num_rounds, batch_size, train_iterations]))
         results = run_parallel(tasks, max_workers=max_workers)
         print(f"[ts:{start_ts}] Training for version {version} finished")
 
