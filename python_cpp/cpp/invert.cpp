@@ -1,0 +1,32 @@
+#include <iostream>
+#include <vector>
+
+#include "invert.h"
+
+Block::Block(const std::vector<Block *> &argz, size_t r, size_t c): fowd_fun(r, c), bawd_fun(r, c)
+{
+  // TODO: check r and z are not zero.
+  // TODO: This is very ugly, rewrite it
+  for (Block *arg : argz) {
+    if (model == nullptr && arg->model != nullptr) {
+      arg->model->add(this);
+      // TODO: check that all args belong to the same model
+    }
+  }
+}
+
+void Block::reset_model() {
+    model->reset_all_lazy_funcs();
+}
+
+void Block::apply_bval(float learning_rate) {
+    Matrix &val = fowd_fun.val();
+
+    for_each_ella([learning_rate](double grads, double& val) {
+          val -= grads * learning_rate; 
+    }, bval(), val);
+
+    // Now all funcs have to be recalculated. Or should reset_both_lazy_funcs() be called explicitly?
+		model->reset_all_lazy_funcs();
+}
+
