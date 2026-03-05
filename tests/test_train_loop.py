@@ -30,10 +30,11 @@ class TestTrainLoop(unittest.TestCase):
                     max_version=1,
                     num_rounds=1,
                     batch_size=8,
-                    train_iterations=10
+                    train_iterations=10,
+                    opponents=[["player", "models/cpp3.001/duomodel-4000.json"]]
                 )
 
-            # Check if the expected files were created
+            # Check if the expected files were created and are loadable
             expected_files = [
                 "model-crosses-testing.0.json",
                 "model-zeroes-testing.0.json",
@@ -41,13 +42,20 @@ class TestTrainLoop(unittest.TestCase):
                 "model-zeroes-testing.1.json",
             ]
 
-            created_files = os.listdir(test_dir)
+            from lib.ttt_player_v2 import TTTPlayerV2
+
             for expected_file in expected_files:
-                self.assertIn(
-                    expected_file, 
-                    created_files, 
+                file_path = os.path.join(test_dir, expected_file)
+                self.assertTrue(
+                    os.path.exists(file_path),
                     f"Expected model file {expected_file} was not created."
                 )
+                
+                # Check that it is loadable
+                try:
+                    TTTPlayerV2(file_path)
+                except Exception as e:
+                    self.fail(f"Could not load model file {expected_file}: {e}")
 
         finally:
             # Clean up the temporary directory

@@ -1,10 +1,9 @@
 import argparse
 from typing import Any
-from lib import train_loop
 from utils import setup_logging
+from lib import train_loop
 
 setup_logging("output.log")
-
 
 parser = argparse.ArgumentParser(description="Train your model")
 parser.add_argument("--init_model", type=str, help="Path to the initial model file")
@@ -21,6 +20,14 @@ args = parser.parse_args()
 print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
+opponents = []
+prv_prefix = "models/cpp/duomodel"
+for prv_v in [1000, 3000, 13000]:
+    opponents.append(["player", f"{prv_prefix}-{prv_v}.json"])
+prv_prefix = "models/cpp3.001/duomodel"
+for prv_v in [4000]:
+    opponents.append(["player", f"{prv_prefix}-{prv_v}.json"])
+
 def main() -> None:
     train_loop.main_loop(
         prefix=args.save_to_model,
@@ -29,7 +36,8 @@ def main() -> None:
         max_version=args.max_version,
         num_rounds=args.num_rounds,
         train_iterations=args.train_iterations,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        opponents=opponents
     )
 
 if __name__ == "__main__":

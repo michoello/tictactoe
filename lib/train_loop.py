@@ -167,17 +167,15 @@ def fight(trainee: str, student_path: str, opponent_type: str, opponent_path: st
 
     return winners
 
-def versioned_competition(prefix: str, family: str, version: int, trainee: str) -> None:
+def versioned_competition(
+    prefix: str,
+    family: str,
+    version: int,
+    trainee: str,
+    opponents: list[Any]
+) -> None:
     opponent = "crosses" if trainee == "zeroes" else "zeroes"
     student_model = model_name(prefix, family, trainee, version)
-
-    opponents = []
-    prv_prefix = "models/cpp/duomodel"
-    for prv_v in [1000, 3000, 13000]:
-        opponents.append(["player", model_name_duo(prv_prefix, prv_v)])
-    prv_prefix = "models/cpp3.001/duomodel"
-    for prv_v in [4000]:
-        opponents.append(["player", model_name_duo(prv_prefix, prv_v)])
 
     tasks = []
     for opponent_model in opponents:
@@ -283,7 +281,8 @@ def main_loop(
     max_version: int,
     num_rounds: int,
     batch_size: int,
-    train_iterations: int
+    train_iterations: int,
+    opponents: list[Any]
 ) -> None:
     version = 0
     for family in families:
@@ -309,8 +308,8 @@ def main_loop(
         if version % 1 == 0:
             start_ts = print(f"Competitions for version {version} started")
             for family in families:
-              versioned_competition(prefix, family, version, "crosses")
-              versioned_competition(prefix, family, version, "zeroes")
+              versioned_competition(prefix, family, version, "crosses", opponents)
+              versioned_competition(prefix, family, version, "zeroes", opponents)
             print(f"[ts:{start_ts}] Competition for version {version} finished")
 
             cross_competition(prefix, families, version)
