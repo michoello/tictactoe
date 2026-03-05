@@ -2,7 +2,7 @@
 import sys
 from listinvert import invert, Matrix
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python examples/invert_cli.py <int1> <int2> ...")
         sys.exit(1)
@@ -18,7 +18,7 @@ def main():
     print("Inverted:", inverted)
 
 
-def matrix_demo():
+def matrix_demo() -> None:
     A = Matrix(rows = 2, cols = 3,
       values=[
         [1, 2, 4],

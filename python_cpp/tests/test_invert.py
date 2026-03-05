@@ -1,4 +1,5 @@
 import unittest
+from typing import Any
 from listinvert import (
     Matrix,
     multiply_matrix,
@@ -24,13 +25,13 @@ from listinvert import (
 )
 
 
-def python_matmul(A, B):
+def python_matmul(A: list[list[Any]], B: list[list[Any]]) -> list[list[Any]]:
     """Plain Python matrix multiplication for comparison"""
     rows_A, cols_A = len(A), len(A[0])
     rows_B, cols_B = len(B), len(B[0])
     assert cols_A == rows_B, "Incompatible dimensions"
 
-    result = [[0 for _ in range(cols_B)] for _ in range(rows_A)]
+    result: list[list[Any]] = [[0 for _ in range(cols_B)] for _ in range(rows_A)]
     for i in range(rows_A):
         for j in range(cols_B):
             for k in range(cols_A):
@@ -40,7 +41,7 @@ def python_matmul(A, B):
 
 class TestMatrixMultiply(unittest.TestCase):
 
-    def test_matrix_multiplication(self):
+    def test_matrix_multiplication(self) -> None:
         # Define test matrices
         A_list = [[1, 2, 3], [4, 5, 6]]
         B_list = [[7, 8], [9, 10], [11, 12]]
@@ -71,7 +72,7 @@ class TestMatrixMultiply(unittest.TestCase):
         A_cpp.set(1, 1, 3)
         self.assertEqual(A_cpp.get(1, 1), 3)
 
-    def test_wrong_set_data(self):
+    def test_wrong_set_data(self) -> None:
         a = Matrix(2, 3)
         with self.assertRaisesRegex(Exception, "set_data arg must have 2 rows. Provided 1 rows"):
             a.set_data([[1, 2, 3]])
@@ -81,7 +82,7 @@ class TestMatrixMultiply(unittest.TestCase):
 
 
 class TestMod3l(unittest.TestCase):
-    def assertNearlyEqual(self, a, b, delta=1e-3):
+    def assertNearlyEqual(self, a: Any, b: Any, delta: float=1e-3) -> None:
         if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
             self.assertEqual(len(a), len(b), "Lengths differ")
             for x, y in zip(a, b):
@@ -90,7 +91,7 @@ class TestMod3l(unittest.TestCase):
             self.assertAlmostEqual(a, b, delta=delta)
 
     # Simplest smoke test for model Data block
-    def test_mod3l_data(self):
+    def test_mod3l_data(self) -> None:
         m = Mod3l()
         da = Data(m, 2, 3)
         m.set_data(da, [[1, 2, 3], [4, 5, 6]])
@@ -100,7 +101,7 @@ class TestMod3l(unittest.TestCase):
         # TODO: error scenarios, like this:
         # m.set_data(da, [[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
-    def test_mod3l_matmul(self):
+    def test_mod3l_matmul(self) -> None:
         m = Mod3l()
 
         da = Data(m, 2, 3)
@@ -127,7 +128,7 @@ class TestMod3l(unittest.TestCase):
             ],
         )
 
-    def test_mod3l_sse_with_grads(self):
+    def test_mod3l_sse_with_grads(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 1, 2)
@@ -173,7 +174,7 @@ class TestMod3l(unittest.TestCase):
             ],
         )
 
-    def test_mod3l_grad_clipper(self):
+    def test_mod3l_grad_clipper(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 1, 2)
@@ -208,7 +209,7 @@ class TestMod3l(unittest.TestCase):
         self.assertNearlyEqual( value(ds.fval()), [ [4.955], ],)
 
 
-    def test_mod3l_add(self):
+    def test_mod3l_add(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 1, 2)
@@ -221,7 +222,7 @@ class TestMod3l(unittest.TestCase):
 
         self.assertEqual(value(ds.fval()), [[1, 6]])
 
-    def test_mod3l_add_fwd_bwd(self):
+    def test_mod3l_add_fwd_bwd(self) -> None:
         m = Mod3l()
         da = Data(m, 2, 3)
         db = Data(m, 2, 3)
@@ -267,7 +268,7 @@ class TestMod3l(unittest.TestCase):
         self.assertEqual(value(db.bval()), value(ds2.bval()))
         self.assertEqual(value(dc.bval()), value(ds2.bval()))
 
-    def test_mod3l_reshape(self):
+    def test_mod3l_reshape(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 3, 4)
@@ -284,7 +285,7 @@ class TestMod3l(unittest.TestCase):
 
         self.assertEqual(value(dr.fval()), [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
 
-    def test_mod3l_sigmoid(self):
+    def test_mod3l_sigmoid(self) -> None:
         m = Mod3l()
 
         dy = Data(m, 3, 4)
@@ -302,7 +303,7 @@ class TestMod3l(unittest.TestCase):
         self.assertEqual(value(dr.fval()), [[1, 2, 3], [4, 5, 2], [3, 4, 8], [2, 3, 4]])
 
     # Clone of tictactoe test_hello/test_bce_loss
-    def test_mod3l_bce_loss(self):
+    def test_mod3l_bce_loss(self) -> None:
         m = Mod3l()
         x = Data(m, 1, 2)
         m.set_data(x, [[0.1, -0.2]])
@@ -347,7 +348,7 @@ class TestMod3l(unittest.TestCase):
         self.assertNearlyEqual(value(loss.fval()), [[0.734, 0.723, 0.691]])
 
     # Clone of cpp testcase larger_model
-    def test_larger_model(self):
+    def test_larger_model(self) -> None:
         m = Mod3l()
         dinput = Data(m, 3, 3)
         m.set_data(
@@ -436,7 +437,7 @@ class TestMod3l(unittest.TestCase):
         self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.995]])
         self.assertNearlyEqual(value(policy_loss.fval()), [[1.593]])
 
-    def test_larger_model_convo2(self):
+    def test_larger_model_convo2(self) -> None:
         m = Mod3l()
         dinput = Data(m, 3, 3)
         m.set_data(

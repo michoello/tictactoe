@@ -1,1 +1,1 @@
-from ._listinvert import *
+from ._listinvert import *  # type: ignore

@@ -1,8 +1,9 @@
 import random
 import time
+from typing import Callable
 from listinvert import Matrix, multiply_matrix
 
-def benchmark(func):
+def benchmark(func: Callable[[], None]) -> float:
     """Measure runtime of a function in seconds (float)."""
     start = time.perf_counter()
     func()
@@ -11,7 +12,7 @@ def benchmark(func):
 
 
 # Equivalent to C++ benchmark_multiply
-def benchmark_multiply():
+def benchmark_multiply() -> None:
     A = Matrix(100, 100)
     B = Matrix(100, 100)
     A.fill_uniform()

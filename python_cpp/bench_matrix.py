@@ -1,19 +1,20 @@
 import random
 import time
+from typing import Callable
 
 class Matrix:
-    def __init__(self, rows, cols):
+    def __init__(self, rows: int, cols: int) -> None:
         self.rows = rows
         self.cols = cols
         # initialize with zeros
         self.data = [[0.0 for _ in range(cols)] for _ in range(rows)]
 
-    def fill_uniform(self):
+    def fill_uniform(self) -> None:
         """Fill the matrix with random values uniformly distributed in [-1, 1]."""
         self.data = [[random.uniform(-1, 1) for _ in range(self.cols)]
                      for _ in range(self.rows)]
 
-    def multiply(self, other):
+    def multiply(self, other: "Matrix") -> "Matrix":
         """Return the product of self * other as a new Matrix."""
         if self.cols != other.rows:
             raise ValueError("Matrix dimensions do not align for multiplication.")
@@ -28,12 +29,12 @@ class Matrix:
         ]
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Pretty-print matrix for debugging."""
         return "\n".join(" ".join(f"{val:7.3f}" for val in row) for row in self.data)
 
 
-def benchmark(func):
+def benchmark(func: Callable[[], None]) -> float:
     """Measure runtime of a function in seconds (float)."""
     start = time.perf_counter()
     func()
@@ -42,7 +43,7 @@ def benchmark(func):
 
 
 # Equivalent to your C++ benchmark_multiply
-def benchmark_multiply():
+def benchmark_multiply() -> None:
     A = Matrix(100, 100)
     B = Matrix(100, 100)
     A.fill_uniform()
