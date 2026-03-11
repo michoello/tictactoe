@@ -105,24 +105,24 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
 
 class TicTacToeServer(HTTPServer):
-    def __init__(self, server_address: tuple[str, int], RequestHandlerClass: Any, crosses_model: Any, zeroes_model: Any) -> None:
+    def __init__(self, server_address: tuple[str, int], RequestHandlerClass: Any, model_x: Any, model_o: Any) -> None:
         super().__init__(server_address, RequestHandlerClass)
-        self.model_x = crosses_model
-        self.model_o = zeroes_model
+        self.model_x = model_x
+        self.model_o = model_o
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web Server running a model")
-    parser.add_argument("--crosses_model", type=str, help="Type and path of crosses model")
-    parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
+    parser.add_argument("--model_x", type=str, help="Type and path of crosses model")
+    parser.add_argument("--model_o", type=str, help="Type and path of zeroes model")
     args = parser.parse_args()
 
-    crosses_master = pickup_model(*args.crosses_model.split(":"))
-    crosses_model = crosses_master.model_x
+    crosses_master = pickup_model(*args.model_x.split(":"))
+    model_x = crosses_master.model_x
     
-    zeroes_master = pickup_model(*args.zeroes_model.split(":"))
-    zeroes_model = zeroes_master.model_o
+    zeroes_master = pickup_model(*args.model_o.split(":"))
+    model_o = zeroes_master.model_o
     
-    server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, crosses_model, zeroes_model)
+    server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, model_x, model_o)
     print("Server running on port 8080...")
     server.serve_forever()

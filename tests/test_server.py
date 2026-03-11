@@ -20,11 +20,11 @@ class TestWebServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         # Set up a dummy model for the server
-        crosses_model = MagicMock()
-        zeroes_model = MagicMock()
+        model_x = MagicMock()
+        model_o = MagicMock()
         
         # Bind to port 0 to get an OS-assigned available port
-        cls.server = TicTacToeServer(("127.0.0.1", 0), SilentHandler, crosses_model, zeroes_model)
+        cls.server = TicTacToeServer(("127.0.0.1", 0), SilentHandler, model_x, model_o)
         cls.port = cls.server.server_port
         
         cls.server_thread = threading.Thread(target=cls.server.serve_forever)

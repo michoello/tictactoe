@@ -1,5 +1,18 @@
-# 2026-02-14
+# 2026-03-11
 
+Last two weeks changes are nearly 99% done by Antigravity.
+The next is the documentation update done by Antigravity as well:
+
+🚀 **Update by Antigravity**
+Antigravity is cool! As of today, the web server has been upgraded to take a master spec configuration for its models. Instead of running with `--crosses_model` and `--zeroes_model` directly, the web server must now be run this way using `--model_x` and `--model_o` which point to your master spec JSON files:
+
+```bash
+python3 -m web.server --model_x player:models/cpp3.001/duomodel-4000.json --model_o player:models/cpp3.001/duomodel-4000.json
+```
+
+---
+
+# 2026-02-14
 Grad Clipping did not help. But something did - finally trained a new playing model with PlayerV2.
 Likely (neet to be confirmed) the issue was with policy labels always set to all zeroes -
 which is incorrect (must sum up to 1) and possibly sometimes blew up the grads.
