@@ -15,6 +15,7 @@ from listinvert import (
     BCE,
     Sigmoid,
     Reshape,
+    MulEl2,
     value,
     Convo,
     Convo2,
@@ -533,6 +534,47 @@ class TestMod3l(unittest.TestCase):
 
         self.assertNearlyEqual(value(dvalue_loss.fval()), [[3.995]])
         self.assertNearlyEqual(value(policy_loss.fval()), [[1.593]])
+
+    def test_mulel2(self) -> None:
+        m = Mod3l()
+        
+        # main matrix
+        da = Data(m, 2, 3)
+        m.set_data(da, [[1, 2, 3], [4, 5, 6]])
+        
+        # multiplier matrix (1x1 as per C++ implementation logic)
+        db = Data(m, 1, 1)
+        m.set_data(db, [[2.5]])
+        
+        # Multiply element-wise
+        dc = MulEl2(da, db)
+        
+        # Verify forward pass
+        self.assertNearlyEqual(
+            value(dc.fval()), 
+            [[2.5, 5.0, 7.5], [10.0, 12.5, 15.0]]
+        )
+        
+        # Add a loss function to trigger backward pass
+        dlabel = Data(m, 2, 3)
+        m.set_data(dlabel, [[0, 0, 0], [0, 0, 0]])
+        
+        loss = SSE(dc, dlabel)
+        
+        # Force calc of backward pass (reads bval to populate grads)
+        _ = value(loss.bval())
+        
+        # Grad of dc is 2*(dc - dlabel) = 2*dc
+        expected_dc_grad = [[5.0, 10.0, 15.0], [20.0, 25.0, 30.0]]
+        self.assertNearlyEqual(value(dc.bval()), expected_dc_grad)
+        
+        # Grad of da uses db's value (2.5) multiplied by dc's gradient
+        expected_da_grad = [[12.5, 25.0, 37.5], [50.0, 62.5, 75.0]]
+        self.assertNearlyEqual(value(da.bval()), expected_da_grad)
+
+        # Grad of db is sum(dc_grad * da)
+        # 5*1 + 10*2 + 15*3 + 20*4 + 25*5 + 30*6 = 5 + 20 + 45 + 80 + 125 + 180 = 455.0
+        self.assertNearlyEqual(value(db.bval()), [[455.0]])
 
 if __name__ == "__main__":
     unittest.main()

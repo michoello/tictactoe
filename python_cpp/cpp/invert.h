@@ -493,7 +493,15 @@ static Block *MulEl2(Block *a, Block* b) {
 
   a->add_bawd_fun([b, res](Matrix *out) {
     double n = b->fval().get(0, 0);
-    for_each_ella([n](double &grad_out) { grad_out = n; }, *out);
+    for_each_ella([n](double grad_in, double &grad_out) { grad_out = grad_in * n; }, res->bval(), *out);
+  });
+
+  b->add_bawd_fun([a, res](Matrix *out) {
+    double sum = 0.0;
+    for_each_ella([&sum](double a_val, double grad_in) {
+      sum += a_val * grad_in;
+    }, a->fval(), res->bval());
+    for_each_ella([sum](double &grad_out) { grad_out = sum; }, *out);
   });
 
   return res;
