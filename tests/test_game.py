@@ -608,7 +608,7 @@ class TestPlayerV2(MyTestCase):
 
             test_boards, test_values = g.generate_batch_from_games(20)
 
-            total_epochs = 20
+            total_epochs = 80
             for epoch in range(total_epochs):
                 #if epoch % 2 == 0:
                 g = game.Game(m, random_model)
@@ -617,17 +617,23 @@ class TestPlayerV2(MyTestCase):
                   
                 train_boards, train_values = g.generate_batch_from_games(20)
 
-                for i in range(20):
+                for i in range(10):
                     train_loss = 0
                     for board, val in zip(train_boards, train_values):
                         m.set_board_and_value( 1, board, val)
-                        m.apply_gradient(0.001)
+                        m.calc_grads()
                         train_loss = train_loss + m.get_loss_value()[0]
+                        m.set_board_and_value(-1, board, val)
+                        m.calc_grads()
+                        train_loss = train_loss + m.get_loss_value()[0]
+                    m.apply_gradient()
 
                 if epoch % 2 == 0:
                     test_loss = 0
                     for board, val in zip(test_boards, test_values):
                         m.set_board_and_value( 1, board, val)
+                        test_loss = test_loss + m.get_loss_value()[0]
+                        m.set_board_and_value(-1, board, val)
                         test_loss = test_loss + m.get_loss_value()[0]
                     print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 

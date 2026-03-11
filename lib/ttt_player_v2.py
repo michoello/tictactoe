@@ -27,6 +27,7 @@ from listinvert import (
     Sigmoid,
     Reshape,
     Explode,
+    MulEl2,
     value,
     Convo,
     Convo2,
@@ -62,7 +63,7 @@ class TTTPlayerV2:
         self.impl = TTTPlayerImpl(spec_file)
 
     def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
-        return self.impl.get_next_step_value(board)
+        return player * self.impl.get_next_step_value(player, board)
 
     def calc_grads(self) -> None:
         pass
@@ -73,9 +74,11 @@ class TTTPlayerV2:
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
     def set_board_and_value(self, player: int, board: list[list[int]], _value: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None) -> None:
+        self.impl.m.set_data(self.impl.dplayer, [[player]])
         self.impl.m.set_data(self.impl.dinput, board)
 
         _value = _value or [[0.5]]
+        _value = [[_value[0][0] * player]]
         self.impl.m.set_data(self.impl.value_label, _value)
 
         policy = policy or [ [1/36 for _ in range(36)]]
@@ -127,6 +130,7 @@ class TTTPlayerImpl:
 
        self.m = Mod3l()
        self.dinput = Data(self.m, 6, 6)
+       self.dplayer = Data(self.m, 1, 1)
 
        Nonlinearity = Sigmoid  # ReLU does not work though recommended by BOOKS
 
@@ -136,7 +140,8 @@ class TTTPlayerImpl:
        self.kernels1 = Data(self.m, 9, CONVO_CHANNELS)
        self.kernels2 = Data(self.m, 9, CONVO_CHANNELS)
 
-       rl = MatMul(Explode(self.dinput, 3, 3), self.kernels1)
+       scaled_input = MulEl2(self.dinput, self.dplayer)
+       rl = MatMul(Explode(scaled_input, 3, 3), self.kernels1)
        #rl = MatMul(Explode(GradClipper(self.dinput, 1.0), 3, 3), GradClipper(self.kernels1, 1.0))
        rl = Reshape(rl, 6, 6)
        rl = Nonlinearity(rl)
@@ -255,13 +260,14 @@ class TTTPlayerImpl:
 
     # For a set of next step boards and coords of next step
     # calculates value and stores it in the coords of next step.
-    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+    def get_next_step_values(self, player: int, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
-            values[x][y] = self.get_next_step_value(board)
+            values[x][y] = self.get_next_step_value(player, board)
         return values
 
-    def get_next_step_value(self, board: list[list[int]]) -> float:
+    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
+        self.m.set_data(self.dplayer, [[player]])
         self.m.set_data(self.dinput, board)
         #step_value = value(self.value_label.fval())
         step_value = value(self.value.fval())
