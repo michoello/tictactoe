@@ -60,73 +60,7 @@ CONVO_CHANNELS = 32
 # Works both sides as it converts board differently depending on whose move is next
 class TTTPlayerV2:
     def __init__(self, spec_file: Optional[str] = None) -> None:
-        self.impl = TTTPlayerImpl(spec_file)
-
-    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
-        return player * self.impl.get_next_step_value(player, board)
-
-    def calc_grads(self) -> None:
-        pass
-
-    def apply_gradient(self, alpha: float = 0.01) -> None:
-        self.impl.apply_gradient(alpha)
-
-    # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
-    # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
-    def set_board_and_value(self, player: int, board: list[list[int]], _value: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None) -> None:
-        self.impl.m.set_data(self.impl.dplayer, [[player]])
-        self.impl.m.set_data(self.impl.dinput, board)
-
-        _value = _value or [[0.5]]
-        _value = [[_value[0][0] * player]]
-        self.impl.m.set_data(self.impl.value_label, _value)
-
-        policy = policy or [ [1/36 for _ in range(36)]]
-        self.impl.m.set_data(self.impl.policy_labels, policy)
-
-
-    def save_to_file(self, file_name: str) -> None:
-        self.impl.save_to_file(file_name)
-
-    def replay_buffer(self) -> Any:
-        return self.impl.replay_buffer
-
-    # Returns tuple of two losses: value and policy
-    def get_loss_value(self) -> Any:
-        return self.impl.get_loss_value()
-
-
-    # Somehow this function never triggered.
-    # TODO: remove it?
-    def find_nan_grads(self) -> bool:
-       def contains_nan(block: Any) -> bool:
-           return any(math.isnan(x) for row in value(block.bval()) for x in row)
-
-       impl = self.impl
-       blocks = {
-           "w_policy": impl.w_policy,
-           "b_policy": impl.b_policy,
-           "w_value1": impl.w_value1,
-           "b_value1": impl.b_value1,
-           "w_value": impl.w_value,
-           "b_value": impl.b_value,
-           "kernel1": impl.kernels1,
-           "kernel2": impl.kernels2,
-           "fold":    impl.fold,
-       }
-       for name, block in blocks.items():
-           if contains_nan(block):
-               print(f"Block {name} contains nan!")
-               return True
-       return False
-
-
-# Single side player based on board position value
-# Can play either for X xor for O, but not both
-# Became private implementation detail, not to be used directly
-class TTTPlayerImpl:
-    def __init__(self, file_to_load_from: Optional[str] = None) -> None:
-       self.replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
+       self._replay_buffer = replay_buffer.ReplayBuffer(max_size=10000)
 
        self.m = Mod3l()
        self.dinput = Data(self.m, 6, 6)
@@ -176,8 +110,8 @@ class TTTPlayerImpl:
        self.value_label = Data(self.m, 1, 1) 
        self.value_loss = SSE(self.value, self.value_label)
 
-       if file_to_load_from:
-           self.load_from_file(file_to_load_from)
+       if spec_file:
+           self.load_from_file(spec_file)
        else:
            # Convolutions should be initialized very carefully to prevent gradient crazyness
            # TODO: add batch normalization and gradient clipping
@@ -199,6 +133,52 @@ class TTTPlayerImpl:
            # stable
            #self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 0.1))
            self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 1.0))
+
+
+    def get_next_step_values(self, player: int, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+        values = copy.deepcopy(START_VALUES)
+        for board, x, y in boards:
+            values[x][y] = self.get_next_step_value(player, board)
+        return values
+
+
+    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
+        self.m.set_data(self.dplayer, [[player]])
+        self.m.set_data(self.dinput, board)
+        #step_value = value(self.value_label.fval())
+        step_value = value(self.value.fval())
+        return player * step_value[0][0]
+
+
+    def calc_grads(self) -> None:
+        pass
+
+
+    def apply_gradient(self, alpha: float = 0.01) -> None:
+        self.kernels1.apply_bval(alpha)
+        self.kernels2.apply_bval(alpha)
+        self.fold.apply_bval(alpha)
+
+        self.w_policy.apply_bval(alpha)
+        self.b_policy.apply_bval(alpha)
+        self.w_value1.apply_bval(alpha)
+        self.b_value1.apply_bval(alpha)
+        self.w_value.apply_bval(alpha)
+        self.b_value.apply_bval(alpha)
+
+
+    # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
+    # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
+    def set_board_and_value(self, player: int, board: list[list[int]], _value: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None) -> None:
+        self.m.set_data(self.dplayer, [[player]])
+        self.m.set_data(self.dinput, board)
+
+        _value = _value or [[0.5]]
+        _value = [[_value[0][0] * player]]
+        self.m.set_data(self.value_label, _value)
+
+        policy = policy or [ [1/36 for _ in range(36)]]
+        self.m.set_data(self.policy_labels, policy)
 
 
     def parse_model_file(self, file_name: str) -> Any:
@@ -224,14 +204,13 @@ class TTTPlayerImpl:
         self.m.set_data(self.b_value, data["b_value"])
 
         if "replay_buffer" in model_json:
-            self.replay_buffer.from_json(model_json["replay_buffer"])
+            self._replay_buffer.from_json(model_json["replay_buffer"])
         else:
-            self.replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
+            self._replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
 
 
-    def calc_grads(self) -> None:
-        pass
-            
+    def replay_buffer(self) -> Any:
+        return self._replay_buffer
 
     def save_to_file(self, file_name: str) -> None:
         def rounded(mtx: list[list[float]]) -> list[list[float]]:
@@ -253,38 +232,37 @@ class TTTPlayerImpl:
 
             model_json = {
                 "data": data_json,
-                "replay_buffer_zip": compress(self.replay_buffer.to_json()),
+                "replay_buffer_zip": compress(self._replay_buffer.to_json()),
             }
             model_dump = json.dumps(model_json)
             file.write(model_dump)
 
-    # For a set of next step boards and coords of next step
-    # calculates value and stores it in the coords of next step.
-    def get_next_step_values(self, player: int, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
-        values = copy.deepcopy(START_VALUES)
-        for board, x, y in boards:
-            values[x][y] = self.get_next_step_value(player, board)
-        return values
 
-    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
-        self.m.set_data(self.dplayer, [[player]])
-        self.m.set_data(self.dinput, board)
-        #step_value = value(self.value_label.fval())
-        step_value = value(self.value.fval())
-        return step_value[0][0] 
-
+    # Returns tuple of two losses: value and policy
     def get_loss_value(self) -> Any:
         return self.value_loss.fval().get(0, 0), self.policy_loss.fval().get(0, 0)
 
-    def apply_gradient(self, alpha: float = 0.01) -> None:
-        self.kernels1.apply_bval(alpha)
-        self.kernels2.apply_bval(alpha)
-        self.fold.apply_bval(alpha)
 
-        self.w_policy.apply_bval(alpha)
-        self.b_policy.apply_bval(alpha)
-        self.w_value1.apply_bval(alpha)
-        self.b_value1.apply_bval(alpha)
-        self.w_value.apply_bval(alpha)
-        self.b_value.apply_bval(alpha)
+    # Somehow this function never triggered.
+    # TODO: remove it?
+    def find_nan_grads(self) -> bool:
+       def contains_nan(block: Any) -> bool:
+           return any(math.isnan(x) for row in value(block.bval()) for x in row)
+
+       blocks = {
+           "w_policy": self.w_policy,
+           "b_policy": self.b_policy,
+           "w_value1": self.w_value1,
+           "b_value1": self.b_value1,
+           "w_value": self.w_value,
+           "b_value": self.b_value,
+           "kernel1": self.kernels1,
+           "kernel2": self.kernels2,
+           "fold":    self.fold,
+       }
+       for name, block in blocks.items():
+           if contains_nan(block):
+               print(f"Block {name} contains nan!")
+               return True
+       return False
 

@@ -92,18 +92,18 @@ def train_single_round(
             loss, policy_loss = m_student.get_loss_value()
 
             if math.isnan(loss):
-              print("Label: ", value(m_student.impl.value_label.fval()))
-              print("input: ", value(m_student.impl.dinput.fval()))
-              print("Grads kernels1: ", value(m_student.impl.kernels1.bval()))
-              print("Grads kernels2: ", value(m_student.impl.kernels2.bval()))
-              print("Output kernels1: ", value(m_student.impl.kernels1.fval()))
-              print("Output kernels2: ", value(m_student.impl.kernels2.fval()))
+              print("Label: ", value(m_student.value_label.fval()))
+              print("input: ", value(m_student.dinput.fval()))
+              print("Grads kernels1: ", value(m_student.kernels1.bval()))
+              print("Grads kernels2: ", value(m_student.kernels2.bval()))
+              print("Output kernels1: ", value(m_student.kernels1.fval()))
+              print("Output kernels2: ", value(m_student.kernels2.fval()))
               import sys
               sys.exit()
 
             sloss += loss
-            k1norm += grad_norm(value(m_student.impl.kernels1.bval()))
-            k2norm += grad_norm(value(m_student.impl.kernels2.bval()))
+            k1norm += grad_norm(value(m_student.kernels1.bval()))
+            k2norm += grad_norm(value(m_student.kernels2.bval()))
             cnt += 1
 
         train_loss = calc_loss(_player, m_student, train_boards, train_values)

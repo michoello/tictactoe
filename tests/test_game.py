@@ -453,7 +453,7 @@ class TestPlayerV2(MyTestCase):
         self.assertAlmostEqualNested(policy_loss, 0.902)
 
         # TODO: get rid of "impl"
-        self.assertAlmostEqualNested(value(player2.impl.policy.fval()), train_policy, delta=0.01)
+        self.assertAlmostEqualNested(value(player2.policy.fval()), train_policy, delta=0.01)
 
 
     def test_game_greedy_steps_v1(self) -> None:
