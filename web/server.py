@@ -8,10 +8,7 @@ from typing import cast, Any
 import argparse
 import math
 
-parser = argparse.ArgumentParser(description="Web Server running a model")
-parser.add_argument("--crosses_model", type=str, help="Type and path of crosses model")
-parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
-args = parser.parse_args()
+
 
 
 class TicTacToeHandler(BaseHTTPRequestHandler):
@@ -115,8 +112,17 @@ class TicTacToeServer(HTTPServer):
 
 
 if __name__ == "__main__":
-    crosses_model = pickup_model(*args.crosses_model.split(":"))
-    zeroes_model = pickup_model(*args.zeroes_model.split(":"))
+    parser = argparse.ArgumentParser(description="Web Server running a model")
+    parser.add_argument("--crosses_model", type=str, help="Type and path of crosses model")
+    parser.add_argument("--zeroes_model", type=str, help="Type and path of zeroes model")
+    args = parser.parse_args()
+
+    crosses_master = pickup_model(*args.crosses_model.split(":"))
+    crosses_model = crosses_master.model_x
+    
+    zeroes_master = pickup_model(*args.zeroes_model.split(":"))
+    zeroes_model = zeroes_master.model_o
+    
     server = TicTacToeServer(("0.0.0.0", 8080), TicTacToeHandler, crosses_model, zeroes_model)
     print("Server running on port 8080...")
     server.serve_forever()
