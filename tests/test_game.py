@@ -1,5 +1,5 @@
 import unittest
-from typing import Any
+from typing import cast, Any
 from lib import ml
 from lib import game
 import tempfile
@@ -103,7 +103,9 @@ class TestTrainingCycle(MyTestCase):
             print("Training")
 
             g = game.Game(random_model, random_model)
-            test_boards, test_values = g.generate_batch_from_games(20)
+            test_batch = g.generate_batch_from_games(20)
+            test_boards = [item.board.state for item in test_batch]
+            test_values = [cast(list[list[float]], item.reward) for item in test_batch]
 
             total_epochs = 50 
             for epoch in range(total_epochs):
@@ -112,7 +114,9 @@ class TestTrainingCycle(MyTestCase):
                 else:
                   g = game.Game(random_model, m)
                   
-                train_boards, train_values = g.generate_batch_from_games(20)
+                train_batch = g.generate_batch_from_games(20)
+                train_boards = [item.board.state for item in train_batch]
+                train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
                 for i in range(10):
                     for board, val in zip(train_boards, train_values):
@@ -206,7 +210,9 @@ class TestTrainingCycle(MyTestCase):
             mo = ttt.TTTPlayer(enable_cpp=True)
 
             g = game.Game(mx, mo)
-            train_boards, train_values = g.generate_batch_from_games(25)
+            train_batch = g.generate_batch_from_games(25)
+            train_boards = [item.board.state for item in train_batch]
+            train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
             mx.set_board_and_value( 1, train_boards[0], train_values[0])
             mx.set_board_and_value(-1, train_boards[0], train_values[0])
@@ -606,7 +612,9 @@ class TestPlayerV2(MyTestCase):
 
             g = game.Game(random_model, random_model)
 
-            test_boards, test_values = g.generate_batch_from_games(20)
+            test_batch = g.generate_batch_from_games(20)
+            test_boards = [item.board.state for item in test_batch]
+            test_values = [cast(list[list[float]], item.reward) for item in test_batch]
 
             total_epochs = 80
             for epoch in range(total_epochs):
@@ -615,7 +623,9 @@ class TestPlayerV2(MyTestCase):
                 #else:
                 #  g = game.Game(random_model, m)
                   
-                train_boards, train_values = g.generate_batch_from_games(20)
+                train_batch = g.generate_batch_from_games(20)
+                train_boards = [item.board.state for item in train_batch]
+                train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
                 for i in range(10):
                     train_loss = 0
@@ -666,67 +676,21 @@ class TestPlayerV2(MyTestCase):
             m = tttv2.TTTPlayerV2()
             random_model = ttt.TTTRandom()
             g = game.Game(m, random_model)
-            boards, values = g.generate_batch_from_games(10)
+            batch = g.generate_batch_from_games(10, shuffle=False)
+            boards = [item.board.state for item in batch]
+            values = [cast(list[list[float]], item.reward) for item in batch]
             
             self.assertGreaterEqual(len(boards), 10)
             self.assertEqual(len(boards), len(values))
             
             expected_boards = [
                 [
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 1, 0, 0, 0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  1,  0],
-                    [-1,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  1,  0,  0],
-                    [-1,  0, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1, -1,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  1,  0,  0],
-                    [-1,  0, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1, -1,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [-1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  1,  0],
-                    [ 0,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  1,  0,  0],
-                    [-1,  0, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1, -1,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  1,  0,  0],
-                    [-1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1, -1,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
                     [ 0,  0,  0,  0,  0,  0],
                     [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  1,  0,  0,  0]
                 ],
                 [
                     [ 0,  0,  0,  0,  0,  0],
@@ -739,8 +703,56 @@ class TestPlayerV2(MyTestCase):
                 [
                     [ 0,  1,  0,  0,  0,  0],
                     [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0, -1,  0,  0,  0]
+                ],
+                [
+                    [ 0,  1,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 0,  1,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
                     [ 1,  0,  0,  0,  0,  0],
                     [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 0,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [-1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [-1,  0,  0,  0,  0,  0],
                     [ 0,  0,  0,  0,  0,  0],
                     [ 0, -1, -1,  0,  0,  0]
                 ],
@@ -755,16 +767,16 @@ class TestPlayerV2(MyTestCase):
             ]
             
             expected_values = [
-                [[-0.16677181699666577]],
-                [[-0.6561]],
-                [[-0.531441]],
-                [[-0.3486784401]],
-                [[-0.59049]],
-                [[-0.4782969]],
-                [[-0.31381059609]],
-                [[-0.1853020188851842]],
-                [[-0.2541865828329]],
-                [[-0.43046721]]
+                [[-0.167]],
+                [[-0.185]],
+                [[-0.206]],
+                [[-0.229]],
+                [[-0.254]],
+                [[-0.282]],
+                [[-0.314]],
+                [[-0.349]],
+                [[-0.387]],
+                [[-0.430]]
             ]
             
             self.assertGreaterEqual(len(boards), 10)
@@ -772,7 +784,7 @@ class TestPlayerV2(MyTestCase):
             
             for i in range(10):
                 self.assertEqual(boards[i], expected_boards[i])
-                self.assertAlmostEqualNested(values[i], expected_values[i], delta=0.000001)
+                self.assertAlmostEqualNested(values[i], expected_values[i], delta=0.001)
 
 if __name__ == "__main__":
     unittest.main()

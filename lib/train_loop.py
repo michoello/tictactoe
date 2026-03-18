@@ -17,7 +17,7 @@ import sys
 import os
 import time
 import shutil
-from typing import Any
+from typing import cast, Any
 import random
 import builtins
 from datetime import datetime
@@ -63,7 +63,9 @@ def train_single_round(
     train_iterations: int
 ) -> None:
     g = game.Game(model_x, model_o)
-    train_boards, train_values = g.generate_batch_from_games(batch_size)
+    train_batch = g.generate_batch_from_games(batch_size)
+    train_boards = [item.board.state for item in train_batch]
+    train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
     # Get old memories from buffer
     replay_buffer = m_student.replay_buffer()

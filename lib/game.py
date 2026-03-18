@@ -335,11 +335,12 @@ class Game:
 
       return winners
 
-    def generate_batch_from_games(self, num_boards: int) -> tuple[list[list[list[int]]], list[list[list[float]]]]:
+    def generate_batch_from_games(self, num_boards: int, shuffle: bool = True) -> list['GameState']:
         all_steps: list[GameState] = []
         while len(all_steps) < num_boards:
             all_steps.extend(self.play_game())
 
-        random.shuffle(all_steps)
-        return [step.board.state for step in all_steps], [ step.reward for step in all_steps if step.reward is not None]
+        if shuffle:
+            random.shuffle(all_steps)
+        return [step for step in all_steps if step.reward is not None]
     

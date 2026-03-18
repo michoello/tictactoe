@@ -13,7 +13,7 @@ import sys
 import os
 import time
 import shutil
-from typing import Any
+from typing import cast, Any
 import random
 import argparse
 
@@ -100,7 +100,9 @@ TRAIN_ITERATIONS = 25
 def train_single_round(trainee: str, model_x: Any, model_o: Any, m_student: Any) -> None:
 
     g = game.Game(model_x, model_o)
-    train_boards, train_values = g.generate_batch_from_games(BATCH_SIZE)
+    train_batch = g.generate_batch_from_games(BATCH_SIZE)
+    train_boards = [item.board.state for item in train_batch]
+    train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
     #
     # Get old memories from buffer
