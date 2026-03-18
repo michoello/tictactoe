@@ -656,8 +656,123 @@ class TestPlayerV2(MyTestCase):
             # TODO: uncomment. There is a lot to do to make it work yet ahead
             #self.assertLess(ztw[1], ztw[-1])
 
-
-
+    def test_generate_batch_untrained_v2(self) -> None:
+        rng = SimpleRNG(seed=22)
+        with patch("random.random", new=rng.random), patch(
+            "random.randint", new=rng.randint
+        ), patch("random.choice", new=rng.choice), patch(
+            "random.shuffle", new=rng.shuffle
+        ):
+            m = tttv2.TTTPlayerV2()
+            random_model = ttt.TTTRandom()
+            g = game.Game(m, random_model)
+            boards, values = g.generate_batch_from_games(10)
+            
+            self.assertGreaterEqual(len(boards), 10)
+            self.assertEqual(len(boards), len(values))
+            
+            expected_boards = [
+                [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  1,  0],
+                    [-1,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  1,  0,  0],
+                    [-1,  0, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1, -1,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  1,  0,  0],
+                    [-1,  0, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1, -1,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [-1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  1,  0],
+                    [ 0,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  1,  0,  0],
+                    [-1,  0, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1, -1,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  1,  0,  0],
+                    [-1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1, -1,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0, -1,  0,  0,  0]
+                ],
+                [
+                    [ 0,  1,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1,  0,  0,  0]
+                ],
+                [
+                    [ 1,  1, -1,  0,  0,  0],
+                    [ 0,  0,  0,  1,  0,  0],
+                    [ 1,  0,  0,  0,  0,  0],
+                    [-1,  0,  0,  0,  0,  0],
+                    [ 0,  0,  0,  0,  0,  0],
+                    [ 0, -1, -1, -1,  0,  0]
+                ]
+            ]
+            
+            expected_values = [
+                [[-0.16677181699666577]],
+                [[-0.6561]],
+                [[-0.531441]],
+                [[-0.3486784401]],
+                [[-0.59049]],
+                [[-0.4782969]],
+                [[-0.31381059609]],
+                [[-0.1853020188851842]],
+                [[-0.2541865828329]],
+                [[-0.43046721]]
+            ]
+            
+            self.assertGreaterEqual(len(boards), 10)
+            self.assertEqual(len(boards), len(values))
+            
+            for i in range(10):
+                self.assertEqual(boards[i], expected_boards[i])
+                self.assertAlmostEqualNested(values[i], expected_values[i], delta=0.000001)
 
 if __name__ == "__main__":
     unittest.main()
