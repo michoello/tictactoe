@@ -104,8 +104,6 @@ class TestTrainingCycle(MyTestCase):
 
             g = game.Game(random_model, random_model)
             test_batch = g.generate_batch_from_games(20)
-            test_boards = [item.board.state for item in test_batch]
-            test_values = [cast(list[list[float]], item.reward) for item in test_batch]
 
             total_epochs = 50 
             for epoch in range(total_epochs):
@@ -115,20 +113,18 @@ class TestTrainingCycle(MyTestCase):
                   g = game.Game(random_model, m)
                   
                 train_batch = g.generate_batch_from_games(20)
-                train_boards = [item.board.state for item in train_batch]
-                train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
                 for i in range(10):
-                    for board, val in zip(train_boards, train_values):
-                        m.set_board_and_value( 1, board, val)
-                        m.set_board_and_value(-1, board, val)
+                    for state in train_batch:
+                        m.set_board_and_value( 1, state)
+                        m.set_board_and_value(-1, state)
                         m.calc_grads()
                         m.apply_gradient()
 
                     test_loss = 0
-                    for board, val in zip(test_boards, test_values):
-                        m.set_board_and_value( 1, board, val)
-                        m.set_board_and_value(-1, board, val)
+                    for state in test_batch:
+                        m.set_board_and_value( 1, state)
+                        m.set_board_and_value(-1, state)
                         test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
@@ -211,11 +207,9 @@ class TestTrainingCycle(MyTestCase):
 
             g = game.Game(mx, mo)
             train_batch = g.generate_batch_from_games(25)
-            train_boards = [item.board.state for item in train_batch]
-            train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
-            mx.set_board_and_value( 1, train_boards[0], train_values[0])
-            mx.set_board_and_value(-1, train_boards[0], train_values[0])
+            mx.set_board_and_value( 1, train_batch[0])
+            mx.set_board_and_value(-1, train_batch[0])
 
             # Check that gradient decreased
             self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.647714]], 1e-6)
@@ -430,10 +424,13 @@ class TestPlayerV2(MyTestCase):
         ]
         next_player = 1
 
+        state = game.GameState(board=game.Board(), last_move=0)
+        state.board.state = train_board
+        state.reward = train_value
+
         player2.set_board_and_value(
             player = next_player,
-            board = train_board,
-            _value = train_value,
+            state = state,
             policy = train_policy,
         )
  
@@ -613,8 +610,6 @@ class TestPlayerV2(MyTestCase):
             g = game.Game(random_model, random_model)
 
             test_batch = g.generate_batch_from_games(20)
-            test_boards = [item.board.state for item in test_batch]
-            test_values = [cast(list[list[float]], item.reward) for item in test_batch]
 
             total_epochs = 80
             for epoch in range(total_epochs):
@@ -624,26 +619,24 @@ class TestPlayerV2(MyTestCase):
                 #  g = game.Game(random_model, m)
                   
                 train_batch = g.generate_batch_from_games(20)
-                train_boards = [item.board.state for item in train_batch]
-                train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
                 for i in range(10):
                     train_loss = 0
-                    for board, val in zip(train_boards, train_values):
-                        m.set_board_and_value( 1, board, val)
+                    for state in train_batch:
+                        m.set_board_and_value( 1, state)
                         m.calc_grads()
                         train_loss = train_loss + m.get_loss_value()[0]
-                        m.set_board_and_value(-1, board, val)
+                        m.set_board_and_value(-1, state)
                         m.calc_grads()
                         train_loss = train_loss + m.get_loss_value()[0]
                     m.apply_gradient()
 
                 if epoch % 2 == 0:
                     test_loss = 0
-                    for board, val in zip(test_boards, test_values):
-                        m.set_board_and_value( 1, board, val)
+                    for state in test_batch:
+                        m.set_board_and_value( 1, state)
                         test_loss = test_loss + m.get_loss_value()[0]
-                        m.set_board_and_value(-1, board, val)
+                        m.set_board_and_value(-1, state)
                         test_loss = test_loss + m.get_loss_value()[0]
                     print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
@@ -677,114 +670,137 @@ class TestPlayerV2(MyTestCase):
             random_model = ttt.TTTRandom()
             g = game.Game(m, random_model)
             batch = g.generate_batch_from_games(10, shuffle=False)
-            boards = [item.board.state for item in batch]
-            values = [cast(list[list[float]], item.reward) for item in batch]
             
-            self.assertGreaterEqual(len(boards), 10)
-            self.assertEqual(len(boards), len(values))
             
-            expected_boards = [
-                [
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  1,  0,  0,  0]
-                ],
-                [
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0, -1,  0,  0,  0]
-                ],
-                [
-                    [ 0,  1,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0, -1,  0,  0,  0]
-                ],
-                [
-                    [ 0,  1,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 0,  1,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 0,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [-1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [-1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1,  0,  0,  0]
-                ],
-                [
-                    [ 1,  1, -1,  0,  0,  0],
-                    [ 0,  0,  0,  1,  0,  0],
-                    [ 1,  0,  0,  0,  0,  0],
-                    [-1,  0,  0,  0,  0,  0],
-                    [ 0,  0,  0,  0,  0,  0],
-                    [ 0, -1, -1, -1,  0,  0]
-                ]
+            self.assertGreaterEqual(len(batch), 10)
+            
+            
+            expected_batch = [
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.167]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.185]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  1,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.206]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  1,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.229]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  1,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.254]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.282]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.314]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [-1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.349]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [-1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1,  0,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.387]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  0,  0,  0],
+                        [-1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=0,
+                    reward=[[-0.430]]
+                )
             ]
-            
-            expected_values = [
-                [[-0.167]],
-                [[-0.185]],
-                [[-0.206]],
-                [[-0.229]],
-                [[-0.254]],
-                [[-0.282]],
-                [[-0.314]],
-                [[-0.349]],
-                [[-0.387]],
-                [[-0.430]]
-            ]
-            
-            self.assertGreaterEqual(len(boards), 10)
-            self.assertEqual(len(boards), len(values))
-            
+
             for i in range(10):
-                self.assertEqual(boards[i], expected_boards[i])
-                self.assertAlmostEqualNested(values[i], expected_values[i], delta=0.001)
+                self.assertTrue(batch[i].almost_equal(expected_batch[i], delta=0.001))
+
 
 if __name__ == "__main__":
     unittest.main()

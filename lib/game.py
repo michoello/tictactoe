@@ -147,12 +147,27 @@ class GameState:
     xyo: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
     reward: Optional[list[list[float]]] = None
 
-    def __init__(self, board: Board, last_move: int, step_no: int = 0, x: int = -1, y: int = -1) -> None:
+    def almost_equal(self, other: GameState, delta: float = 0.001) -> bool:
+        if self.board.state != other.board.state:
+            return False
+        if self.reward is None and other.reward is None:
+            return True
+        if self.reward is None or other.reward is None:
+            return False
+        # compare reward elements
+        for r1, r2 in zip(self.reward, other.reward):
+            for v1, v2 in zip(r1, r2):
+                if abs(v1 - v2) > delta:
+                    return False
+        return True
+
+    def __init__(self, board: Board, last_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None) -> None:
         self.board = board
         self.last_move = last_move
         self.step_no = step_no
         self.x = x
         self.y = y
+        self.reward = reward
 
     def print_state(self) -> None:
         bgs = {
@@ -335,7 +350,7 @@ class Game:
 
       return winners
 
-    def generate_batch_from_games(self, num_boards: int, shuffle: bool = True) -> list['GameState']:
+    def generate_batch_from_games(self, num_boards: int, shuffle: bool = True) -> list[GameState]:
         all_steps: list[GameState] = []
         while len(all_steps) < num_boards:
             all_steps.extend(self.play_game())

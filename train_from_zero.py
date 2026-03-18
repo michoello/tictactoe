@@ -84,13 +84,13 @@ print(f"Init model: {args.init_model}")
 print("Save to model:", args.save_to_model)
 
 
-def calc_loss(player: int, m: Any, boards: list[list[list[int]]], values: list[list[list[float]]]) -> float:
+def calc_loss(player: int, m: Any, batch: list[game.GameState]) -> float:
     sum_loss = 0
-    for board, state_value in zip(boards, values):
-        m.set_board_and_value(player, board, state_value)
+    for state in batch:
+        m.set_board_and_value(player, state)
         sum_loss = sum_loss + m.get_loss_value(player)
 
-    return sum_loss / len(boards)
+    return sum_loss / len(batch)
 
 
 BATCH_SIZE = 32
@@ -101,40 +101,36 @@ def train_single_round(trainee: str, model_x: Any, model_o: Any, m_student: Any)
 
     g = game.Game(model_x, model_o)
     train_batch = g.generate_batch_from_games(BATCH_SIZE)
-    train_boards = [item.board.state for item in train_batch]
-    train_values = [cast(list[list[float]], item.reward) for item in train_batch]
 
     #
     # Get old memories from buffer
     #
     replay_buffer = m_student.replay_buffer()
-    replay_boards, replay_values = [], []
+    replay_batch = []
     if replay_buffer.count > 100:
         for i in range(16):
             rr = replay_buffer.get_random()
-            replay_boards.append(rr[0])
-            replay_values.append(rr[1])
+            replay_batch.append(rr)
 
-    for i in range(len(train_boards)):
-        replay_buffer.maybe_add([train_boards[i], train_values[i]])
+    for state in train_batch:
+        replay_buffer.maybe_add(state)
 
-    train_boards.extend(replay_boards)
-    train_values.extend(replay_values)
+    train_batch.extend(replay_batch)
 
     #
     # Backward pass
     #
     for i in range(TRAIN_ITERATIONS):
-        for board, state_value in zip(train_boards, train_values):
+        for state in train_batch:
             _player = 1 if trainee == "crosses" else -1
-            m_student.set_board_and_value(_player, board, state_value)
+            m_student.set_board_and_value(_player, state)
 
             m_student.calc_grads()
             m_student.apply_gradient(0.001)
 
             loss = m_student.get_loss_value(_player)
 
-        train_loss = calc_loss(_player, m_student, train_boards, train_values)
+        train_loss = calc_loss(_player, m_student, train_batch)
         if i % 10 == 0:
             print(f"EPOCH {i}: Train loss={train_loss}")
 
