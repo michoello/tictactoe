@@ -267,9 +267,9 @@ class Game:
 
 
 
-    def random_step(self) -> tuple[int, int]:
-        cell = random.randint(0, 35)
-        return int(cell / 6), int(cell % 6)
+    def random_step(self, board: Board) -> tuple[int, int]:
+        empty_cells = [(r, c) for r in range(6) for c in range(6) if board.state[r][c] == 0]
+        return random.choice(empty_cells)
 
     def step_no(self, board: Board) -> int:
         # GameState number is count of O's on the board.
@@ -283,7 +283,7 @@ class Game:
         row: Optional[int] = None
         col: Optional[int] = None
         if self.step_no(board) == 0:
-            row, col = self.random_step()
+            row, col = self.random_step(board)
         elif self.game_mode == "mcts":
             game_state = GameState(
                 board=board, 
