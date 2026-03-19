@@ -29,16 +29,18 @@ class TestMcts(MyTestCase):
        # X to win
        game_state_x = game.GameState(board.copy(), 1)
        next_state_x = best_mcts_step(g, game_state_x, 100)
-       self.assertEqual([next_state_x.x, next_state_x.y], [2, 2])
+       assert next_state_x.prev_move is not None
+       self.assertEqual([next_state_x.prev_move[0], next_state_x.prev_move[1]], [2, 2])
        self.assertAlmostEqualNested(next_state_x.winner, 1)
-       self.assertAlmostEqualNested(next_state_x.xyo, [(2, 2), (3, 3), (4, 4), (5, 5)])
+       self.assertAlmostEqualNested(next_state_x.winning_row, [(2, 2), (3, 3), (4, 4), (5, 5)])
 
        # Put O to first row to win
        game_state_o = game.GameState(board.copy(), -1)
        next_state_o = best_mcts_step(g, game_state_o, 100)
-       self.assertEqual([next_state_o.x, next_state_o.y], [0, 4])
+       assert next_state_o.prev_move is not None
+       self.assertEqual([next_state_o.prev_move[0], next_state_o.prev_move[1]], [0, 4])
        self.assertAlmostEqualNested(next_state_o.winner, -1)
-       self.assertAlmostEqualNested(next_state_o.xyo, [ (0, 2), (0, 3), (0, 4), (0, 5)])
+       self.assertAlmostEqualNested(next_state_o.winning_row, [ (0, 2), (0, 3), (0, 4), (0, 5)])
 
     def test_terminal_defense(self) -> None:
 
@@ -68,7 +70,8 @@ class TestMcts(MyTestCase):
        #
        game_state_x = game.GameState(board, 1)
        next_state_x = best_mcts_step(g, game_state_x, 1500)
-       self.assertEqual([next_state_x.x, next_state_x.y], [0, 4])
+       assert next_state_x.prev_move is not None
+       self.assertEqual([next_state_x.prev_move[0], next_state_x.prev_move[1]], [0, 4])
 
        # Put O in center to block Xs diagonal:
        board = game.Board([
@@ -81,7 +84,8 @@ class TestMcts(MyTestCase):
        ])
        game_state_o = game.GameState(board, 1)
        next_state_o = best_mcts_step(g, game_state_o, 1500)
-       self.assertEqual([next_state_o.x, next_state_o.y], [2, 2])
+       assert next_state_o.prev_move is not None
+       self.assertEqual([next_state_o.prev_move[0], next_state_o.prev_move[1]], [2, 2])
 
        # TODO: add tests
        # - invariants = num counts of root = sum counts of first layer, and equal to num simulations

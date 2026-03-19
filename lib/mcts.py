@@ -14,9 +14,9 @@ class MctsNode:
     board: Board
     row: Optional[int]
     col: Optional[int]
-    next_move: int  ## 1 or -1
+    next_player: int  ## 1 or -1
     is_terminal: bool = False
-    xyo: Optional[list[tuple[int, int]]] = None
+    winning_row: Optional[list[tuple[int, int]]] = None
 
     # Possibly too
     state_value: float = 0  # state value taken from model
@@ -31,13 +31,13 @@ class MctsNode:
     value: float = 0.0  # accumulated value collected from child nodes
     num_visits: int = 0  # number of times simulation passed through the node
 
-    def __init__(self, board: Board, row: Optional[int], col: Optional[int], next_move: int) -> None:
+    def __init__(self, board: Board, row: Optional[int], col: Optional[int], next_player: int) -> None:
         self.board = board
         self.row = row
         self.col = col
-        self.next_move = next_move
+        self.next_player = next_player
         self.num_visits = 0
-        self.all_moves = self.board.all_next_steps(self.next_move)
+        self.all_moves = self.board.all_next_steps(self.next_player)
         self.tried_nodes = []
 
     def mcts_get_best_node_to_continue(self) -> MctsNode:
@@ -48,7 +48,7 @@ class MctsNode:
         best_node: Optional[MctsNode] = None
         for node in self.tried_nodes:
             value = node.value
-            if self.next_move == -1:
+            if self.next_player == -1:
                 value = -value
             node_puct = (
                 value / node.num_visits + node.prior * n_sqrt_total / node.num_visits
@@ -64,7 +64,7 @@ class MctsNode:
     # Therefore have to softmax them for puct to work
     # TODO: make a policy network and take those priors from there
     def mcts_softmax_priors(self) -> None:
-        next_move = self.next_move
+        next_player = self.next_player
         tried_nodes = self.tried_nodes
 
         # converting state values to [0;1] range, and inverting them to 1-v for Os
@@ -73,7 +73,7 @@ class MctsNode:
         # TODO: all these ugly tricks should go away
         priors = [node.state_value for node in tried_nodes]
         priors = [(v + 1) / 2.0 for v in priors]
-        if next_move == -1:
+        if next_player == -1:
             priors = [1 - v for v in priors]
 
         # softmax
@@ -95,19 +95,19 @@ class MctsNode:
         if tried < all:
             board, row, col = self.all_moves[tried]
 
-            next_node = MctsNode(board, row, col, -self.next_move)
+            next_node = MctsNode(board, row, col, -self.next_player)
 
-            winner, xyo = board.check_winner()
+            winner, winning_row = board.check_winner()
             if winner is not None:
                 next_node.state_value = winner
                 next_node.is_terminal = True
-                next_node.xyo = xyo
+                next_node.winning_row = winning_row
             else:
-                m = gm.model_x if next_node.next_move == 1 else gm.model_o
-                next_node.state_value = m.get_next_step_value(next_node.next_move, board.state)
+                m = gm.model_x if next_node.next_player == 1 else gm.model_o
+                next_node.state_value = m.get_next_step_value(next_node.next_player, board.cells)
 
                 # Collecting all values is too slow. TODO: policy output
-                # brds = [(board.state, r, c) for board, r, c in self.all_moves]
+                # brds = [(board.cells, r, c) for board, r, c in self.all_moves]
             next_node.parent = self
 
             self.tried_nodes.append(next_node)
@@ -173,9 +173,9 @@ class MctsNode:
 
 def best_mcts_step(gm: Game, prev_state: GameState, num_simulations: int) -> GameState:
     board = prev_state.board.copy()
-    next_move = prev_state.next_move
+    next_player = prev_state.next_player
 
-    root = MctsNode(board, None, None, next_move)
+    root = MctsNode(board, None, None, next_player)
 
     for sim_num in range(num_simulations):
         new_leaf_node = root.mcts_run_simulation(gm)
@@ -195,22 +195,21 @@ def best_mcts_step(gm: Game, prev_state: GameState, num_simulations: int) -> Gam
     assert best_node is not None
     assert best_node.row is not None and best_node.col is not None
     
-    board.state[best_node.row][best_node.col] = next_move
+    board.cells[best_node.row][best_node.col] = next_player
     winner = None
-    xyo = None
+    winning_row = None
     if best_node.is_terminal:
         winner=int(best_node.state_value)
-        xyo=best_node.xyo
+        winning_row=best_node.winning_row
     else:
         # verify winner
-        winner, xyo = board.check_winner()
+        winner, winning_row = board.check_winner()
 
     return type(prev_state)(
         board=board,
-        next_move=-next_move,
-        step_no=prev_state.step_no + 1,
-        x=best_node.row,
-        y=best_node.col,
+        next_player=-next_player,
+        turn_number=prev_state.turn_number + 1,
+        prev_move=(best_node.row, best_node.col),
         winner=winner,
-        xyo=xyo
+        winning_row=winning_row
     )

@@ -17,7 +17,7 @@ class GameType(Enum):
 
 
 class Board:
-    state: list[list[int]]
+    cells: list[list[int]]
     game_type: GameType
 
     def __init__(self, board: Optional[list[list[int]]] = None, game_type: GameType = GameType.TICTACTOE_6_6_4) -> None:
@@ -28,7 +28,7 @@ class Board:
         self.game_type = game_type
 
     def reset(self) -> None:
-        self.state = copy.deepcopy(START_BOARD)
+        self.cells = copy.deepcopy(START_BOARD)
 
     def set(self, board: list[list[int]]) -> None:
         if len(board) != 6:
@@ -36,27 +36,27 @@ class Board:
         for row in board:
             if len(row) != 6:
                 raise ValueError("each row must have 6 cols sharp")
-        self.state = board
+        self.cells = board
 
     def copy(self) -> Board:
-        return Board(copy.deepcopy(self.state), self.game_type)
+        return Board(copy.deepcopy(self.cells), self.game_type)
 
     def asstr(self) -> str:
         s = ""
         for row in range(6):
             for col in range(6):
-                s += str(self.state[row][col])
+                s += str(self.cells[row][col])
         return s
 
     # Generates all boards for next single step
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-    def all_next_steps(self, next_move: int) -> list[tuple[Board, int, int]]:
+    def all_next_steps(self, next_player: int) -> list[tuple[Board, int, int]]:
         boards = []
         for row in range(6):
             for col in range(6):
-                if self.state[row][col] == 0:
+                if self.cells[row][col] == 0:
                     next_board = self.copy()  # copy.deepcopy(board)
-                    next_board.state[row][col] = next_move
+                    next_board.cells[row][col] = next_player
                     boards.append((next_board, row, col))
         return boards
 
@@ -69,7 +69,7 @@ class Board:
             return self.check_winner_tictactoe_6_6_5_tor()
 
     def check_winner_tictactoe_6_6_4(self) -> tuple[Optional[int], list[tuple[int, int]]]:
-        b = self.state
+        b = self.cells
 
         lll = [
             [(0, 1), (0, 2), (0, 3)],
@@ -102,7 +102,7 @@ class Board:
         return winner, sorted(set(xyo))
 
     def check_winner_tictactoe_6_6_5_tor(self) -> tuple[Optional[int], list[tuple[int, int]]]:
-        b = self.state
+        b = self.cells
 
         lll = [
             [(0, 1), (0, 2), (0, 3), (0, 4)],
@@ -139,17 +139,16 @@ class Board:
 #@dataclass
 class GameState:
     board: Board
-    next_move: int  # 1 for crosses, -1 for zeroes
-    x: int  # coordinates of last move
-    y: int
-    step_no: int
+    next_player: int  # 1 for crosses, -1 for zeroes
+    prev_move: Optional[tuple[int, int]]  # coordinates of last move
+    turn_number: int
     winner: Optional[int] = None
-    xyo: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
+    winning_row: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
     reward: Optional[list[list[float]]] = None
     policy: Optional[list[list[float]]] = None
 
     def almost_equal(self, other: GameState, delta: float = 0.001) -> bool:
-        if self.board.state != other.board.state:
+        if self.board.cells != other.board.cells:
             return False
         if self.reward is None and other.reward is None:
             return True
@@ -162,16 +161,15 @@ class GameState:
                     return False
         return True
 
-    def __init__(self, board: Board, next_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None, winner: Optional[int] = None, xyo: Optional[list[tuple[int, int]]] = None) -> None:
+    def __init__(self, board: Board, next_player: int, turn_number: int = 0, prev_move: Optional[tuple[int, int]] = None, reward: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None, winner: Optional[int] = None, winning_row: Optional[list[tuple[int, int]]] = None) -> None:
         self.board = board
-        self.next_move = next_move
-        self.step_no = step_no
-        self.x = x
-        self.y = y
+        self.next_player = next_player
+        self.turn_number = turn_number
+        self.prev_move = prev_move
         self.reward = reward
         self.policy = policy
         self.winner = winner
-        self.xyo = xyo
+        self.winning_row = winning_row
 
     def print_state(self) -> None:
         bgs = {
@@ -198,14 +196,15 @@ class GameState:
                 what = fgs[fg] + what + cancel_color
             print(what, end="")
 
-        winner, xyo = self.winner, self.xyo or []
+        winner, winning_row = self.winner, self.winning_row or []
 
-        print("Step", self.step_no, ":", "crosses" if self.next_move == -1 else "zeroes")
-        print("  Move:", self.x, self.y, " Reward: ", self.reward)
+        print("Step", self.turn_number, ":", "crosses" if self.next_player == -1 else "zeroes")
+        x, y = self.prev_move if self.prev_move else (-1, -1)
+        print("  Move:", x, y, " Reward: ", self.reward)
 
         for i in range(6):
             for j in range(6):
-                cell = self.board.state[i][j]
+                cell = self.board.cells[i][j]
 
                 bg = "grey" if (i + j) % 2 == 0 else "black"
                 if cell == -1:
@@ -214,9 +213,9 @@ class GameState:
                     what, fg = " X ", "blue"
                 else:
                     what, fg = "   ", "std"
-                fg = "red" if (i, j) in xyo else fg
+                fg = "red" if (i, j) in winning_row else fg
 
-                if i == self.x and j == self.y:
+                if i == x and j == y:
                     bg = "yellow"
 
                 cprint(fg, bg, what)
@@ -243,20 +242,20 @@ class Game:
 
     def best_greedy_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
-        next_move = prev_state.next_move
+        next_player = prev_state.next_player
 
-        boards = board.all_next_steps(next_move)
+        boards = board.all_next_steps(next_player)
         if len(boards) == 0:
             return prev_state
 
         best = -100.0
         best_xy = (-1, -1)
-        m = self.model_x if next_move == 1 else self.model_o
+        m = self.model_x if next_player == 1 else self.model_o
         
         greedy_policy: list[list[float]] = [[0.0 for _ in range(6)] for _ in range(6)]
 
         for next_board, row, col in boards:
-            value = m.get_next_step_value(next_move, next_board.state)
+            value = m.get_next_step_value(next_player, next_board.cells)
             if value is None:
                 continue
 
@@ -267,46 +266,44 @@ class Game:
                 best_xy = (row, col)
 
         row, col = best_xy
-        board.state[row][col] = next_move
-        winner, xyo = board.check_winner()
+        board.cells[row][col] = next_player
+        winner, winning_row = board.check_winner()
 
         return GameState(
                 board=board, 
-                next_move=-next_move, 
-                step_no=prev_state.step_no + 1,
-                x=row,
-                y=col,
+                next_player=-next_player, 
+                turn_number=prev_state.turn_number + 1,
+                prev_move=(row, col),
                 policy=greedy_policy,
                 winner=winner,
-                xyo=xyo)
+                winning_row=winning_row)
 
 
 
     def random_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
-        next_move = prev_state.next_move
-        empty_cells = [(r, c) for r in range(6) for c in range(6) if board.state[r][c] == 0]
+        next_player = prev_state.next_player
+        empty_cells = [(r, c) for r in range(6) for c in range(6) if board.cells[r][c] == 0]
         row, col = random.choice(empty_cells)
 
-        board.state[row][col] = next_move
-        winner, xyo = board.check_winner()
+        board.cells[row][col] = next_player
+        winner, winning_row = board.check_winner()
 
         return GameState(
                 board=board, 
-                next_move=-next_move, 
-                step_no=prev_state.step_no + 1,
-                x=row, 
-                y=col,
+                next_player=-next_player, 
+                turn_number=prev_state.turn_number + 1,
+                prev_move=(row, col), 
                 winner=winner,
-                xyo=xyo)
+                winning_row=winning_row)
 
-    def step_no(self, board: Board) -> int:
+    def turn_number(self, board: Board) -> int:
         # GameState number is count of O's on the board.
-        return sum([1 for row in board.state for x in row if x == -1])
+        return sum([1 for row in board.cells for x in row if x == -1])
 
     def choose_next_step(self, prev_state: GameState) -> GameState:
         # First step is always random to increase diversity
-        if self.step_no(prev_state.board) == 0:
+        if self.turn_number(prev_state.board) == 0:
             return self.random_step(prev_state)
         elif self.game_mode == "mcts":
             from lib.mcts import best_mcts_step
@@ -321,7 +318,7 @@ class Game:
             start_board = Board(game_type=self.game_type)
         steps = []
 
-        init_state = GameState(board=start_board.copy(), next_move=1, x=-1, y=-1, step_no=0)
+        init_state = GameState(board=start_board.copy(), next_player=1, prev_move=None, turn_number=0)
         steps.append(init_state)
         while steps[-1].winner is None:
             prev_state = steps[-1]

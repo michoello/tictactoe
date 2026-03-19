@@ -56,20 +56,20 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
             b = game.Board()
             b.set(board)
 
-            winner, xyo = b.check_winner()
+            winner, winning_row = b.check_winner()
 
             response: dict[str, Any] = {"status": "ok"}
             if not winner:
                 ply = -1 if human_plays == "X" else 1  ## who goes next
 
                 # Step number is count of O's on the board. TODO: move it inside Game()
-                step_no = sum([1 for row in board for x in row if x == -1])
+                turn_number = sum([1 for row in board for x in row if x == -1])
            
-                prev_state = game.GameState(board=b, next_move=-ply, step_no=step_no - 1)
+                prev_state = game.GameState(board=b, next_player=-ply, turn_number=turn_number - 1)
                 next_state = g.choose_next_step(prev_state)
-                x, y = next_state.x, next_state.y
+                x, y = next_state.prev_move if next_state.prev_move else (-1, -1)
                 
-                greedy_state = g.best_greedy_step(game.GameState(board=b, next_move=ply))
+                greedy_state = g.best_greedy_step(game.GameState(board=b, next_player=ply))
                 
                 if x is None or y is None:
                     print("sorry")
@@ -87,7 +87,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                     print(row)
 
                 board[x][y] = ply 
-                winner, xyo = b.check_winner()
+                winner, winning_row = b.check_winner()
 
             # respond
             self.send_response(200)
@@ -96,7 +96,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
 
             if winner:
                 response["winner"] = winner
-                response["xyo"] = xyo
+                response["xyo"] = winning_row
 
             self.wfile.write(json.dumps(response).encode("utf-8"))
         else:

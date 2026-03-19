@@ -69,7 +69,7 @@ class TTTPlayer:
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
     def set_board_and_value(self, player: int, state: GameState) -> None:
-        board = state.board.state
+        board = state.board.cells
         assert state.reward is not None
         _value = state.reward
         impl = self.model_x if player == 1 else self.model_o

@@ -171,7 +171,7 @@ class TTTPlayerV2:
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
     def set_board_and_value(self, player: int, state: GameState, policy: Optional[list[list[float]]] = None) -> None:
-        board = state.board.state
+        board = state.board.cells
         _value = state.reward
         self.m.set_data(self.dplayer, [[player]])
         self.m.set_data(self.dinput, board)

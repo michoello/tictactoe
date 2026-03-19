@@ -16,7 +16,7 @@ class ReplayBuffer:
 
     # Returns True if item is added
     def maybe_add(self, item: GameState) -> bool:
-        stored_item = [item.board.state, item.reward]
+        stored_item = [item.board.cells, item.reward]
         self.count += 1
         added = False
         if len(self.buffer) < self.max_size:
@@ -35,8 +35,8 @@ class ReplayBuffer:
         item = random.choice(self.buffer)
         if isinstance(item, list) and len(item) == 2:
             import lib.game as game
-            state = game.GameState(board=game.Board(), next_move=1)
-            state.board.state = item[0]
+            state = game.GameState(board=game.Board(), next_player=1)
+            state.board.cells = item[0]
             state.reward = item[1]
             return state
         return item
