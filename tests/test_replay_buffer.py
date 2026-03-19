@@ -6,7 +6,7 @@ from utils import SimpleRNG
 from unittest.mock import patch
 
 def make_gs(val: Any) -> game.GameState:
-    gs = game.GameState(board=game.Board(), last_move=0)
+    gs = game.GameState(board=game.Board(), next_move=1)
     gs.board.state = cast(list[list[int]], val)
     gs.reward = [[1.0]]
     return gs

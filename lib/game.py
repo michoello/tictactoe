@@ -48,15 +48,15 @@ class Board:
                 s += str(self.state[row][col])
         return s
 
-    # Generates all boards for next single step (last_move=1 crosses, last_move=-1 zeroes)
+    # Generates all boards for next single step
     # Returns list of tuples. Each tuple is a board and pair of coordinates of the added element
-    def all_next_steps(self, last_move: int) -> list[tuple[Board, int, int]]:
+    def all_next_steps(self, next_move: int) -> list[tuple[Board, int, int]]:
         boards = []
         for row in range(6):
             for col in range(6):
                 if self.state[row][col] == 0:
                     next_board = self.copy()  # copy.deepcopy(board)
-                    next_board.state[row][col] = last_move
+                    next_board.state[row][col] = next_move
                     boards.append((next_board, row, col))
         return boards
 
@@ -139,7 +139,7 @@ class Board:
 #@dataclass
 class GameState:
     board: Board
-    last_move: int  # 1 for crosses, -1 for zeroes
+    next_move: int  # 1 for crosses, -1 for zeroes
     x: int  # coordinates of last move
     y: int
     step_no: int
@@ -161,9 +161,9 @@ class GameState:
                     return False
         return True
 
-    def __init__(self, board: Board, last_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None) -> None:
+    def __init__(self, board: Board, next_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None) -> None:
         self.board = board
-        self.last_move = last_move
+        self.next_move = next_move
         self.step_no = step_no
         self.x = x
         self.y = y
@@ -196,7 +196,7 @@ class GameState:
 
         winner, xyo = self.winner, self.xyo or []
 
-        print("Step", self.step_no, ":", "crosses" if self.last_move == 1 else "zeroes")
+        print("Step", self.step_no, ":", "crosses" if self.next_move == -1 else "zeroes")
         print("  Move:", self.x, self.y, " Reward: ", self.reward)
 
         for i in range(6):
@@ -277,7 +277,7 @@ class Game:
 
     def choose_next_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
-        next_move = -prev_state.last_move if prev_state.last_move is not None else 1
+        next_move = prev_state.next_move
 
         # First step is always random to increase diversity
         row: Optional[int] = None
@@ -287,7 +287,7 @@ class Game:
         elif self.game_mode == "mcts":
             game_state = GameState(
                 board=board, 
-                last_move=next_move, 
+                next_move=-next_move, 
                 step_no=prev_state.step_no + 1)
 
             from lib.mcts import best_mcts_step
@@ -300,7 +300,7 @@ class Game:
 
         game_state = GameState(
                 board=board, 
-                last_move=next_move, 
+                next_move=-next_move, 
                 step_no=prev_state.step_no + 1)
 
         assert row is not None and col is not None
@@ -321,7 +321,7 @@ class Game:
             start_board = Board(game_type=self.game_type)
         steps = []
 
-        init_state = GameState(board=start_board.copy(), last_move=-1, x=-1, y=-1, step_no=0)
+        init_state = GameState(board=start_board.copy(), next_move=1, x=-1, y=-1, step_no=0)
         steps.append(init_state)
         while steps[-1].winner is None:
             prev_state = steps[-1]
@@ -334,9 +334,6 @@ class Game:
         for step in reversed(steps):
             step.reward = [[reward]]
             reward = reward * 0.9
-
-        # lil trick to remove initial empty state. Is it better? Or should it stay?
-        steps.pop(0)
 
         return steps
 

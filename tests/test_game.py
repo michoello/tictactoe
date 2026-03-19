@@ -212,10 +212,10 @@ class TestTrainingCycle(MyTestCase):
             mx.set_board_and_value(-1, train_batch[0])
 
             # Check that gradient decreased
-            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[2.452649]], 1e-6)
+            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.923999]], 1e-6)
             mx.calc_grads()
             mx.apply_gradient()
-            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[2.416256]], 1e-6)
+            self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.898317]], 1e-6)
 
 
     def test_py_cpp_models_compare(self) -> None:
@@ -424,7 +424,7 @@ class TestPlayerV2(MyTestCase):
         ]
         next_player = 1
 
-        state = game.GameState(board=game.Board(), last_move=0)
+        state = game.GameState(board=game.Board(), next_move=1)
         state.board.state = train_board
         state.reward = train_value
 
@@ -534,13 +534,13 @@ class TestPlayerV2(MyTestCase):
 
         # Now let's play the full game and check that the first two steps are exactly the same:
         steps = g.play_game(start_board=game.Board(board_step_0))
-        self.assertAlmostEqual(len(steps), 5)
+        self.assertAlmostEqual(len(steps), 6)
         
-        self.assertAlmostEqualNested(steps[0].board.state, board_step_1)
-        self.assertAlmostEqualNested(steps[0].reward, [[0.656]])
+        self.assertAlmostEqualNested(steps[1].board.state, board_step_1)
+        self.assertAlmostEqualNested(steps[1].reward, [[0.656]])
         
-        self.assertAlmostEqualNested(steps[1].board.state, board_step_2)
-        self.assertAlmostEqualNested(steps[1].reward, [[0.729]])
+        self.assertAlmostEqualNested(steps[2].board.state, board_step_2)
+        self.assertAlmostEqualNested(steps[2].reward, [[0.729]])
 
         steps[-1].print_state()
         self.assertAlmostEqualNested(steps[-1].reward, [[1.0]])
@@ -672,7 +672,7 @@ class TestPlayerV2(MyTestCase):
             batch = g.generate_batch_from_games(num_games=1, shuffle=False)
             
             
-            self.assertEqual(len(batch), 27)
+            self.assertEqual(len(batch), 28)
             
             
             expected_batch = [
@@ -683,9 +683,21 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0]
+                    ]),
+                    next_move=1,
+                    reward=[[0.058]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.065]]
                 ),
                 game.GameState(
@@ -697,7 +709,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.072]]
                 ),
                 game.GameState(
@@ -709,7 +721,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.080]]
                 ),
                 game.GameState(
@@ -721,7 +733,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.089]]
                 ),
                 game.GameState(
@@ -733,7 +745,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.098]]
                 ),
                 game.GameState(
@@ -745,7 +757,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.109]]
                 ),
                 game.GameState(
@@ -757,7 +769,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.122]]
                 ),
                 game.GameState(
@@ -769,7 +781,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.135]]
                 ),
                 game.GameState(
@@ -781,7 +793,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.150]]
                 ),
                 game.GameState(
@@ -793,7 +805,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.167]]
                 ),
                 game.GameState(
@@ -805,7 +817,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.185]]
                 ),
                 game.GameState(
@@ -817,7 +829,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.206]]
                 ),
                 game.GameState(
@@ -829,7 +841,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.229]]
                 ),
                 game.GameState(
@@ -841,7 +853,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.254]]
                 ),
                 game.GameState(
@@ -853,7 +865,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0,  0,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.282]]
                 ),
                 game.GameState(
@@ -865,7 +877,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0, -1,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.314]]
                 ),
                 game.GameState(
@@ -877,7 +889,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0, -1,  0],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.349]]
                 ),
                 game.GameState(
@@ -889,7 +901,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.387]]
                 ),
                 game.GameState(
@@ -901,7 +913,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.430]]
                 ),
                 game.GameState(
@@ -913,7 +925,7 @@ class TestPlayerV2(MyTestCase):
                         [-1,  0, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.478]]
                 ),
                 game.GameState(
@@ -925,7 +937,7 @@ class TestPlayerV2(MyTestCase):
                         [-1,  0, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.531]]
                 ),
                 game.GameState(
@@ -937,7 +949,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.590]]
                 ),
                 game.GameState(
@@ -949,7 +961,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.656]]
                 ),
                 game.GameState(
@@ -961,7 +973,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.729]]
                 ),
                 game.GameState(
@@ -973,7 +985,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[0.810]]
                 ),
                 game.GameState(
@@ -985,7 +997,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=-1,
+                    next_move=1,
                     reward=[[0.900]]
                 ),
                 game.GameState(
@@ -997,7 +1009,7 @@ class TestPlayerV2(MyTestCase):
                         [-1, -1, -1,  0, -1, -1],
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
-                    last_move=1,
+                    next_move=-1,
                     reward=[[1.000]]
                 ),
             ]

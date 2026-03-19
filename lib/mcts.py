@@ -173,7 +173,7 @@ class MctsNode:
 
 def best_mcts_step(gm: Game, game_state: GameState, num_simulations: int) -> tuple[int, int]:
     board = game_state.board
-    next_move = game_state.last_move
+    next_move = game_state.next_move
 
     root = MctsNode(board, None, None, next_move)
 

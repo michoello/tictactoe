@@ -65,7 +65,7 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 # Step number is count of O's on the board. TODO: move it inside Game()
                 step_no = sum([1 for row in board for x in row if x == -1])
            
-                prev_state = game.GameState(board=b, last_move=-ply, step_no=step_no - 1)
+                prev_state = game.GameState(board=b, next_move=-ply, step_no=step_no - 1)
                 next_state = g.choose_next_step(prev_state)
                 x, y = next_state.x, next_state.y
                 

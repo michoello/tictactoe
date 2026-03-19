@@ -35,7 +35,7 @@ class ReplayBuffer:
         item = random.choice(self.buffer)
         if isinstance(item, list) and len(item) == 2:
             import lib.game as game
-            state = game.GameState(board=game.Board(), last_move=0)
+            state = game.GameState(board=game.Board(), next_move=1)
             state.board.state = item[0]
             state.reward = item[1]
             return state
