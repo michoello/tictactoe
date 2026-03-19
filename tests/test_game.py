@@ -669,10 +669,10 @@ class TestPlayerV2(MyTestCase):
             m = tttv2.TTTPlayerV2()
             random_model = ttt.TTTRandom()
             g = game.Game(m, random_model)
-            batch = g.generate_batch_from_games(10, shuffle=False)
+            batch = g.generate_batch_from_games(num_games=1, shuffle=False)
             
             
-            self.assertGreaterEqual(len(batch), 10)
+            self.assertEqual(len(batch), 18)
             
             
             expected_batch = [
@@ -685,7 +685,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=1,
                     reward=[[-0.167]]
                 ),
                 game.GameState(
@@ -697,7 +697,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=-1,
                     reward=[[-0.185]]
                 ),
                 game.GameState(
@@ -709,7 +709,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=1,
                     reward=[[-0.206]]
                 ),
                 game.GameState(
@@ -721,7 +721,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=-1,
                     reward=[[-0.229]]
                 ),
                 game.GameState(
@@ -733,7 +733,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=1,
                     reward=[[-0.254]]
                 ),
                 game.GameState(
@@ -745,7 +745,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=-1,
                     reward=[[-0.282]]
                 ),
                 game.GameState(
@@ -757,7 +757,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=1,
                     reward=[[-0.314]]
                 ),
                 game.GameState(
@@ -769,7 +769,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=-1,
                     reward=[[-0.349]]
                 ),
                 game.GameState(
@@ -781,7 +781,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1,  0,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=1,
                     reward=[[-0.387]]
                 ),
                 game.GameState(
@@ -793,12 +793,108 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0, -1, -1, -1,  0,  0]
                     ]),
-                    last_move=0,
+                    last_move=-1,
                     reward=[[-0.430]]
-                )
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  1,  0,  0],
+                        [-1,  0,  0,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=1,
+                    reward=[[-0.478]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  1,  0,  0],
+                        [-1,  0, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=-1,
+                    reward=[[-0.531]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  0],
+                        [ 0,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  1,  0,  0],
+                        [-1,  0, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=1,
+                    reward=[[-0.590]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  0],
+                        [-1,  0,  0,  1,  0,  0],
+                        [ 1,  0,  0,  1,  0,  0],
+                        [-1,  0, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=-1,
+                    reward=[[-0.656]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  0],
+                        [-1,  0,  0,  1,  0,  0],
+                        [ 1,  0,  1,  1,  0,  0],
+                        [-1,  0, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=1,
+                    reward=[[-0.729]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  0],
+                        [-1,  0,  0,  1,  0,  0],
+                        [ 1,  0,  1,  1,  0,  0],
+                        [-1, -1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=-1,
+                    reward=[[-0.810]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  1],
+                        [-1,  0,  0,  1,  0,  0],
+                        [ 1,  0,  1,  1,  0,  0],
+                        [-1, -1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [ 0, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=1,
+                    reward=[[-0.900]]
+                ),
+                game.GameState(
+                    board=game.Board([
+                        [ 1,  1, -1,  0,  1,  1],
+                        [-1,  0,  0,  1,  0,  0],
+                        [ 1,  0,  1,  1,  0,  0],
+                        [-1, -1, -1,  0,  0,  0],
+                        [ 0,  0,  0,  0,  0,  0],
+                        [-1, -1, -1, -1,  0,  0]
+                    ]),
+                    last_move=-1,
+                    reward=[[-1.000]]
+                ),
             ]
 
-            for i in range(10):
+            for i in range(len(batch)):
                 self.assertTrue(batch[i].almost_equal(expected_batch[i], delta=0.001))
 
 

@@ -350,10 +350,19 @@ class Game:
 
       return winners
 
-    def generate_batch_from_games(self, num_boards: int, shuffle: bool = True) -> list[GameState]:
+    def generate_batch_from_games(self, num_boards: Optional[int] = None, shuffle: bool = True, num_games: Optional[int] = None) -> list[GameState]:
         all_steps: list[GameState] = []
-        while len(all_steps) < num_boards:
-            all_steps.extend(self.play_game())
+
+        if num_boards is not None:
+            if num_games is not None:
+                raise ValueError("Exactly one of num_boards or num_games must be provided")
+            while len(all_steps) < num_boards:
+                all_steps.extend(self.play_game())
+        else:
+            if num_games is None:
+                raise ValueError("Exactly one of num_boards or num_games must be provided")
+            for _ in range(num_games):
+                all_steps.extend(self.play_game())
 
         if shuffle:
             random.shuffle(all_steps)
