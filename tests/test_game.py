@@ -482,14 +482,14 @@ class TestPlayerV2(MyTestCase):
            [1, 0, 0, 0,-1, 0],
         ]
  
-        # Note the step is not done by this call, it only returns coordinates
-        # X to win
-        row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_0), 1)
-        assert row is not None and col is not None
-        self.assertAlmostEqual(row, 1)
-        self.assertAlmostEqual(col, 2)
+        # Note the step is not done by this call, it only returns coordinates (wait, actually it returns a new GameState with the step done)
+        # X to play
+        state = game.GameState(board=game.Board(board_step_0), next_move=1)
+        next_state = g.best_greedy_step(state)
+        self.assertAlmostEqual(next_state.x, 1)
+        self.assertAlmostEqual(next_state.y, 2)
         # TODO: softmax it. currently it it's just values
-        self.assertAlmostEqualNested(greedy_policy, [
+        self.assertAlmostEqualNested(next_state.policy, [
            [0, -0.979, 0, 0, -0.977, -0.971],
            [0, -0.978, -0.969, -0.975, -0.977, 0],
            [-0.977, -0.975, 0, -0.977, -0.975, 0],
@@ -508,12 +508,13 @@ class TestPlayerV2(MyTestCase):
         ]
 
         # Now the same, but the next step is O's
-        row, col, greedy_policy = g.best_greedy_step(game.Board(board_step_1), -1)
-        assert row is not None and col is not None
-        self.assertAlmostEqual(row, 2)
-        self.assertAlmostEqual(col, 1)
+        state_step_1 = game.GameState(board=game.Board(board_step_1), next_move=-1)
+        next_state_1 = g.best_greedy_step(state_step_1)
+        self.assertAlmostEqual(next_state_1.x, 2)
+        self.assertAlmostEqual(next_state_1.y, 1)
         # TODO: softmax it. currently it it's just values
-        self.assertAlmostEqualNested(greedy_policy, [
+        assert next_state_1.policy is not None
+        self.assertAlmostEqualNested(next_state_1.policy, [
            [0, 0.449, 0, 0, 0.259, 0.306],
            [0, 0.350, 0, 0.331, 0.437, 0],
            [0.427, 0.540, 0, 0.453, 0.410, 0],
@@ -573,12 +574,13 @@ class TestPlayerV2(MyTestCase):
  
         # Note the step is not done by this call, it only returns coordinates
         # X to win
-        row, col, greedy_policy = g.best_greedy_step(game.Board(train_board), 1)
-        assert row is not None and col is not None
-        self.assertAlmostEqual(row, 1)
-        self.assertAlmostEqual(col, 2)
+        state = game.GameState(board=game.Board(), next_move=1)
+        state.board.state = train_board
+        next_state = g.best_greedy_step(state)
+        self.assertAlmostEqual(next_state.x, 1)
+        self.assertAlmostEqual(next_state.y, 2)
         # TODO: softmax it. currently it it's just values
-        self.assertAlmostEqualNested(greedy_policy, [
+        self.assertAlmostEqualNested(next_state.policy, [
          [0, -0.839, 0, 0, -0.812, -0.812],
          [0, -0.850, -0.792, -0.809, -0.812, 0],
          [-0.797, -0.845, 0, -0.812, -0.812, 0],

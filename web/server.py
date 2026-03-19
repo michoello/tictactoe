@@ -69,15 +69,16 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 next_state = g.choose_next_step(prev_state)
                 x, y = next_state.x, next_state.y
                 
-                _, _, values = g.best_greedy_step(b, ply)
+                greedy_state = g.best_greedy_step(game.GameState(board=b, next_move=ply))
                 
                 if x is None or y is None:
                     print("sorry")
 
                 response["row"] = x
                 response["col"] = y
+                assert greedy_state.policy is not None
                 response["values"] = [
-                    [round(v or -1, 2) for v in row] for row in values
+                    [round(v or -1, 2) for v in row] for row in greedy_state.policy
                 ]
 
                 print("Figure", human_plays)

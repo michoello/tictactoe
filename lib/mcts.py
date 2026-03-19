@@ -171,9 +171,9 @@ class MctsNode:
         print()
 
 
-def best_mcts_step(gm: Game, game_state: GameState, num_simulations: int) -> tuple[int, int]:
-    board = game_state.board
-    next_move = game_state.next_move
+def best_mcts_step(gm: Game, prev_state: GameState, num_simulations: int) -> GameState:
+    board = prev_state.board.copy()
+    next_move = prev_state.next_move
 
     root = MctsNode(board, None, None, next_move)
 
@@ -194,12 +194,23 @@ def best_mcts_step(gm: Game, game_state: GameState, num_simulations: int) -> tup
     
     assert best_node is not None
     assert best_node.row is not None and best_node.col is not None
-    game_state.x = best_node.row
-    game_state.y = best_node.col
-
+    
     board.state[best_node.row][best_node.col] = next_move
+    winner = None
+    xyo = None
     if best_node.is_terminal:
-        game_state.winner=int(best_node.state_value)
-        game_state.xyo=best_node.xyo
+        winner=int(best_node.state_value)
+        xyo=best_node.xyo
+    else:
+        # verify winner
+        winner, xyo = board.check_winner()
 
-    return best_node.row, best_node.col
+    return type(prev_state)(
+        board=board,
+        next_move=-next_move,
+        step_no=prev_state.step_no + 1,
+        x=best_node.row,
+        y=best_node.col,
+        winner=winner,
+        xyo=xyo
+    )

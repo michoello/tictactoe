@@ -146,6 +146,7 @@ class GameState:
     winner: Optional[int] = None
     xyo: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
     reward: Optional[list[list[float]]] = None
+    policy: Optional[list[list[float]]] = None
 
     def almost_equal(self, other: GameState, delta: float = 0.001) -> bool:
         if self.board.state != other.board.state:
@@ -161,13 +162,16 @@ class GameState:
                     return False
         return True
 
-    def __init__(self, board: Board, next_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None) -> None:
+    def __init__(self, board: Board, next_move: int, step_no: int = 0, x: int = -1, y: int = -1, reward: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None, winner: Optional[int] = None, xyo: Optional[list[tuple[int, int]]] = None) -> None:
         self.board = board
         self.next_move = next_move
         self.step_no = step_no
         self.x = x
         self.y = y
         self.reward = reward
+        self.policy = policy
+        self.winner = winner
+        self.xyo = xyo
 
     def print_state(self) -> None:
         bgs = {
@@ -237,23 +241,22 @@ class Game:
         self.model_x = model_x
         self.model_o = model_o
 
-    # Returns coordinates of next step and the policy 6*6 matrix
-    # Args: board, next_move is 1 for Xs, -1 for Os
-    def best_greedy_step(self, board: Board, next_move: int) -> tuple[Optional[int], Optional[int], list[list[float]]]:
+    def best_greedy_step(self, prev_state: GameState) -> GameState:
+        board = prev_state.board.copy()
+        next_move = prev_state.next_move
 
         boards = board.all_next_steps(next_move)
         if len(boards) == 0:
-            return None, None, []
+            return prev_state
 
-        #best = -100 if next_move == 1 else 100
         best = -100.0
         best_xy = (-1, -1)
         m = self.model_x if next_move == 1 else self.model_o
         
         greedy_policy: list[list[float]] = [[0.0 for _ in range(6)] for _ in range(6)]
 
-        for board, row, col in boards:
-            value = m.get_next_step_value(next_move, board.state)
+        for next_board, row, col in boards:
+            value = m.get_next_step_value(next_move, next_board.state)
             if value is None:
                 continue
 
@@ -263,56 +266,53 @@ class Game:
                 best = value
                 best_xy = (row, col)
 
-        return best_xy[0], best_xy[1], greedy_policy
+        row, col = best_xy
+        board.state[row][col] = next_move
+        winner, xyo = board.check_winner()
+
+        return GameState(
+                board=board, 
+                next_move=-next_move, 
+                step_no=prev_state.step_no + 1,
+                x=row,
+                y=col,
+                policy=greedy_policy,
+                winner=winner,
+                xyo=xyo)
 
 
 
-    def random_step(self, board: Board) -> tuple[int, int]:
+    def random_step(self, prev_state: GameState) -> GameState:
+        board = prev_state.board.copy()
+        next_move = prev_state.next_move
         empty_cells = [(r, c) for r in range(6) for c in range(6) if board.state[r][c] == 0]
-        return random.choice(empty_cells)
+        row, col = random.choice(empty_cells)
+
+        board.state[row][col] = next_move
+        winner, xyo = board.check_winner()
+
+        return GameState(
+                board=board, 
+                next_move=-next_move, 
+                step_no=prev_state.step_no + 1,
+                x=row, 
+                y=col,
+                winner=winner,
+                xyo=xyo)
 
     def step_no(self, board: Board) -> int:
         # GameState number is count of O's on the board.
         return sum([1 for row in board.state for x in row if x == -1])
 
     def choose_next_step(self, prev_state: GameState) -> GameState:
-        board = prev_state.board.copy()
-        next_move = prev_state.next_move
-
         # First step is always random to increase diversity
-        row: Optional[int] = None
-        col: Optional[int] = None
-        if self.step_no(board) == 0:
-            row, col = self.random_step(board)
+        if self.step_no(prev_state.board) == 0:
+            return self.random_step(prev_state)
         elif self.game_mode == "mcts":
-            game_state = GameState(
-                board=board, 
-                next_move=-next_move, 
-                step_no=prev_state.step_no + 1)
-
             from lib.mcts import best_mcts_step
-            row, col = best_mcts_step(self, game_state, MCTS_NUM_SIMULATIONS)
-            return game_state
-
+            return best_mcts_step(self, prev_state, MCTS_NUM_SIMULATIONS)
         else:
-            row, col, policy = self.best_greedy_step(board, next_move)
-
-
-        game_state = GameState(
-                board=board, 
-                next_move=-next_move, 
-                step_no=prev_state.step_no + 1)
-
-        assert row is not None and col is not None
-        game_state.x=row 
-        game_state.y=col
-
-        board.state[row][col] = next_move
-        winner, xyo = board.check_winner()
-
-        game_state.winner=winner
-        game_state.xyo=xyo
-        return game_state
+            return self.best_greedy_step(prev_state)
 
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
