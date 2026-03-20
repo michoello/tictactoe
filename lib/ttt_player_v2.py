@@ -92,9 +92,11 @@ class TTTPlayerV2:
        # Policy
        self.w_policy = Data(self.m, 36, 36)
        self.b_policy = Data(self.m, 1, 36)
+       # Now calculate policies (where the player will go at this step)
        self.policy_logits = Add(MatMul(self.rl_flat, self.w_policy), self.b_policy)
        self.policy = SoftMax(self.policy_logits)
 
+       # To calculate loss we expect valid moves only as policy vector
        self.policy_labels = Data(self.m, 1, 36)
        self.policy_loss = SoftMaxCrossEntropy(self.policy_logits, self.policy, self.policy_labels)
        self.rl1 = self.policy # !!!
@@ -170,18 +172,23 @@ class TTTPlayerV2:
 
     # Board is 6*6 matrix of -1 for Os, 1 for Xs, 0 for empty cells
     # Value is 1*1 matrix with the board reward, i.e. [-1 to 1]
-    def set_board_and_value(self, player: int, state: GameState, policy: Optional[list[list[float]]] = None) -> None:
+    def set_board_and_value(self, player: int, state: GameState, policy: Optional[Matrix] = None) -> None:
         board = state.board.cells
         _value = state.reward
         self.m.set_data(self.dplayer, [[player]])
         self.m.set_data(self.dinput, board)
 
-        _value = _value or [[0.5]]
-        _value = [[_value[0][0] * player]]
-        self.m.set_data(self.value_label, _value)
+        if _value is not None:
+             _value_list = [[_value.get(0, 0) * player]]
+        else:
+             _value_list = [[0.5]]
+        self.m.set_data(self.value_label, _value_list)
 
-        policy = policy or [ [1/36 for _ in range(36)]]
-        self.m.set_data(self.policy_labels, policy)
+        p = policy
+        if p is not None:
+            self.m.set_data(self.policy_labels, p)
+        else:
+            self.m.set_data(self.policy_labels, [[1/36 for _ in range(36)]])
 
 
     def parse_model_file(self, file_name: str) -> dict:

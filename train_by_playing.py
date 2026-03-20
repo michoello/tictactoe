@@ -50,8 +50,8 @@ def generate_playing_batch(num_games: int, m_crosses: Any, m_zeroes: Any) -> tup
         steps, value = g.play_game()  # type: ignore
         steps = steps # type: ignore
         for step in steps: # type: ignore
-            boards.append(step.board.board)
-            train_reward = [(step.reward + 1) / 2]
+            boards.append(step.board.cells)
+            train_reward = [(step.reward.get(0, 0) + 1) / 2]
             values.append(train_reward)
 
     return boards, values

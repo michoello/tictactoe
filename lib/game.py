@@ -142,7 +142,6 @@ class Board:
 
 
 
-#@dataclass
 class GameState:
     board: Board
     next_player: int  # 1 for crosses, -1 for zeroes
@@ -150,8 +149,8 @@ class GameState:
     turn_number: int
     winner: Optional[int] = None
     winning_row: Optional[list[tuple[int, int]]] = None  # if the state is terminal, contains list of winning cells
-    reward: Optional[list[list[float]]] = None
-    policy: Optional[list[list[float]]] = None
+    reward: Optional[Matrix] = None
+    policy: Optional[Matrix] = None
 
     def almost_equal(self, other: GameState, delta: float = 0.001) -> bool:
         if self.board.cells != other.board.cells:
@@ -161,13 +160,9 @@ class GameState:
         if self.reward is None or other.reward is None:
             return False
         # compare reward elements
-        for r1, r2 in zip(self.reward, other.reward):
-            for v1, v2 in zip(r1, r2):
-                if abs(v1 - v2) > delta:
-                    return False
-        return True
+        return abs(self.reward.get(0, 0) - other.reward.get(0, 0)) <= delta
 
-    def __init__(self, board: Board, next_player: int, turn_number: int = 0, prev_move: Optional[tuple[int, int]] = None, reward: Optional[list[list[float]]] = None, policy: Optional[list[list[float]]] = None, winner: Optional[int] = None, winning_row: Optional[list[tuple[int, int]]] = None) -> None:
+    def __init__(self, board: Board, next_player: int, turn_number: int = 0, prev_move: Optional[tuple[int, int]] = None, reward: Optional[Matrix] = None, policy: Optional[Matrix] = None, winner: Optional[int] = None, winning_row: Optional[list[tuple[int, int]]] = None) -> None:
         self.board = board
         self.next_player = next_player
         self.turn_number = turn_number
@@ -206,7 +201,8 @@ class GameState:
 
         print("Step", self.turn_number, ":", "crosses" if self.next_player == -1 else "zeroes")
         x, y = self.prev_move if self.prev_move else (-1, -1)
-        print("  Move:", x, y, " Reward: ", self.reward)
+        r_val = self.reward.get(0, 0) if self.reward is not None else None
+        print("  Move:", x, y, " Reward: ", r_val)
 
         for i in range(6):
             for j in range(6):
@@ -258,17 +254,17 @@ class Game:
         best_xy = (-1, -1)
         m = self.model_x if next_player == 1 else self.model_o
         
-        greedy_policy: list[list[float]] = [[0.0 for _ in range(6)] for _ in range(6)]
+        greedy_policy = Matrix(1, 36)
 
         for next_board, row, col in boards:
-            value = m.get_next_step_value(next_player, next_board.cells)
-            if value is None:
+            val = m.get_next_step_value(next_player, next_board.cells)
+            if val is None:
                 continue
 
-            greedy_policy[row][col] = value
+            greedy_policy.set(0, row * 6 + col, val)
 
-            if value > best:
-                best = value
+            if val > best:
+                best = val
                 best_xy = (row, col)
 
         row, col = best_xy
@@ -335,7 +331,9 @@ class Game:
         assert steps[-1].winner is not None
         reward: float = float(steps[-1].winner)
         for step in reversed(steps):
-            step.reward = [[reward]]
+            mx_reward = Matrix(1, 1)
+            mx_reward.set(0, 0, reward)
+            step.reward = mx_reward
             reward = reward * 0.9
 
         return steps
@@ -345,7 +343,7 @@ class Game:
       for f in range(num_games):
         steps = self.play_game()
         assert steps[-1].reward is not None
-        winner = steps[-1].reward[0][0]
+        winner = steps[-1].reward.get(0, 0)
         winners[int(winner)] = winners[int(winner)] + 1
 
       return winners

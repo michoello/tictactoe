@@ -18,6 +18,13 @@ PYBIND11_MODULE(_listinvert, m) {
     py::class_<Matrix>(m, "Matrix")
         .def(py::init<int,int>(), py::arg("rows"), py::arg("cols"))
         .def(py::init<const Matrix&>(), py::arg("other"))
+        .def(py::init([](const std::vector<std::vector<double>>& data) {
+            size_t rows = data.size();
+            size_t cols = rows > 0 ? data[0].size() : 0;
+            Matrix m(rows, cols);
+            m.set_data(data);
+            return m;
+        }), py::arg("data"))
         .def("set_data", &Matrix::set_data)
         .def("get", (double (Matrix::*)(int,int)) &Matrix::get,
              py::arg("row"), py::arg("col"),

@@ -8,7 +8,12 @@ if [ -z "$ARG" ]; then
 else
     echo "Running $ARG tests"
     python3 -m unittest tests.test_$ARG --verbose
+
+    # For example:
+    # ./testme.sh game.TestPlayerV2.test_training_player_and_game_v2
 fi
+
+
 
 # To test only game training:
 # python3 -m unittest --verbose tests.test_game.TestTrainingCycle.test_training_classifier_and_game

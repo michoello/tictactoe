@@ -71,14 +71,14 @@ class TTTPlayer:
     def set_board_and_value(self, player: int, state: GameState) -> None:
         board = state.board.cells
         assert state.reward is not None
-        _value = state.reward
+        _value = state.reward.get(0, 0)
         impl = self.model_x if player == 1 else self.model_o
 
         # For sigmoid [0;1] range compatibility
-        _value = [[ (_value[0][0] + 1) / 2]]
+        _value_list = [[ (_value + 1) / 2]]
 
         impl.m.set_data(impl.x, board)
-        impl.m.set_data(impl.y, _value)
+        impl.m.set_data(impl.y, _value_list)
 
     def save_to_file(self, file_name: str) -> None:
         x_file = file_name + "x"

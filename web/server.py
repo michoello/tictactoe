@@ -77,8 +77,10 @@ class TicTacToeHandler(BaseHTTPRequestHandler):
                 response["row"] = x
                 response["col"] = y
                 assert greedy_state.policy is not None
+                from listinvert import value as mx_value
+                policy_list = mx_value(greedy_state.policy)
                 response["values"] = [
-                    [round(v or -1, 2) for v in row] for row in greedy_state.policy
+                    [round(v or -1, 2) for v in row] for row in policy_list
                 ]
 
                 print("Figure", human_plays)
