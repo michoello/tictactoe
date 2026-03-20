@@ -8,7 +8,7 @@ import json
 import random
 from utils import compress, decompress
 
-from typing import Any, Optional
+from typing import Optional
 from listinvert import value, Matrix, multiply_matrix, Mod3l, Block, Data, MatMul, SSE, Reshape, Sigmoid, Add, BCE
 
 START_VALUES: list[list[Optional[float]]] = [
@@ -23,21 +23,21 @@ START_VALUES: list[list[Optional[float]]] = [
 # START_VALUES: list[list[Optional[float]]] = [ [None]*6 for _ in range(6)]
 
 
-def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
+def DData(mod3l: Mod3l, rows: int, cols: int, values: list[list[float]]) -> Data:
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
     return res
 
 
 class TTTRandom:
-    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+    def get_next_step_values(self, boards: list[tuple[Matrix, int, int]]) -> list[list[Optional[float]]]:
         values: list[list[Optional[float]]] = copy.deepcopy(START_VALUES)
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
             values[x][y] = self.get_next_step_value(1, board)
         return values
 
-    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
+    def get_next_step_value(self, player: int, board: Matrix) -> float:
         return random.random()
 
 
@@ -54,7 +54,7 @@ class TTTPlayer:
         self.model_x = TTTPlayerImpl(enable_cpp=enable_cpp)
         self.model_o = TTTPlayerImpl(enable_cpp=enable_cpp)
 
-    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
+    def get_next_step_value(self, player: int, board: Matrix) -> float:
         impl = self.model_x if player == 1 else self.model_o
         return player * impl.get_next_step_value(board)
 
@@ -92,7 +92,7 @@ class TTTPlayer:
         self.model_x.save_to_file(x_file)
         self.model_o.save_to_file(o_file)
 
-    def replay_buffer(self) -> Any:
+    def replay_buffer(self) -> replay_buffer.ReplayBuffer:
         return self.model_x.replay_buffer
 
     def get_loss_value(self, player: int) -> float:
@@ -177,14 +177,14 @@ class TTTPlayerImpl:
       if model_json:
         self.load_from_json(model_json)
 
-    def parse_model_file(self, file_name: str) -> Any:
+    def parse_model_file(self, file_name: str) -> dict:
         with open(file_name, "r") as file:
             return json.loads(file.read())
 
     def load_from_file(self, file_name: str) -> None:
         self.load_from_json(self.parse_model_file(file_name))
 
-    def load_from_json(self, model_json: Any) -> None:
+    def load_from_json(self, model_json: dict) -> None:
             if isinstance(model_json, list):
                 # Old format
                 self.loss.from_json(model_json)
@@ -240,20 +240,21 @@ class TTTPlayerImpl:
 
     # For a set of next step boards and coords of next step
     # calculates value and stores it in the coords of next step.
-    def get_next_step_values(self, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+    def get_next_step_values(self, boards: list[tuple[Matrix, int, int]]) -> list[list[Optional[float]]]:
         values: list[list[Optional[float]]] = copy.deepcopy(START_VALUES)
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
             values[x][y] = self.get_next_step_value(board)
         return values
 
-    def get_next_step_value(self, board: list[list[int]]) -> float:
-        if self.enable_cpp:
+    def get_next_step_value(self, board: Matrix) -> float:
+        if not self.enable_cpp:
+            board_list = value(board)
+            self.x.set(board_list)
+            step_value = self.prediction.val()
+        else:
             self.m.set_data(self.x, board)
             step_value = value(self.z3.fval())
-        else:
-            self.x.set(board)
-            step_value = self.prediction.val()
         # Normalize the value to [-1;+1] range from sigmoid's output of [0;+1]
         return step_value[0][0] * 2 - 1
 

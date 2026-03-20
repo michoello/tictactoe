@@ -38,7 +38,7 @@ from listinvert import (
     Tanh,
 )
 
-from typing import Any, Optional
+from typing import Optional
 START_VALUES: list[list[Optional[float]]] = [
     [None, None, None, None, None, None],
     [None, None, None, None, None, None],
@@ -50,7 +50,7 @@ START_VALUES: list[list[Optional[float]]] = [
 # For some reason this does not work
 # START_VALUES_COMMENTED = [ [None]*6 for _ in range(6)]
 
-def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
+def DData(mod3l: Mod3l, rows: int, cols: int, values: list[list[float]]) -> Data:
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
     return res
@@ -136,14 +136,14 @@ class TTTPlayerV2:
            self.m.set_data(self.fold, ml.random_matrix(CONVO_CHANNELS, 1, 1.0))
 
 
-    def get_next_step_values(self, player: int, boards: list[tuple[list[list[int]], int, int]]) -> list[list[Optional[float]]]:
+    def get_next_step_values(self, player: int, boards: list[tuple[Matrix, int, int]]) -> list[list[Optional[float]]]:
         values = copy.deepcopy(START_VALUES)
         for board, x, y in boards:
             values[x][y] = self.get_next_step_value(player, board)
         return values
 
 
-    def get_next_step_value(self, player: int, board: list[list[int]]) -> float:
+    def get_next_step_value(self, player: int, board: Matrix) -> float:
         self.m.set_data(self.dplayer, [[player]])
         self.m.set_data(self.dinput, board)
         #step_value = value(self.value_label.fval())
@@ -184,14 +184,14 @@ class TTTPlayerV2:
         self.m.set_data(self.policy_labels, policy)
 
 
-    def parse_model_file(self, file_name: str) -> Any:
+    def parse_model_file(self, file_name: str) -> dict:
         with open(file_name, "r") as file:
             return json.loads(file.read())
 
     def load_from_file(self, file_name: str) -> None:
         self.load_from_json(self.parse_model_file(file_name))
 
-    def load_from_json(self, model_json: Any) -> None:
+    def load_from_json(self, model_json: dict) -> None:
         data = model_json["data"]
 
         self.m.set_data(self.kernels1, data[f"kernel1"])
@@ -212,7 +212,7 @@ class TTTPlayerV2:
             self._replay_buffer.from_json(decompress(model_json["replay_buffer_zip"]))
 
 
-    def replay_buffer(self) -> Any:
+    def replay_buffer(self) -> replay_buffer.ReplayBuffer:
         return self._replay_buffer
 
     def save_to_file(self, file_name: str) -> None:
@@ -242,14 +242,14 @@ class TTTPlayerV2:
 
 
     # Returns tuple of two losses: value and policy
-    def get_loss_value(self) -> Any:
+    def get_loss_value(self) -> tuple[float, float]:
         return self.value_loss.fval().get(0, 0), self.policy_loss.fval().get(0, 0)
 
 
     # Somehow this function never triggered.
     # TODO: remove it?
     def find_nan_grads(self) -> bool:
-       def contains_nan(block: Any) -> bool:
+       def contains_nan(block: Block) -> bool:
            return any(math.isnan(x) for row in value(block.bval()) for x in row)
 
        blocks = {

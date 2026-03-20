@@ -1,6 +1,7 @@
 // listinvert/invert.cpp
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 #include <vector>
 #include <iostream>
 
@@ -23,7 +24,9 @@ PYBIND11_MODULE(_listinvert, m) {
              "Gets an element by (row, col)")
         .def("set", (void (Matrix::*)(int,int, double)) &Matrix::set,
              py::arg("row"), py::arg("col"), py::arg("value"),
-             "Sets an element by (row, col)");
+             "Sets an element by (row, col)")
+        .def(py::self == py::self)
+        .def(py::self != py::self);
  
 
     m.def("value", &value<Matrix>, "Returns matrix value as vector of vectors");
@@ -31,7 +34,8 @@ PYBIND11_MODULE(_listinvert, m) {
 
     py::class_<Mod3l>(m, "Mod3l")
         .def(py::init<>())
-        .def("set_data", &Mod3l::set_data)
+        .def("set_data", (void (Mod3l::*)(Block*, const std::vector<std::vector<double>>&)) &Mod3l::set_data)
+        .def("set_data", (void (Mod3l::*)(Block*, const Matrix&)) &Mod3l::set_data)
         .def("global_grad_norm", &Mod3l::global_grad_norm);
 
     py::class_<Block>(m, "Block")

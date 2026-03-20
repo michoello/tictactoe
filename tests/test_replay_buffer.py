@@ -7,12 +7,17 @@ from unittest.mock import patch
 
 def make_gs(val: Any) -> game.GameState:
     gs = game.GameState(board=game.Board(), next_player=1)
-    gs.board.cells = cast(list[list[int]], val)
+    if isinstance(val, int):
+        gs.board.cells.set(0, 0, val)
+    elif isinstance(val, str):
+        gs.board.cells.set(0, 0, ord(val))
+    else:
+        gs.board.cells.set_data(cast(list[list[int]], val))
     gs.reward = [[1.0]]
     return gs
 
 def get_val(gs: game.GameState) -> Any:
-    return gs.board.cells
+    return gs.board.cells.get(0, 0)
 
 
 class TestReplayBuffer(unittest.TestCase):
@@ -28,7 +33,7 @@ class TestReplayBuffer(unittest.TestCase):
         buf.maybe_add(make_gs("b"))
         buf.maybe_add(make_gs("c"))
         random_item = get_val(buf.get_random())
-        self.assertIn(random_item, [item[0] for item in buf.buffer])
+        self.assertIn(random_item, [ord(item) for item in ["a", "b", "c"]])
 
     def test_get_uniformity(self) -> None:
         buf = replay_buffer.ReplayBuffer(max_size=5)
@@ -40,7 +45,7 @@ class TestReplayBuffer(unittest.TestCase):
         counts: Counter[int] = Counter()
         for _ in range(10_000):
             item = get_val(buf.get_random())
-            counts[cast(int, item)] += 1
+            counts[int(item)] += 1
 
         # Expect roughly uniform spread
         self.assertEqual(len(buf.buffer), 5)
@@ -66,7 +71,7 @@ class TestReplayBuffer(unittest.TestCase):
             # Count how many final buffer items fall into each bucket
             bucket_counts = [0] * num_buckets
             for item in buf.buffer:
-                bucket_idx = cast(int, item[0]) // bucket_size
+                bucket_idx = int(item[0].get(0, 0)) // bucket_size
                 bucket_counts[bucket_idx] += 1
 
             # Check that all bucket counts are within ±30% of expected

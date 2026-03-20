@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 from enum import Enum
 import math
+from listinvert import Matrix, value as mx_value
 
 START_BOARD = [[0 for _ in range(6)] for _ in range(6)]
 
@@ -16,36 +17,40 @@ class GameType(Enum):
     TICTACTOE_6_6_5_TOR = 2
 
 
+def make_matrix_board(cells: list[list[int]], game_type: GameType = GameType.TICTACTOE_6_6_4) -> 'Board':
+    m = Matrix(6, 6)
+    m.set_data(cells)
+    return Board(m, game_type=game_type)
+
+
 class Board:
-    cells: list[list[int]]
+    cells: Matrix
     game_type: GameType
 
-    def __init__(self, board: Optional[list[list[int]]] = None, game_type: GameType = GameType.TICTACTOE_6_6_4) -> None:
-        if not board:
+    def __init__(self, board: Optional[Matrix] = None, game_type: GameType = GameType.TICTACTOE_6_6_4) -> None:
+        if board is None:
+            self.cells = Matrix(6, 6)
             self.reset()
         else:
-            self.set(board)
+            self.cells = Matrix(board)
         self.game_type = game_type
 
     def reset(self) -> None:
-        self.cells = copy.deepcopy(START_BOARD)
+        self.cells.set_data(START_BOARD)
 
-    def set(self, board: list[list[int]]) -> None:
-        if len(board) != 6:
-            raise ValueError("board must have 6 rows sharp")
-        for row in board:
-            if len(row) != 6:
-                raise ValueError("each row must have 6 cols sharp")
-        self.cells = board
+    def set(self, board: Matrix) -> None:
+        if board.rows != 6 or board.cols != 6:
+            raise ValueError("board must be 6x6")
+        self.cells = Matrix(board)
 
     def copy(self) -> Board:
-        return Board(copy.deepcopy(self.cells), self.game_type)
+        return Board(Matrix(self.cells), self.game_type)
 
     def asstr(self) -> str:
         s = ""
         for row in range(6):
             for col in range(6):
-                s += str(self.cells[row][col])
+                s += str(int(self.cells.get(row, col)))
         return s
 
     # Generates all boards for next single step
@@ -54,9 +59,9 @@ class Board:
         boards = []
         for row in range(6):
             for col in range(6):
-                if self.cells[row][col] == 0:
+                if self.cells.get(row, col) == 0:
                     next_board = self.copy()  # copy.deepcopy(board)
-                    next_board.cells[row][col] = next_player
+                    next_board.cells.set(row, col, next_player)
                     boards.append((next_board, row, col))
         return boards
 
@@ -78,23 +83,24 @@ class Board:
             [(-1, 1), (-2, 2), (-3, 3)],
         ]
 
-        g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+        g = lambda x, y: b.get(x, y) if -1 < x < 6 and -1 < y < 6 else None
 
         xyo: list[tuple[int, int]] = []
         winner: Optional[int] = None
         there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
-                if b[i][j] == 0:
+                cur = b.get(i, j)
+                if cur == 0:
                     there_are_empty_cells = True
                     continue
 
                 for ll in lll:
                     xy = [(i + lx, j + ly) for lx, ly in ll]
-                    if all([g(x, y) == b[i][j] for x, y in xy]):
-                        if winner is not None and winner != b[i][j]:
+                    if all([g(x, y) == cur for x, y in xy]):
+                        if winner is not None and winner != cur:
                             return None, []
-                        winner = b[i][j]
+                        winner = int(cur)
                         xyo = xyo + [(i, j)] + xy
         if winner is None and not there_are_empty_cells:
             winner = 0
@@ -111,14 +117,14 @@ class Board:
             [(-1, 1), (-2, 2), (-3, 3), (-4, 4)],
         ]
 
-        g = lambda x, y: b[x][y] if -1 < x < 6 and -1 < y < 6 else None
+        g = lambda x, y: b.get(x, y) if -1 < x < 6 and -1 < y < 6 else None
 
         xyo: list[tuple[int, int]] = []
         winner: Optional[int] = None
         there_are_empty_cells = False
         for i in range(6):
             for j in range(6):
-                cur = b[i][j]
+                cur = b.get(i, j)
                 if cur == 0:
                     there_are_empty_cells = True
                     continue
@@ -128,7 +134,7 @@ class Board:
                     if all([g(x, y) == cur for x, y in xy]):
                         if winner is not None and winner != cur:
                             return None, []  # double winners, wrong
-                        winner = cur
+                        winner = int(cur)
                         xyo = xyo + [(i, j)] + xy
         if winner is None and not there_are_empty_cells:
             winner = 0
@@ -204,7 +210,7 @@ class GameState:
 
         for i in range(6):
             for j in range(6):
-                cell = self.board.cells[i][j]
+                cell = self.board.cells.get(i, j)
 
                 bg = "grey" if (i + j) % 2 == 0 else "black"
                 if cell == -1:
@@ -266,7 +272,7 @@ class Game:
                 best_xy = (row, col)
 
         row, col = best_xy
-        board.cells[row][col] = next_player
+        board.cells.set(row, col, next_player)
         winner, winning_row = board.check_winner()
 
         return GameState(
@@ -283,10 +289,10 @@ class Game:
     def random_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
         next_player = prev_state.next_player
-        empty_cells = [(r, c) for r in range(6) for c in range(6) if board.cells[r][c] == 0]
+        empty_cells = [(r, c) for r in range(6) for c in range(6) if board.cells.get(r, c) == 0]
         row, col = random.choice(empty_cells)
 
-        board.cells[row][col] = next_player
+        board.cells.set(row, col, next_player)
         winner, winning_row = board.check_winner()
 
         return GameState(
@@ -299,7 +305,7 @@ class Game:
 
     def turn_number(self, board: Board) -> int:
         # GameState number is count of O's on the board.
-        return sum([1 for row in board.cells for x in row if x == -1])
+        return sum([1 for r in range(6) for c in range(6) if board.cells.get(r, c) == -1])
 
     def choose_next_step(self, prev_state: GameState) -> GameState:
         # First step is always random to increase diversity

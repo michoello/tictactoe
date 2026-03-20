@@ -198,7 +198,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.Board(board).check_winner()[0], 1)
+        self.assertEqual(game.make_matrix_board(board).check_winner()[0], 1)
 
         board = [
             [0, 0, 0, 0, 0, 0],
@@ -208,7 +208,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, -1, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.Board(board).check_winner()[0], -1)
+        self.assertEqual(game.make_matrix_board(board).check_winner()[0], -1)
 
         board = [
             [0, 0, 0, 0, 0, 0],
@@ -218,7 +218,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, -1, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(game.Board(board).check_winner()[0], 1)
+        self.assertEqual(game.make_matrix_board(board).check_winner()[0], 1)
 
         board = [
             [0, 0, 0, 0, 0, 0],
@@ -228,7 +228,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, -1, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
         ]
-        winner, cells = game.Board(board).check_winner()
+        winner, cells = game.make_matrix_board(board).check_winner()
         self.assertEqual(winner, -1)
         self.assertEqual(cells, [(1, 4), (2, 3), (3, 2), (4, 1)])
 
@@ -240,7 +240,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, -1, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
         ]
-        winner, cells = game.Board(board).check_winner()
+        winner, cells = game.make_matrix_board(board).check_winner()
         self.assertEqual(winner, None)
         self.assertEqual(cells, [])
 
@@ -252,7 +252,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, -1, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
         ]
-        winner, cells = game.Board(board).check_winner()
+        winner, cells = game.make_matrix_board(board).check_winner()
         self.assertEqual(winner, None)
 
         board = [
@@ -263,7 +263,7 @@ class TestHelloWorld(unittest.TestCase):
             [0, 1, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0],
         ]
-        winner, cells = game.Board(board).check_winner()
+        winner, cells = game.make_matrix_board(board).check_winner()
         self.assertEqual(winner, 1)
         self.assertEqual(
             cells, [(1, 1), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (3, 1), (4, 1)]

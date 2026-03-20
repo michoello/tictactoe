@@ -120,6 +120,14 @@ public:
     reset_all_lazy_funcs();
   }
 
+  void set_data(Block *block, const Matrix &m) {
+    if (block->fowd_fun.val().rows != m.rows || block->fowd_fun.val().cols != m.cols) {
+        throw std::invalid_argument("set_data: Matrix dimensions do not match");
+    }
+    block->fowd_fun.val() = m;
+    reset_all_lazy_funcs();
+  }
+
   void reset_all_lazy_funcs() {
     for (auto &block : blocks) {
       block->reset_both_lazy_funcs();

@@ -36,17 +36,19 @@ class ReplayBuffer:
         if isinstance(item, list) and len(item) == 2:
             import lib.game as game
             state = game.GameState(board=game.Board(), next_player=1)
-            state.board.cells = item[0]
+            state.board.cells = game.Matrix(item[0])
             state.reward = item[1]
             return state
         return item
 
     def to_json(self) -> str:
+        import lib.game as game
+        serializable_buffer = [[game.mx_value(m), r] for m, r in self.buffer]
         return json.dumps(
             {
+                "buffer": serializable_buffer,
                 "count": self.count,
                 "max_size": self.max_size,
-                "buffer": self.buffer,
             }
         )
 

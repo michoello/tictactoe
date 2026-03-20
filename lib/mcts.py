@@ -195,7 +195,7 @@ def best_mcts_step(gm: Game, prev_state: GameState, num_simulations: int) -> Gam
     assert best_node is not None
     assert best_node.row is not None and best_node.col is not None
     
-    board.cells[best_node.row][best_node.col] = next_player
+    board.cells.set(best_node.row, best_node.col, next_player)
     winner = None
     winning_row = None
     if best_node.is_terminal:

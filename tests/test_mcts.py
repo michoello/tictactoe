@@ -16,7 +16,7 @@ class TestMcts(MyTestCase):
        g = game.Game(model_x, model_o, game.GameType.TICTACTOE_6_6_4, "mcts")
 
        # Test that MCTS chooses winning move
-       board = game.Board([
+       board = game.make_matrix_board([
            [0, 0,-1,-1, 0,-1],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],
@@ -53,7 +53,7 @@ class TestMcts(MyTestCase):
        # Test that MCTS chooses protective move
 
        # Put X between almost winning Os in row 1:
-       board = game.Board([
+       board = game.make_matrix_board([
            [0, 0,-1,-1, 0,-1],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],
@@ -74,7 +74,7 @@ class TestMcts(MyTestCase):
        self.assertEqual([next_state_x.prev_move[0], next_state_x.prev_move[1]], [0, 4])
 
        # Put O in center to block Xs diagonal:
-       board = game.Board([
+       board = game.make_matrix_board([
            [0, 0,-1,-1, 0, 0],
            [0, 0, 0, 0, 0, 0],
            [0, 0, 0, 0, 0, 0],

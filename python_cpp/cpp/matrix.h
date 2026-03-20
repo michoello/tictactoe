@@ -53,6 +53,18 @@ struct Matrix {
   inline double get(size_t r, size_t c) const { return data[r * cols + c]; }
   inline void set(size_t r, size_t c, double value) { data[r * cols + c] = value; }
 
+  bool operator==(const Matrix& other) const {
+    if (rows != other.rows || cols != other.cols) return false;
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (data[i] != other.data[i]) return false;
+    }
+    return true;
+  }
+  
+  bool operator!=(const Matrix& other) const {
+    return !(*this == other);
+  }
+
   // Convert bawd_fun to nested vector (Python list-of-lists)
 };
 

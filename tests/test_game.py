@@ -8,6 +8,7 @@ from lib import ttt_player_v2 as tttv2
 from utils import roughlyEqual
 from utils import SimpleRNG
 from unittest.mock import patch
+from listinvert import value as mx_value
 from lib import ratings
 
 # TODO: rename value
@@ -426,7 +427,7 @@ class TestPlayerV2(MyTestCase):
         next_player = 1
 
         state = game.GameState(board=game.Board(), next_player=1)
-        state.board.cells = train_board
+        state.board.cells.set_data(train_board)
         state.reward = train_value
 
         player2.set_board_and_value(
@@ -485,7 +486,7 @@ class TestPlayerV2(MyTestCase):
  
         # Note the step is not done by this call, it only returns coordinates (wait, actually it returns a new GameState with the step done)
         # X to play
-        state = game.GameState(board=game.Board(board_step_0), next_player=1)
+        state = game.GameState(board=game.make_matrix_board(board_step_0), next_player=1)
         next_state = g.best_greedy_step(state)
         assert next_state.prev_move is not None
         self.assertAlmostEqual(next_state.prev_move[0], 1)
@@ -510,7 +511,7 @@ class TestPlayerV2(MyTestCase):
         ]
 
         # Now the same, but the next step is O's
-        state_step_1 = game.GameState(board=game.Board(board_step_1), next_player=-1)
+        state_step_1 = game.GameState(board=game.make_matrix_board(board_step_1), next_player=-1)
         next_state_1 = g.best_greedy_step(state_step_1)
         assert next_state_1.prev_move is not None
         self.assertAlmostEqual(next_state_1.prev_move[0], 2)
@@ -537,13 +538,13 @@ class TestPlayerV2(MyTestCase):
         ]
 
         # Now let's play the full game and check that the first two steps are exactly the same:
-        steps = g.play_game(start_board=game.Board(board_step_0))
+        steps = g.play_game(start_board=game.make_matrix_board(board_step_0))
         self.assertAlmostEqual(len(steps), 6)
         
-        self.assertAlmostEqualNested(steps[1].board.cells, board_step_1)
+        self.assertAlmostEqualNested(mx_value(steps[1].board.cells), board_step_1)
         self.assertAlmostEqualNested(steps[1].reward, [[0.656]])
         
-        self.assertAlmostEqualNested(steps[2].board.cells, board_step_2)
+        self.assertAlmostEqualNested(mx_value(steps[2].board.cells), board_step_2)
         self.assertAlmostEqualNested(steps[2].reward, [[0.729]])
 
         steps[-1].print_state()
@@ -578,7 +579,7 @@ class TestPlayerV2(MyTestCase):
         # Note the step is not done by this call, it only returns coordinates
         # X to win
         state = game.GameState(board=game.Board(), next_player=1)
-        state.board.cells = train_board
+        state.board.cells.set_data(train_board)
         next_state = g.best_greedy_step(state)
         assert next_state.prev_move is not None
         self.assertAlmostEqual(next_state.prev_move[0], 1)
@@ -627,7 +628,7 @@ class TestPlayerV2(MyTestCase):
                 train_batch = g.generate_batch_from_games(20)
 
                 for i in range(10):
-                    train_loss = 0
+                    train_loss = 0.0
                     for state in train_batch:
                         m.set_board_and_value( 1, state)
                         m.calc_grads()
@@ -638,7 +639,7 @@ class TestPlayerV2(MyTestCase):
                     m.apply_gradient()
 
                 if epoch % 2 == 0:
-                    test_loss = 0
+                    test_loss = 0.0
                     for state in test_batch:
                         m.set_board_and_value( 1, state)
                         test_loss = test_loss + m.get_loss_value()[0]
@@ -683,7 +684,7 @@ class TestPlayerV2(MyTestCase):
             
             expected_batch = [
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
@@ -695,7 +696,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.058]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
@@ -707,7 +708,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.065]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
@@ -719,7 +720,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.072]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  1,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
@@ -731,7 +732,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.080]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  1,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
@@ -743,7 +744,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.089]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  1,  0,  0,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -755,7 +756,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.098]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 0,  1,  0, -1,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -767,7 +768,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.109]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -779,7 +780,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.122]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  0,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -791,7 +792,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.135]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -803,7 +804,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.150]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  0],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -815,7 +816,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.167]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [ 0,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -827,7 +828,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.185]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  0,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -839,7 +840,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.206]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  0,  0],
                         [ 1,  0,  0,  0,  0,  0],
@@ -851,7 +852,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.229]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  0,  0],
                         [ 1,  0,  0, -1,  0,  0],
@@ -863,7 +864,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.254]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  0],
                         [ 1,  0,  0, -1,  0,  0],
@@ -875,7 +876,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.282]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  0],
                         [ 1,  0,  0, -1,  0,  0],
@@ -887,7 +888,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.314]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  0,  0],
@@ -899,7 +900,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.349]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  0,  0],
@@ -911,7 +912,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.387]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  0],
@@ -923,7 +924,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.430]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  0],
@@ -935,7 +936,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.478]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -947,7 +948,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.531]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -959,7 +960,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.590]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -971,7 +972,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.656]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -983,7 +984,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.729]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1,  0, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -995,7 +996,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.810]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1, -1, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  0, -1,  1,  1],
@@ -1007,7 +1008,7 @@ class TestPlayerV2(MyTestCase):
                     reward=[[0.900]]
                 ),
                 game.GameState(
-                    board=game.Board([
+                    board=game.make_matrix_board([
                         [ 1,  1, -1, -1,  1,  1],
                         [-1,  0,  0,  1,  1,  1],
                         [ 1,  0,  1, -1,  1,  1],
