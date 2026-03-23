@@ -315,7 +315,7 @@ class Game:
 
     # Returns list of consequtive game states
     # The reward of last state shows the game winner
-    def play_game(self, start_board: Optional[Board] = None) -> list[GameState]:
+    def play_game(self, start_board: Optional[Board] = None, flip_reward: Optional[bool] = False) -> list[GameState]:
         if start_board is None:
             start_board = Board(game_type=self.game_type)
         steps = []
@@ -327,14 +327,11 @@ class Game:
             next_state = self.choose_next_step(prev_state)
             steps.append(next_state)
 
-        # Set desired rewards to the boards
-        assert steps[-1].winner is not None
-        reward: float = float(steps[-1].winner)
+        # Set rewards to the boards
+        reward: float = 1.0 if flip_reward else float(steps[-1].winner)
         for step in reversed(steps):
-            mx_reward = Matrix(1, 1)
-            mx_reward.set(0, 0, reward)
-            step.reward = mx_reward
-            reward = reward * 0.9
+            step.reward = Matrix([[reward]])
+            reward = reward * 0.9 * (-1 if flip_reward else 1)
 
         return steps
 
@@ -348,19 +345,21 @@ class Game:
 
       return winners
 
-    def generate_batch_from_games(self, num_boards: Optional[int] = None, shuffle: bool = True, num_games: Optional[int] = None) -> list[GameState]:
+    def generate_batch_from_games(self, num_boards: Optional[int] = None, 
+                                  shuffle: bool = True, num_games: Optional[int] = None,
+                                  flip_reward: Optional[bool] = False) -> list[GameState]:
         all_steps: list[GameState] = []
 
         if num_boards is not None:
             if num_games is not None:
                 raise ValueError("Exactly one of num_boards or num_games must be provided")
             while len(all_steps) < num_boards:
-                all_steps.extend(self.play_game())
+                all_steps.extend(self.play_game(flip_reward=flip_reward))
         else:
             if num_games is None:
                 raise ValueError("Exactly one of num_boards or num_games must be provided")
             for _ in range(num_games):
-                all_steps.extend(self.play_game())
+                all_steps.extend(self.play_game(flip_reward=flip_reward))
 
         if shuffle:
             random.shuffle(all_steps)

@@ -1,26 +1,13 @@
 import unittest
+import tempfile
 from typing import cast, Any
 from lib import ml
 from lib import game
-import tempfile
 from lib import ttt_player as ttt
 from lib import ttt_player_v2 as tttv2
-from utils import roughlyEqual
-from utils import SimpleRNG
+from utils import roughlyEqual, SimpleRNG
 from unittest.mock import patch
 from listinvert import value as mx_value
-
-from listinvert import Matrix
-def mk_rew(v: float) -> Matrix:
-    m = Matrix(1,1)
-    m.set(0,0,v)
-    return m
-
-def mk_pol(v_list: list[list[float]]) -> Matrix:
-    m = Matrix(1,36)
-    for i in range(36): m.set(0, i, v_list[0][i])
-    return m
-
 from lib import ratings
 
 # TODO: rename value
@@ -53,7 +40,6 @@ def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
 
 
 class MyTestCase(unittest.TestCase):
-    from typing import Any
     def assertAlmostEqualNested(self, a: Any, b: Any, delta: float = 1e-3) -> None:
         if isinstance(a, Matrix):
             a = mx_value(a)
@@ -440,12 +426,12 @@ class TestPlayerV2(MyTestCase):
             [  0, 0, 0, 0, 0,   0] +
             [  0, 0, 0, 0, 0, 0.1]
         ]
-        train_policy_mx = mk_pol(train_policy)
+        train_policy_mx = Matrix(train_policy)
         next_player = 1
 
         state = game.GameState(board=game.Board(), next_player=1)
         state.board.cells.set_data(train_board)
-        state.reward = mk_rew(train_value[0][0])
+        state.reward = Matrix([[train_value[0][0]]])
 
         player2.set_board_and_value(
             player = next_player,
@@ -693,11 +679,9 @@ class TestPlayerV2(MyTestCase):
             m = tttv2.TTTPlayerV2()
             random_model = ttt.TTTRandom()
             g = game.Game(m, random_model)
-            batch = g.generate_batch_from_games(num_games=1, shuffle=False)
-            
+            batch = g.generate_batch_from_games(num_games=1, shuffle=False, flip_reward=True)
             
             self.assertEqual(len(batch), 28)
-            
             
             expected_batch = [
                 game.GameState(
@@ -710,7 +694,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  0,  0,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.058)
+                    reward=Matrix([[-0.058]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -722,7 +706,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.065)
+                    reward=Matrix([[0.065]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -734,7 +718,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.072)
+                    reward=Matrix([[-0.072]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -746,7 +730,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1,  0,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.080)
+                    reward=Matrix([[0.080]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -758,7 +742,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.089)
+                    reward=Matrix([[-0.089]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -770,7 +754,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.098)
+                    reward=Matrix([[0.098]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -782,7 +766,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.109)
+                    reward=Matrix([[-0.109]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -794,7 +778,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.122)
+                    reward=Matrix([[0.122]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -806,7 +790,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.135)
+                    reward=Matrix([[-0.135]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -818,7 +802,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.150)
+                    reward=Matrix([[0.150]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -830,7 +814,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.167)
+                    reward=Matrix([[-0.167]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -842,7 +826,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.185)
+                    reward=Matrix([[0.185]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -854,7 +838,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.206)
+                    reward=Matrix([[-0.206]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -866,7 +850,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.229)
+                    reward=Matrix([[0.229]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -878,7 +862,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.254)
+                    reward=Matrix([[-0.254]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -890,7 +874,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.282)
+                    reward=Matrix([[0.282]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -902,7 +886,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.314)
+                    reward=Matrix([[-0.314]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -914,7 +898,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.349)
+                    reward=Matrix([[0.349]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -926,7 +910,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.387)
+                    reward=Matrix([[-0.387]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -938,7 +922,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.430)
+                    reward=Matrix([[0.430]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -950,7 +934,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.478)
+                    reward=Matrix([[-0.478]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -962,7 +946,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.531)
+                    reward=Matrix([[0.531]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -974,7 +958,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.590)
+                    reward=Matrix([[-0.590]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -986,7 +970,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.656)
+                    reward=Matrix([[0.656]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -998,7 +982,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.729)
+                    reward=Matrix([[-0.729]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -1010,7 +994,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(0.810)
+                    reward=Matrix([[0.810]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -1022,7 +1006,7 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=1,
-                    reward=mk_rew(0.900)
+                    reward=Matrix([[-0.900]])
                 ),
                 game.GameState(
                     board=game.make_matrix_board([
@@ -1034,12 +1018,14 @@ class TestPlayerV2(MyTestCase):
                         [ 0,  0,  1, -1,  0,  0]
                     ]),
                     next_player=-1,
-                    reward=mk_rew(1.000)
+                    reward=Matrix([[1.000]])
                 ),
             ]
 
             for i in range(len(batch)):
-                self.assertTrue(batch[i].almost_equal(expected_batch[i], delta=0.001))
+                if not batch[i].almost_equal(expected_batch[i], delta=0.001):
+                    print(f"Failed for game state {i}") # TODO: output details if fails
+                    self.assertTrue(False)
 
 
 if __name__ == "__main__":
