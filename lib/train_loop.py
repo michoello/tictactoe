@@ -40,10 +40,10 @@ class Tee:
 
 # -------------------------------------------
 
-def calc_loss(player: int, m: Any, batch: list[game.GameState]) -> float:
+def calc_loss(m: Any, batch: list[game.GameState]) -> float:
     sum_loss = 0
     for state in batch:
-        m.set_board_and_value(player, state)
+        m.set_board_and_value(state)
         sum_loss = sum_loss + m.get_loss_value()[0]
     return sum_loss / len(batch)
 
@@ -82,29 +82,17 @@ def train_single_round(
     for i in range(train_iterations):
         sloss, k1norm, k2norm, cnt = 0.0, 0.0, 0.0, 0
         for state in train_batch:
-            _player = 1 if trainee == "crosses" else -1
-            m_student.set_board_and_value(_player, state)
-            m_student.calc_grads()
+            m_student.set_board_and_value(state)
             m_student.apply_gradient(0.001)
 
             loss, policy_loss = m_student.get_loss_value()
-
-            if math.isnan(loss):
-              print("Label: ", value(m_student.value_label.fval()))
-              print("input: ", value(m_student.dinput.fval()))
-              print("Grads kernels1: ", value(m_student.kernels1.bval()))
-              print("Grads kernels2: ", value(m_student.kernels2.bval()))
-              print("Output kernels1: ", value(m_student.kernels1.fval()))
-              print("Output kernels2: ", value(m_student.kernels2.fval()))
-              import sys
-              sys.exit()
 
             sloss += loss
             k1norm += grad_norm(value(m_student.kernels1.bval()))
             k2norm += grad_norm(value(m_student.kernels2.bval()))
             cnt += 1
 
-        train_loss = calc_loss(_player, m_student, train_batch)
+        train_loss = calc_loss(m_student, train_batch)
         if i % 20 == 0:
             sloss, k1norm, k2norm = sloss/cnt, k1norm/cnt, k2norm/cnt
             print(f"EPOCH {i}: Train loss={train_loss}")

@@ -119,18 +119,17 @@ class TestTrainingCycle(MyTestCase):
 
                 for i in range(10):
                     for state in train_batch:
-                        m.set_board_and_value( 1, state)
-                        m.set_board_and_value(-1, state)
+                        m.set_board_and_value(state)
                         m.calc_grads()
                         m.apply_gradient()
 
-                    test_loss = 0
-                    for state in test_batch:
-                        m.set_board_and_value( 1, state)
-                        m.set_board_and_value(-1, state)
-                        test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
 
                 if epoch % 5 == 0:
+                    test_loss = 0
+                    for state in test_batch:
+                        m.set_board_and_value(state)
+                        test_loss = test_loss + value(m.model_x.loss.fval())[0][0]
+
                     m.save_to_file(trained_model)
                     print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
 
@@ -211,8 +210,7 @@ class TestTrainingCycle(MyTestCase):
             g = game.Game(mx, mo)
             train_batch = g.generate_batch_from_games(25)
 
-            mx.set_board_and_value( 1, train_batch[0])
-            mx.set_board_and_value(-1, train_batch[0])
+            mx.set_board_and_value(train_batch[0])
 
             # Check that gradient decreased
             self.assertAlmostEqualNested(value(mx.model_x.loss.fval()), [[1.923999]], 1e-6)
@@ -434,14 +432,13 @@ class TestPlayerV2(MyTestCase):
         state.reward = Matrix([[train_value[0][0]]])
 
         player2.set_board_and_value(
-            player = next_player,
             state = state,
             policy = train_policy_mx,
         )
  
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 3.322)
-        self.assertAlmostEqualNested(policy_loss, 6.146)
+        self.assertAlmostEqualNested(value_loss, 0.1088)
+        self.assertAlmostEqualNested(policy_loss, 6.0277)
 
         for i in range(1200):
             value_before, policy_before = player2.get_loss_value()
@@ -457,10 +454,9 @@ class TestPlayerV2(MyTestCase):
 
 
         value_loss, policy_loss = player2.get_loss_value()
-        self.assertAlmostEqualNested(value_loss, 0.00248)
+        self.assertAlmostEqualNested(value_loss, 0.00101)
         self.assertAlmostEqualNested(policy_loss, 0.902)
 
-        # TODO: get rid of "impl"
         self.assertAlmostEqualNested(value(player2.policy.fval()), train_policy, delta=0.01)
 
 
@@ -625,8 +621,7 @@ class TestPlayerV2(MyTestCase):
                 train_batch = g.generate_batch_from_games(20)
                 for i in range(10):
                     for state in train_batch:
-                        active_player = -state.next_player
-                        student_model.set_board_and_value(active_player, state)
+                        student_model.set_board_and_value(state)
                         student_model.apply_gradient(0.001)
 
                 student_model.save_to_file(trained_name)
@@ -634,8 +629,7 @@ class TestPlayerV2(MyTestCase):
                 if epoch % 1 == 0:
                     test_loss = 0.0
                     for state in test_batch:
-                        active_player = -state.next_player
-                        student_model.set_board_and_value(active_player, state)
+                        student_model.set_board_and_value(state)
                         test_loss = test_loss + student_model.get_loss_value()[0]
                     print(f"{epoch}/{total_epochs} - test_loss {test_loss:.3f}")
 
