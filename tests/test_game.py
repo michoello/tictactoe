@@ -597,7 +597,6 @@ class TestPlayerV2(MyTestCase):
          [0, -0.812, -0.812, -0.812, 0, -0.812]
         ])
 
-
     def test_training_player_and_game_v2(self) -> None:
         rng = SimpleRNG(seed=44)
         with patch("random.random", new=rng.random), patch(
@@ -605,69 +604,56 @@ class TestPlayerV2(MyTestCase):
         ), patch("random.choice", new=rng.choice), patch(
             "random.shuffle", new=rng.shuffle
         ):
-            init_model = tempfile.mktemp()
-            trained_model = tempfile.mktemp()
+            started_name = tempfile.mktemp()
+            trained_name = tempfile.mktemp()
 
-            m = tttv2.TTTPlayerV2()
-            m.save_to_file(init_model)
-            m.save_to_file(trained_model)
+            student_model = tttv2.TTTPlayerV2()
+            student_model.save_to_file(started_name)
+            student_model.save_to_file(trained_name)
 
-            random_model = tttv2.TTTPlayerV2(init_model)
-            m = tttv2.TTTPlayerV2(trained_model)
+            started_model = tttv2.TTTPlayerV2(started_name)
+            student_model = tttv2.TTTPlayerV2(trained_name)
 
             print("Training")
 
-            g = game.Game(random_model, random_model)
-
+            g = game.Game(started_model, started_model)
             test_batch = g.generate_batch_from_games(20)
 
-            total_epochs = 80
+            total_epochs = 15
             for epoch in range(total_epochs):
-                #if epoch % 2 == 0:
-                g = game.Game(m, random_model)
-                #else:
-                #  g = game.Game(random_model, m)
-                  
+                g = game.Game(student_model, student_model)
                 train_batch = g.generate_batch_from_games(20)
-
                 for i in range(10):
-                    train_loss = 0.0
                     for state in train_batch:
-                        m.set_board_and_value( 1, state)
-                        m.calc_grads()
-                        train_loss = train_loss + m.get_loss_value()[0]
-                        m.set_board_and_value(-1, state)
-                        m.calc_grads()
-                        train_loss = train_loss + m.get_loss_value()[0]
-                    m.apply_gradient()
+                        active_player = -state.next_player
+                        student_model.set_board_and_value(active_player, state)
+                        student_model.apply_gradient(0.001)
 
-                if epoch % 2 == 0:
+                student_model.save_to_file(trained_name)
+
+                if epoch % 1 == 0:
                     test_loss = 0.0
                     for state in test_batch:
-                        m.set_board_and_value( 1, state)
-                        test_loss = test_loss + m.get_loss_value()[0]
-                        m.set_board_and_value(-1, state)
-                        test_loss = test_loss + m.get_loss_value()[0]
-                    print(f"{epoch/total_epochs*100}% - test_loss {test_loss}")
-
-                if epoch % 10 == 0:
-                    m.save_to_file(trained_model)
+                        active_player = -state.next_player
+                        student_model.set_board_and_value(active_player, state)
+                        test_loss = test_loss + student_model.get_loss_value()[0]
+                    print(f"{epoch}/{total_epochs} - test_loss {test_loss:.3f}")
 
             print("Playing...")
-            trained_model_obj = tttv2.TTTPlayerV2(trained_model)
+            trained_model = tttv2.TTTPlayerV2(trained_name)
 
+            g = game.Game(trained_model, started_model)
             # ctw = crosses_trained_winners
-            g = game.Game(trained_model_obj, random_model)
             ctw = g.competition(20)
-            print("Trained crosses WINNERS cross:", ctw[1], " zero:", ctw[-1])
+            print("Trained X vs Random O:", ctw[1], ":", ctw[-1])
             self.assertGreater(ctw[1], ctw[-1])
 
             # ztw = zeroes_trained_winners
-            g = game.Game(random_model, trained_model_obj)
+            g = game.Game(started_model, trained_model)
             ztw = g.competition(20)
-            print("Trained zeroes WINNERS cross:", ztw[1], " zero:", ztw[-1])
-            # TODO: uncomment. There is a lot to do to make it work yet ahead
-            #self.assertLess(ztw[1], ztw[-1])
+            print("Random X vs Trained O:", ztw[1], ":", ztw[-1])
+            self.assertLess(ztw[1], ztw[-1])
+
 
     def test_generate_batch_untrained_v2(self) -> None:
         rng = SimpleRNG(seed=22)
