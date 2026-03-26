@@ -33,6 +33,12 @@ from listinvert import (
 )
 
 
+def print_policy(p: Any) -> None:
+               print()
+               for i in range(6):
+                   print([round(x, 3) for x in p[0][i*6:i*6+6]], " + ")
+
+
 def DData(mod3l: Any, rows: int, cols: int, values: list[list[float]]) -> Any:
     res = Data(mod3l, rows, cols)
     mod3l.set_data(res, values)
@@ -490,14 +496,14 @@ class TestPlayerV2(MyTestCase):
         assert next_state.prev_move is not None
         self.assertAlmostEqual(next_state.prev_move[0], 1)
         self.assertAlmostEqual(next_state.prev_move[1], 2)
-        # TODO: softmax it. currently it it's just values
         self.assertAlmostEqualNested(next_state.policy, [
-           [0, -0.979, 0, 0, -0.977, -0.971] +
-           [0, -0.978, -0.969, -0.975, -0.977, 0] +
-           [-0.977, -0.975, 0, -0.977, -0.975, 0] +
-           [-0.970, 0, -0.978, 0, -0.978, -0.973] +
-           [0, -0.985, -0.977, -0.976, -0.979, 0] +
-           [0, -0.981, -0.980, -0.974, 0, -0.973]
+			[0.077, 0.0, 0.077, 0.077, 0.0, 0.0]  +
+			[0.077, 0.0, 0.0, 0.0, 0.0, 0.077]  +
+			[0.0, 0.0, 0.077, 0.0, 0.0, 0.077]  +
+			[0.0, 0.077, 0.0, 0.077, 0.0, 0.0]  +
+			[0.077, 0.0, 0.0, 0.0, 0.0, 0.077]  +
+			[0.077, 0.0, 0.0, 0.0, 0.077, 0.0] 
+
         ], delta=1e-2)
 
         board_step_1 = [
@@ -516,14 +522,13 @@ class TestPlayerV2(MyTestCase):
         self.assertAlmostEqual(next_state_1.prev_move[0], 2)
         self.assertAlmostEqual(next_state_1.prev_move[1], 1)
         # TODO: softmax it. currently it it's just values
-        assert next_state_1.policy is not None
         self.assertAlmostEqualNested(next_state_1.policy, [
-           [0, 0.449, 0, 0, 0.259, 0.306] +
-           [0, 0.350, 0, 0.331, 0.437, 0] +
-           [0.427, 0.540, 0, 0.453, 0.410, 0] +
-           [0.359, 0, 0.466, 0, 0.477, 0.442] +
-           [0, 0.253, 0.290, 0.319, 0.429, 0] +
-           [0, 0.470, 0.301, 0.312, 0, 0.373]
+			[0.001, 0.064, 0.001, 0.001, 0.01, 0.015]  +
+			[0.001, 0.024, 0.001, 0.02, 0.057, 0.001]  +
+			[0.052, 0.16, 0.001, 0.066, 0.043, 0.001]  +
+			[0.026, 0.001, 0.076, 0.001, 0.085, 0.06]  +
+			[0.001, 0.009, 0.013, 0.017, 0.052, 0.001]  +
+			[0.001, 0.079, 0.015, 0.016, 0.001, 0.03] 
         ], delta=1e-2)
 
   
@@ -583,14 +588,13 @@ class TestPlayerV2(MyTestCase):
         assert next_state.prev_move is not None
         self.assertAlmostEqual(next_state.prev_move[0], 1)
         self.assertAlmostEqual(next_state.prev_move[1], 2)
-        # TODO: softmax it. currently it it's just values
         self.assertAlmostEqualNested(next_state.policy, [
-         [0, -0.839, 0, 0, -0.812, -0.812] +
-         [0, -0.850, -0.792, -0.809, -0.812, 0] +
-         [-0.797, -0.845, 0, -0.812, -0.812, 0] +
-         [-0.812, 0, -0.812, 0, -0.812, -0.812] +
-         [0, -0.812, -0.812, -0.812, -0.812, 0] +
-         [0, -0.812, -0.812, -0.812, 0, -0.812]
+			[0.077, 0.0, 0.077, 0.077, 0.0, 0.0]  +
+			[0.077, 0.0, 0.0, 0.0, 0.0, 0.077]  +
+			[0.0, 0.0, 0.077, 0.0, 0.0, 0.077]  +
+			[0.0, 0.077, 0.0, 0.077, 0.0, 0.0]  +
+			[0.077, 0.0, 0.0, 0.0, 0.0, 0.077]  +
+			[0.077, 0.0, 0.0, 0.0, 0.077, 0.0]
         ])
 
     def test_training_player_and_game_v2(self) -> None:
@@ -1001,6 +1005,33 @@ class TestPlayerV2(MyTestCase):
                     reward=Matrix([[1.000]])
                 ),
             ]
+
+
+
+            penultimate = batch[-2]
+            self.assertAlmostEqualNested(penultimate.policy, [
+				[0.0, 0.0, 0.439, 0.0, 0.0, 0.0]  +
+				[0.0, 0.308, 0.0, 0.0, 0.0, 0.0]  +
+				[0.0, 0.004, 0.039, 0.0, 0.0, 0.0]  +
+				[0.0, 0.0, 0.0, 0.0, 0.045, 0.0]  +
+				[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  +
+				[0.0, 0.001, 0.0, 0.0, 0.125, 0.037] 
+            ])
+
+
+            final = batch[-1]
+            self.assertAlmostEqualNested(final.policy, [
+				[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  +
+				[0.0, 0.096, 0.1, 0.0, 0.0, 0.0]  +
+				[0.0, 0.093, 0.102, 0.0, 0.0, 0.0]  +
+				[0.0, 0.0, 0.0, 0.0, 0.101, 0.0]  +
+				[0.0, 0.0, 0.0, 0.101, 0.0, 0.0]  +
+				[0.101, 0.101, 0.0, 0.0, 0.101, 0.101]
+            ])
+
+
+
+
 
             for i in range(len(batch)):
                 if not batch[i].almost_equal(expected_batch[i], delta=0.001):

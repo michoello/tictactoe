@@ -242,6 +242,22 @@ class Game:
         self.model_x = model_x
         self.model_o = model_o
 
+
+    def softmax_the_policy_out_of_values(self, matrix: list[list], scale: float) -> None:
+      max_val = max(max(row) * scale for row in matrix)
+
+      total = 0.0
+      for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            val = math.exp(matrix[i][j] * scale - max_val)
+            matrix[i][j] = val
+            total += val
+
+      for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            matrix[i][j] /= total
+
+
     def best_greedy_step(self, prev_state: GameState) -> GameState:
         board = prev_state.board.copy()
         next_player = prev_state.next_player
@@ -254,14 +270,14 @@ class Game:
         best_xy = (-1, -1)
         m = self.model_x if next_player == 1 else self.model_o
         
-        greedy_policy = Matrix(1, 36)
+        greedy_policy = [[0]*36]
 
         for next_board, row, col in boards:
             val = m.get_next_step_value(next_player, next_board.cells)
             if val is None:
                 continue
 
-            greedy_policy.set(0, row * 6 + col, val)
+            greedy_policy[0][row * 6 + col]  = val
 
             if val > best:
                 best = val
@@ -270,13 +286,15 @@ class Game:
         row, col = best_xy
         board.cells.set(row, col, next_player)
         winner, winning_row = board.check_winner()
+        self.softmax_the_policy_out_of_values(greedy_policy, 10)
+
 
         return GameState(
                 board=board, 
                 next_player=-next_player, 
                 turn_number=prev_state.turn_number + 1,
                 prev_move=(row, col),
-                policy=greedy_policy,
+                policy=Matrix(greedy_policy),
                 winner=winner,
                 winning_row=winning_row)
 
