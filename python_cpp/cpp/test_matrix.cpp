@@ -1604,3 +1604,73 @@ TEST_CASE(softmax_cross_entropy) {
 }
 
 int main(int argc, char **argv) { return run_tests(argc, argv); }
+
+TEST_CASE(larger_model_policy_gradient_loss) {
+  Mod3l m;
+
+  Block *dinput = Data(&m, 3, 3);
+  m.set_data(dinput, {
+       { 1, 0, -1},
+       { 1, 0, -1},
+       { 0, 1, -1},
+  });
+
+  Block *dkernel1 = Data(&m, 2, 2);
+  m.set_data(dkernel1, {
+     { 0.3, 0.1 },
+     { 0.2, 0.0 },
+  });
+  Block *dc1 = Convo(dinput, dkernel1);
+  Block *rl1 = ReLU(dc1);
+
+  Block *dkernel2 = Data(&m, 2, 2);
+  m.set_data(dkernel2, {
+     { -0.3, 0.1 },
+     { -0.2, 0.4 },
+  });
+  Block *dc2 = Convo(dinput, dkernel2);
+  Block *rl2 = ReLU(dc2);
+
+  Block *rl = Add(rl1, rl2);
+  
+  Block *dw = Data(&m, 3, 3);
+  //m.set_data(dw, {{1, 2, 3}, {5, 6, 7}, {9, 10, 11}});
+  m.set_data(dw, {
+     {1, 2, 3}, 
+     {5, 6, 7},
+     {9, 10, 11}
+  });
+
+  Block *dlogits = MatMul(rl, dw);
+  Block *dsoftmax = SoftMax(dlogits);
+
+  // Reward matrix with one reward set to 1, another to -1
+  Block *drewards = Data(&m, 3, 3);
+  m.set_data(drewards, {
+    {0, 1, 0},
+    {-1, 0, 0},
+    {0, 0, 0},
+  });
+  Block *policy_loss = PolicyGradientLoss(dlogits, dsoftmax, drewards);
+
+  double before_loss = policy_loss->fval().get(0, 0);
+  double before_pos = dsoftmax->fval().get(0, 1);
+  double before_neg = dsoftmax->fval().get(1, 0);
+
+  for(size_t i = 0; i < 400; ++i) {
+    dkernel1->apply_bval(0.001);
+    dkernel2->apply_bval(0.001);
+    dw->apply_bval(0.001);
+  }
+
+  double after_loss = policy_loss->fval().get(0, 0);
+  double after_pos = dsoftmax->fval().get(0, 1);
+  double after_neg = dsoftmax->fval().get(1, 0);
+
+  CHECK(after_loss < before_loss);
+
+  // The outputs of the model should be updated in the right direction
+  // (-1 - lowered, 1 - increased)
+  CHECK(after_pos > before_pos);
+  CHECK(after_neg < before_neg);
+}

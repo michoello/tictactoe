@@ -622,6 +622,37 @@ static Block *SoftMaxCrossEntropy(Block *logits, Block *softmax, Block *labels) 
   return res;
 }
 
+static Block *PolicyGradientLoss(Block *logits, Block *softmax, Block *rewards) {
+  auto *res = new Block({logits, rewards}, 1, 1);
+
+  res->set_fowd_fun([=](Matrix *out) {
+    const Matrix &mtx_softmax = softmax->fval();
+    const Matrix &mtx_rewards = rewards->fval();
+    double dot = 0.0;
+    for_each_ella([&dot](double prob, double reward) { 
+       dot += std::log(prob) * reward;
+    }, mtx_softmax, mtx_rewards);
+    out->set(0, 0, -dot);
+  });
+
+  logits->add_bawd_fun([softmax, rewards](Matrix *out) {
+    const Matrix &mtx_softmax = softmax->fval();
+    const Matrix &mtx_rewards = rewards->fval();
+    
+    double sum_rewards = 0.0;
+    for_each_ella([&sum_rewards](double r) { sum_rewards += r; }, mtx_rewards);
+
+    for_each_ella(
+        [sum_rewards](double prob, double reward, double &grads_back) {
+          grads_back = prob * sum_rewards - reward;
+        },
+        mtx_softmax, mtx_rewards, *out);
+  });
+
+  // There is no bawd_fun for rewards, nor for softmax - only for logits
+  return res;
+}
+
 static Block *Abs(Block *a) {
   auto *res = new Block({a}, a->rows(), a->cols());
 
