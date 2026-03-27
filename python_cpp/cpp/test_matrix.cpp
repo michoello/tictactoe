@@ -1450,7 +1450,7 @@ TEST_CASE(per_element_block_gradients_smoketest) {
 // This is a prototype of smoke test for a more realistic complex model
 // to be used for game training. As of now, it is simpler, toy version,
 // though still including all major blocks.
-TEST_CASE(larger_model) {
+TEST_CASE(larger_model_softmax_cross_entropy) {
   Mod3l m;
 
   Block *dinput = Data(&m, 3, 3);

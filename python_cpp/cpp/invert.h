@@ -120,6 +120,12 @@ public:
     reset_all_lazy_funcs();
   }
 
+  // To avoid ambiguity in corner cases where compiler tries to create a Matrix
+  void set_data(Block *block, std::initializer_list<std::initializer_list<double>> vals) {
+    std::vector<std::vector<double>> vec(vals.begin(), vals.end());
+    set_data(block, vec);
+  }
+
   void set_data(Block *block, const Matrix &m) {
     if (block->fowd_fun.val().rows != m.rows || block->fowd_fun.val().cols != m.cols) {
         throw std::invalid_argument("set_data: Matrix dimensions do not match");
